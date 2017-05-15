@@ -1,0 +1,223 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C9F70583-894D-48D9-8AE9-E1864E353E49}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>ProjectTails</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Users\scien\Documents\ProjectTails;C:\Users\scien\Documents\ProjectTails\jsoncpp-master\dist\json;C:\Users\scien\Documents\ProjectTails\zlib128-dll\include;C:\Program Files %28x86%29\GnuWin32\include;C:\Users\scien\Documents\ProjectTails\prhsGameLib8;C:\Users\scien\Documents\ProjectTails\SDL2-2.0.5\include;C:\Program Files (x86)\OpenAL 1.1 SDK\include;C:\Users\scien\Documents\ProjectTails\SFML-2.4.2\include\;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\scien\Documents\ProjectTails\SFML-2.4.2\lib;C:\Users\scien\Documents\ProjectTails\jsoncpp-master\makefiles\msvc2010\Debug;C:\Users\scien\Documents\ProjectTails\zlib128-dll\lib;C:\Program Files %28x86%29\GnuWin32\lib;C:\Users\scien\Documents\ProjectTails\SDL2-2.0.5\lib\x86;C:\Program Files (x86)\OpenAL 1.1 SDK\libs\Win64;$(LibraryPath)</LibraryPath>
+    <SourcePath>C:\Users\scien\Documents\ProjectTails\jsoncpp-master\dist;C:\Users\scien\Documents\ProjectTails\prhsGameLib8;$(SourcePath)</SourcePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Users\scien\Documents\ProjectTails\json-develop\src;C:\Users\scien\Documents\ProjectTails\zlib128-dll\include;C:\Users\scien\Documents\ProjectTails\SDL2-2.0.5\include;C:\Users\scien\Documents\ProjectTails\prhsGameLib8;C:\Program Files %28x86%29\GnuWin32\include;$(IncludePath)</IncludePath>
+    <SourcePath>C:\Users\scien\Documents\ProjectTails\json-develop\src;C:\Users\scien\Documents\ProjectTails\prhsGameLib8;$(SourcePath)</SourcePath>
+    <LibraryPath>C:\Users\scien\Documents\ProjectTails\SDL2-2.0.5\lib\x64;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Users\scien\Documents\ProjectTails\json-develop\src;C:\Users\scien\Documents\ProjectTails\zlib128-dll\include;C:\Users\scien\Documents\ProjectTails\SDL2-2.0.5\include;C:\Users\scien\Documents\ProjectTails\prhsGameLib8;C:\Program Files %28x86%29\GnuWin32\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\scien\Documents\ProjectTails\SDL2-2.0.5\lib\x64;$(LibraryPath)</LibraryPath>
+    <SourcePath>C:\Users\scien\Documents\ProjectTails\json-develop\src;C:\Users\scien\Documents\ProjectTails\prhsGameLib8;$(SourcePath)</SourcePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_mixer.lib;SDL2_image.lib;libpng.lib;zdll.lib;OpenAL32.lib;sfml-audio-d.lib;sfml-system-d.lib;flac.lib;vorbisenc.lib;vorbisfile.lib;vorbis.lib;ogg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>SDL2main.lib;SDL2.lib;SDL2_mixer.lib;SDL2_image.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>SDL2main.lib;SDL2.lib;SDL2_mixer.lib;SDL2_image.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Act.h" />
+    <ClInclude Include="Animation.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="CollisionTile.h" />
+    <ClInclude Include="Constants.h" />
+    <ClInclude Include="DataReader.h" />
+    <ClInclude Include="effectManager.h" />
+    <ClInclude Include="Ground.h" />
+    <ClInclude Include="InputComponent.h" />
+    <ClInclude Include="LevelEditor.h" />
+    <ClInclude Include="Miscellaneous.h" />
+    <ClInclude Include="PhysicsEntity.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="SoundHandler.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="Text.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Act.cpp" />
+    <ClCompile Include="Animation.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CollisionTile.cpp" />
+    <ClCompile Include="Constants.cpp" />
+    <ClCompile Include="DataReader.cpp" />
+    <ClCompile Include="effectManager.cpp" />
+    <ClCompile Include="Ground.cpp" />
+    <ClCompile Include="InputComponent.cpp" />
+    <ClCompile Include="LevelEditor.cpp" />
+    <ClCompile Include="Miscellaneous.cpp" />
+    <ClCompile Include="PhysicsEntity.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="ProjectTails.cpp" />
+    <ClCompile Include="SoundHandler.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Text.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ProjectTails.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\asset\FontGUI.png" />
+    <Image Include="..\..\asset\JetBadnik.png" />
+    <Image Include="..\..\asset\Ring.png" />
+    <Image Include="..\..\asset\Sky.png" />
+    <Image Include="..\..\asset\Tails_Idle.png" />
+    <Image Include="..\..\asset\Tornado.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="..\..\asset\WorldToExplore.wav" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
