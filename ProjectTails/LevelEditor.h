@@ -59,7 +59,7 @@ namespace LevelEditor {
 
 	extern double mouseWheelValue;
 
-	void init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, matrix < int >& blocks, matrix < int >& blockFlags, matrix < int >& collides, matrix < int >& collideFlags);
+	void init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, std::vector < Ground::groundArrayData >& arrayData);
 
 	void renderTiles();
 

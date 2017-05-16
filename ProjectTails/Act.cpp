@@ -334,7 +334,7 @@ void Act::UpdateCollisions(Player* player) {
 	}
 }
 
-void Act::loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, int& current, matrix& blocks, matrix& blockFlags, matrix& collides, matrix& collideFlags, std::vector<std::vector<Animation>>& background) {
+void Act::loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, int& current, std::vector < Ground::groundArrayData >& arrayData, std::vector<std::vector<Animation>>& background) {
 	if (!acts.empty()){
 		acts.front().Unload();
 	}
@@ -347,7 +347,7 @@ void Act::loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, 
 	std::vector < Ground > ground;
 	std::vector < DataReader::groundData > groundIndices;
 	SDL_Point levelSize;
-	DataReader::LoadActData(actPaths[current], actNum, actName, entities, winArea, actType, &ground, blocks, blockFlags, collides, collideFlags, &groundIndices, &levelSize);
+	DataReader::LoadActData(actPaths[current], actNum, actName, entities, winArea, actType, &ground, &arrayData, &groundIndices, &levelSize);
 	acts.emplace_back(actNum, actName, entities, winArea, actType, globalObjects::ratio, levelSize, background, std::move(ground));
 	acts.pop_front();
 }

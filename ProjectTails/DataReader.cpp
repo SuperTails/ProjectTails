@@ -3,7 +3,7 @@
 
 //Block and blockFlags refer to the visible tile mappings,
 //Collide and collideFlags refer to the collision mappings
-void DataReader::LoadJSONBlock(std::string path, std::vector < int >& block, std::vector < int >& blockFlags, std::vector < int >& collide, std::vector < int >& collideFlags) {
+void DataReader::LoadJSONBlock(std::string path, Ground::groundArrayData& arrayData) {
 	std::ifstream DataFile;
 	DataFile.open(path.c_str());
 	json j;
@@ -14,44 +14,44 @@ void DataReader::LoadJSONBlock(std::string path, std::vector < int >& block, std
 
 	const int MAX_GRAPHICS_TILE_INDEX = 339;
 
-	block.resize(256, 0);
-	blockFlags.resize(256, 0);
+	arrayData.graphicsIndices.resize(256, 0);
+	arrayData.graphicsFlags.resize(256, 0);
 
 	//Load image data
 	for (int i = 0; i < 256; i++) {
 		auto& thisTile = j["layers"][0]["tiles"][i];
 
-		block[i] = thisTile["tile"].get<int>();
+		arrayData.graphicsIndices[i] = thisTile["tile"].get<int>();
 
 		if (thisTile["rot"].get<int>() == 2) {
-			blockFlags[i] |= SDL_FLIP_VERTICAL;
-			blockFlags[i] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+			arrayData.graphicsFlags[i] |= SDL_FLIP_VERTICAL;
+			arrayData.graphicsFlags[i] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
 		}
 		else {
-			blockFlags[i] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
+			arrayData.graphicsFlags[i] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
 		}
 	}
 	if (numLayers >= 2) {
 		if (j["layers"][1]["tiles"][0]["tile"].get<int>() <= MAX_GRAPHICS_TILE_INDEX) {
 			isDoubleLayer = true;
 			//Load image data for layer 2
-			block.resize(512);
-			blockFlags.resize(512);
+			arrayData.graphicsIndices.resize(512);
+			arrayData.graphicsFlags.resize(512);
 			for (int i = 0; i < 256; i++) {
 				auto& thisTile = j["layers"][1]["tiles"][i];
-				block[i + 256] = thisTile["tile"].get<int>();
+				arrayData.graphicsIndices[i + 256] = thisTile["tile"].get<int>();
 				if (thisTile["rot"].get<int>() == 2) {
-					blockFlags[i + 256] |= SDL_FLIP_VERTICAL;
-					blockFlags[i + 256] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+					arrayData.graphicsFlags[i + 256] |= SDL_FLIP_VERTICAL;
+					arrayData.graphicsFlags[i + 256] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
 				}
 				else {
-					blockFlags[i + 256] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
+					arrayData.graphicsFlags[i + 256] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
 				}
 			}
 		}
 	}
-	collide.resize(256 * (numLayers - isDoubleLayer - 1), MAX_GRAPHICS_TILE_INDEX + 1);
-	collideFlags.resize(256 * (numLayers - isDoubleLayer - 1), 0);
+	arrayData.collideIndices.resize(256 * (numLayers - isDoubleLayer - 1), MAX_GRAPHICS_TILE_INDEX + 1);
+	arrayData.collideFlags.resize(256 * (numLayers - isDoubleLayer - 1), 0);
 	for (int l = 1 + isDoubleLayer; l < numLayers; l++) {
 		//Load collision data
 		for (int i = 0; i < 256; i++) {
@@ -60,13 +60,13 @@ void DataReader::LoadJSONBlock(std::string path, std::vector < int >& block, std
 			if (current == 591) {
 				current = 560;
 			}
-			collide[i + 256 * (l - isDoubleLayer - 1)] = current - 340;
+			arrayData.collideIndices[i + 256 * (l - isDoubleLayer - 1)] = current - 340;
 			if (thisTile["rot"].get<int>() == 2) {
-				collideFlags[i + 256 * (l - isDoubleLayer - 1)] |= SDL_FLIP_VERTICAL;
-				collideFlags[i + 256 * (l - isDoubleLayer - 1)] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+				arrayData.collideFlags[i + 256 * (l - isDoubleLayer - 1)] |= SDL_FLIP_VERTICAL;
+				arrayData.collideFlags[i + 256 * (l - isDoubleLayer - 1)] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
 			}
 			else {
-				collideFlags[i + 256 * (l - isDoubleLayer - 1)] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
+				arrayData.collideFlags[i + 256 * (l - isDoubleLayer - 1)] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
 			}
 		}
 	}
@@ -74,7 +74,7 @@ void DataReader::LoadJSONBlock(std::string path, std::vector < int >& block, std
 	DataFile.close();
 }
 
-void DataReader::LoadActData(std::string path, int& n, std::string& name1, std::vector < PhysStructInit >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >* ground, matrix < int > blocks, matrix < int > blockFlags, matrix < int > collides, matrix < int > collideFlags, std::vector < groundData >* groundIndices, SDL_Point* levelSize) {
+void DataReader::LoadActData(std::string path, int& n, std::string& name1, std::vector < PhysStructInit >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >* ground, std::vector < Ground::groundArrayData >* arrayData, std::vector < groundData >* groundIndices, SDL_Point* levelSize) {
 	std::ifstream DataFile;
 	std::string data;
 	DataFile.open(path + "Data.txt");
@@ -167,7 +167,7 @@ void DataReader::LoadActData(std::string path, int& n, std::string& name1, std::
 			if (groundIndices != nullptr) {
 				(*groundIndices)[count] = DataReader::groundData{ a.x, a.y, ind, flip };
 			}
-			(*ground)[count] = Ground(a, blocks[ind], blockFlags[ind], collides[ind], collideFlags[ind], flip);
+			(*ground)[count] = Ground(a, (*arrayData)[ind], flip);
 			count++;
 		}
 	}

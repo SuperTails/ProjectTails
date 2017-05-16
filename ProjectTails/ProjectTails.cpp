@@ -173,24 +173,21 @@ int main( int argc, char* argv[] ) {
 
 	const std::size_t NUM_BLOCKS = 13;
 
-	matrix < int > blocks(NUM_BLOCKS);
-	matrix < int > blockFlags(NUM_BLOCKS);
-
-	matrix < int > collideIndices(NUM_BLOCKS);
-
-	matrix < int > collideFlags(NUM_BLOCKS);
+	std::vector < Ground::groundArrayData > arrayData;
 	SDL_Point levelSize;
 
 	std::vector < DataReader::groundData > groundIndices;
 
+	arrayData.resize(NUM_BLOCKS);
+
 	for (int i = 0; i < NUM_BLOCKS; i++) {
-		DataReader::LoadJSONBlock(ASSET"EmeraldHillBlock" + std::to_string(i + 1) + ".json", blocks[i], blockFlags[i], collideIndices[i], collideFlags[i]);
+		DataReader::LoadJSONBlock(ASSET"EmeraldHillBlock" + std::to_string(i + 1) + ".json", arrayData[i]);
 		globalObjects::updateLoading((1 / LOAD_STEPS) / NUM_BLOCKS);
 	}
 	DataReader::LoadBackground(ASSET"EmeraldHillZone\\Background", background, 2, window.getWindow());
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
-	DataReader::LoadActData(ACT1_DATA_PATH, actNum, actName, entities, winRect, actType, &ground, blocks, blockFlags, collideIndices, collideFlags, &groundIndices, &levelSize);
+	DataReader::LoadActData(ACT1_DATA_PATH, actNum, actName, entities, winRect, actType, &ground, &arrayData, &groundIndices, &levelSize);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
 	SDL_SetRenderDrawColor(globalObjects::renderer, 0, 0, 0, 0);
@@ -199,7 +196,7 @@ int main( int argc, char* argv[] ) {
 	LevelEditor::levelEntities = entities;
 
 	if (LevelEditor::levelEditing) {
-		LevelEditor::init(groundIndices, levelSize, blocks, blockFlags, collideIndices, collideFlags);
+		LevelEditor::init(groundIndices, levelSize, arrayData);
 		while (true) {
 			globalObjects::last_time = globalObjects::time;
 			globalObjects::time = SDL_GetTicks();
@@ -343,7 +340,7 @@ int main( int argc, char* argv[] ) {
 			acts.front().incrFrame();
 
 			if (SoundHandler::musicState == 0 && effectManager::fadeComplete()) {
-				Act::loadNextAct(acts, actPaths, currentAct, blocks, blockFlags, collideIndices, collideFlags, background);
+				Act::loadNextAct(acts, actPaths, currentAct, arrayData, background);
 				Tails.updatePosition({ 20, 0, 120, 64, 0 }, PRHS_UPDATE_ABSOLUTE);
 				SDL_Rect camPos = cam.getPosition();
 				camPos.x = 0;

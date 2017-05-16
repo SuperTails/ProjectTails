@@ -1,6 +1,7 @@
 #pragma once
 #include "PhysicsEntity.h"
 #include "CollisionTile.h"
+#include "Typedefs.h"
 #include <vector>
 #include <json.hpp>
 
@@ -9,6 +10,25 @@ using json = nlohmann::json;
 class Ground : public PhysicsEntity
 {
 public:
+	struct groundArrayData {
+		std::vector < int > graphicsIndices;
+		std::vector < int > graphicsFlags;
+		std::vector < int > collideIndices;
+		std::vector < int > collideFlags;
+		groundArrayData() :
+			graphicsIndices(),
+			graphicsFlags(),
+			collideIndices(),
+			collideFlags()
+		{};
+		groundArrayData(const std::vector<int>& indices, const std::vector<int>& flags, const std::vector<int>& collides, const std::vector<int>& collideFlags) :
+			graphicsIndices(indices),
+			graphicsFlags(flags),
+			collideIndices(collides),
+			collideFlags(collideFlags)
+		{};
+	};
+
 	Ground();
 	/*
 	p - location
@@ -17,7 +37,7 @@ public:
 	collideIndices - collision tile indices
 	collideFlags - collision tile flags
 	*/
-	Ground(SDL_Point p, const std::vector < int >& indices, const std::vector < int >& flags, const std::vector < int >& collideIndices, const std::vector < int >& collideFlags, bool pFlip = false);
+	Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip = false);
 	Ground(Ground&& other);
 	Ground(const Ground &);
 	

@@ -28,12 +28,12 @@ namespace DataReader
 	*collides, *collideFlags
 	*groundIndices, *levelSize
 	*/
-	void LoadActData(std::string path, int& n, std::string& name1, std::vector < PhysStructInit >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >* ground, matrix < int > blocks = matrix < int >(), matrix < int > blockFlags = matrix < int > (), matrix < int > collides = matrix < int >(), matrix < int > collideFlags = matrix < int >(), std::vector < groundData >* groundIndices = nullptr, SDL_Point* levelSize = nullptr);
+	void LoadActData(std::string path, int& n, std::string& name1, std::vector < PhysStructInit >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >* ground, std::vector < Ground::groundArrayData >* = nullptr, std::vector < groundData >* groundIndices = nullptr, SDL_Point* levelSize = nullptr);
 	void LoadEntityData(std::string path, std::vector < PhysProp >& prop, std::unordered_map < std::string, PhysProp* >& entityKeys, std::vector < std::string >& Types);
 	void LoadTileData(std::string path, std::vector < CollisionTile >& tiles);
 	void LoadTileData(std::vector < CollisionTile >& tiles, matrix < int >& heights, std::vector < double >& angles);
 	void LoadTileBlocks(std::string path, matrix < int >& blocks, matrix < int >& blockFlags);
-	void LoadJSONBlock(std::string path, std::vector < int >& block, std::vector < int >& blockFlags, std::vector < int >& collide, std::vector < int >& collideFlags);
+	void LoadJSONBlock(std::string path, Ground::groundArrayData& arrayData);
 	void LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles, SDL_Window* window);
 	void LoadBackground(std::string path, std::vector < std::vector < Animation > >& background, int numTiles, SDL_Window* window);
 

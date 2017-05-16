@@ -60,12 +60,12 @@ Ground::Ground() :
 	position = { -1, -1, -1, -1, -1 };
 }
 
-Ground::Ground(SDL_Point p, const std::vector < int >& indices, const std::vector < int >& flags, const std::vector < int >& collideIndices, const std::vector < int >& collideFlags, bool pFlip) :
-	tileIndices(new int[collideIndices.size()]),
-	tileFlags(new int[collideFlags.size()]),
-	multiPath(collideIndices.size() / 256 - 1),
+Ground::Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip) :
+	tileIndices(new int[arrayData.collideIndices.size()]),
+	tileFlags(new int[arrayData.collideFlags.size()]),
+	multiPath(arrayData.collideIndices.size() / 256 - 1),
 	flip(pFlip),
-	PhysicsEntity({ p.x * 256, p.y * 256, 256, 256 }, window, std::max(collideIndices.size() / 256 - 1, indices.size() / 256 - 1))
+	PhysicsEntity({ p.x * 256, p.y * 256, 256, 256 }, window, std::max(arrayData.collideIndices.size() / 256 - 1, arrayData.graphicsIndices.size() / 256 - 1))
 {
 	SDL_Rect current = { 0, 0, 16, 16 };
 	SDL_Rect dest = { 0, 0, 16, 16 };
@@ -76,11 +76,11 @@ Ground::Ground(SDL_Point p, const std::vector < int >& indices, const std::vecto
 	SDL_Surface* flipVertical = Animation::FlipSurface(map, SDL_FLIP_VERTICAL);
 	SDL_Surface* flipBoth = Animation::FlipSurface(flipHoriz, SDL_FLIP_VERTICAL);
 
-	for (int i = 0; i < indices.size(); i++) {
-		ind = indices[i];
+	for (int i = 0; i < arrayData.graphicsIndices.size(); i++) {
+		ind = arrayData.graphicsIndices[i];
 		current.x = 16 * (ind % (map->w / 16));
 		current.y = 16 * floor(double(ind) / (map->w / 16));
-		SDL_RendererFlip currentFlip = SDL_RendererFlip(flags[i] ^ flip);
+		SDL_RendererFlip currentFlip = SDL_RendererFlip(arrayData.graphicsFlags[i] ^ flip);
 		if (currentFlip & SDL_FLIP_HORIZONTAL) {
 			current.x = map->w - current.x - 16;
 		}
@@ -108,9 +108,9 @@ Ground::Ground(SDL_Point p, const std::vector < int >& indices, const std::vecto
 		}
 		//0 is rendered in front of the player
 		//1 is rendered behind the player
-		if (multiPath && indices.size() != 512) {
-			int tilePathFront = collideIndices[i];
-			int tilePathBack = collideIndices[i + 256];
+		if (multiPath && arrayData.graphicsIndices.size() != 512) {
+			int tilePathFront = arrayData.collideIndices[i];
+			int tilePathBack = arrayData.collideIndices[i + 256];
 			if (tilePathBack && !tilePathFront) {
 				SDL_BlitSurface(surfaceFlipped, &current, animations[1]->GetSpriteSheet(), &dest);
 				current.x = 0;
@@ -124,7 +124,7 @@ Ground::Ground(SDL_Point p, const std::vector < int >& indices, const std::vecto
 				SDL_BlitSurface(map, &current, animations[1]->GetSpriteSheet(), &dest);
 			}
 		}
-		else if (indices.size() == 512) {
+		else if (arrayData.graphicsIndices.size() == 512) {
 			SDL_BlitSurface(surfaceFlipped, &current, animations[i / 256]->GetSpriteSheet(), &dest);
 		}
 		else {
@@ -140,8 +140,8 @@ Ground::Ground(SDL_Point p, const std::vector < int >& indices, const std::vecto
 		i->updateTexture();
 	}
 
-	std::memmove(tileIndices, &collideIndices[0], std::size_t(sizeof(int) * 256 * (multiPath + 1)));
-	std::memmove(tileFlags, &collideFlags[0], std::size_t(sizeof(int) * 256 * (multiPath + 1)));
+	std::memmove(tileIndices, &arrayData.collideIndices[0], std::size_t(sizeof(int) * 256 * (multiPath + 1)));
+	std::memmove(tileFlags, &arrayData.collideFlags[0], std::size_t(sizeof(int) * 256 * (multiPath + 1)));
 }
 
 Ground::~Ground()

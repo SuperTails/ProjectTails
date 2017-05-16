@@ -70,7 +70,7 @@ public:
 
 	typedef matrix < int > matrix;
 
-	static void loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, int& currentAct, matrix& blocks, matrix& blockFlags, matrix& collides, matrix& collideFlags,std::vector<std::vector<Animation>>& background);
+	static void loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, int& currentAct, std::vector < Ground::groundArrayData >& arrayData, std::vector<std::vector<Animation>>& background);
 
 private:
 	typedef std::vector < std::unique_ptr < PhysicsEntity > > entityList;

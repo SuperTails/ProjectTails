@@ -31,7 +31,7 @@ SDL_Texture* LevelEditor::SkyTexture;
 
 double LevelEditor::mouseWheelValue = 0;
 
-void LevelEditor::init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, matrix < int >& blocks, matrix < int >& blockFlags, matrix < int >& collides, matrix < int >& collideFlags) {
+void LevelEditor::init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, std::vector < Ground::groundArrayData >& arrayData) {
 	levelBlocks.resize(levelSize.x, std::vector < groundData >(levelSize.y, groundData{ -1, false }));
 	Sky = IMG_Load("..\\..\\asset\\Sky.png");
 	SkyTexture = SDL_CreateTextureFromSurface(globalObjects::renderer, Sky);
@@ -41,8 +41,8 @@ void LevelEditor::init(std::vector < DataReader::groundData >& levelGround, SDL_
 		levelBlocks[g.x][g.y].flip = g.flip;
 	}
 
-	for (int i = 0; i < blocks.size(); i++) {
-		groundList.emplace_back(SDL_Point{ 0, 0 }, blocks[i], blockFlags[i], collides[i], collideFlags[i]);
+	for (int i = 0; i < arrayData.size(); i++) {
+		groundList.emplace_back(SDL_Point{ 0, 0 }, arrayData[i]);
 	}
 
 	std::unordered_map <  std::string, PhysProp* >::iterator i = entityList->begin();
