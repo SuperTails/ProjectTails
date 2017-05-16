@@ -181,7 +181,7 @@ void Act::SetCamera(Camera* c) {
 }
 
 void Act::RenderObjects(Player& player) {
-	globalObjects::renderBackground(background, globalObjects::window, cam->getPosition().x - cam->GetOffset().x, ratio);
+	globalObjects::renderBackground(background, cam->getPosition().x - cam->GetOffset().x, ratio);
 	entityListIterator i = entities.begin();
 	SDL_Rect pos = cam->getPosition();
 	while (i != entities.end()) {

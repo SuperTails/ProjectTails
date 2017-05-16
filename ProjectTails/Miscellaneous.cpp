@@ -16,7 +16,7 @@ double globalObjects::titleScreenFlash(1.0);
 int globalObjects::lastShuffle(0);
 std::vector < int > globalObjects::lastPalette{ 0, 1, 2, 3 };
 
-void globalObjects::renderBackground(std::vector < std::vector < Animation > >& background, const SDL_Window* window, const int& cameraCenterX, const double& ratio) {
+void globalObjects::renderBackground(std::vector < std::vector < Animation > >& background, const int& cameraCenterX, const double& ratio) {
 	double parallax = 1.05;
 	int width = background[0].size() * 256;
 	for (int layer = 0; layer < 8; layer++) {
@@ -69,7 +69,7 @@ void globalObjects::renderTitleScreen(std::vector < std::vector < Animation > >&
 	for (int i = 0; i < titleScreen.size(); i++) {
 		efxType = effectType::NONE;
 		if(i == 1)
-			renderBackground(background, window, centerX, ratio);
+			renderBackground(background, centerX, ratio);
 		if (i == 2) {
 			if (titleScreen[i].getFrame() != 10) {
 				titleScreen[i].Update();

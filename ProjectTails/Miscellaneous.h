@@ -31,7 +31,7 @@ namespace globalObjects {
 	extern int lastShuffle;
 	extern std::vector < int > lastPalette;
 	
-	void renderBackground(std::vector < std::vector < Animation > >& background, const SDL_Window* window, const int& cameraCenterX, const double& ratio);
+	void renderBackground(std::vector < std::vector < Animation > >& background, const int& cameraCenterX, const double& ratio);
 	void renderTitleScreen(std::vector < std::vector < Animation > >& background, const int& centerX);
 	void renderTitleFlash();
 	void unloadTitleScreen();
