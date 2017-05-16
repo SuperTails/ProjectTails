@@ -74,7 +74,7 @@ public:
 
 	SDL_Rect getCollisionRect();
 
-	int numAnims() { return animations.size(); };
+	std::size_t numAnims() { return animations.size(); };
 
 	void setCollisionRect(SDL_Rect rect) { collisionRect = rect; };
 
@@ -86,7 +86,7 @@ public:
 
 	void setCustom(int index, double value);
 
-	char getCustom(int index) { return customVars[index]; };
+	char getCustom(int index) { return static_cast<char>(customVars[index]); };
 
 	void customInit();
 

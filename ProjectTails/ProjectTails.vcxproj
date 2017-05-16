@@ -80,6 +80,7 @@
     <IncludePath>C:\Users\scien\Documents\ProjectTails\json-develop\src;C:\Users\scien\Documents\ProjectTails\zlib128-dll\include;C:\Users\scien\Documents\ProjectTails\SDL2-2.0.5\include;C:\Users\scien\Documents\ProjectTails\prhsGameLib8;C:\Program Files %28x86%29\GnuWin32\include;$(IncludePath)</IncludePath>
     <SourcePath>C:\Users\scien\Documents\ProjectTails\json-develop\src;C:\Users\scien\Documents\ProjectTails\prhsGameLib8;$(SourcePath)</SourcePath>
     <LibraryPath>C:\Users\scien\Documents\ProjectTails\SDL2-2.0.5\lib\x64;$(LibraryPath)</LibraryPath>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

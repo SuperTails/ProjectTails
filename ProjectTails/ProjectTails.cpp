@@ -121,7 +121,7 @@ int main( int argc, char* argv[] ) {
 	Tails.setCollisionRect({ 0,19,120,30 });
 	//REMOVE LATER	
 
-	SDL_Rect CAMERA_SIZE = { (-32), (-8), (WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO + 64), (WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 16) };
+	SDL_Rect CAMERA_SIZE = { (-32), (-8), int(WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO + 64), int(WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 16) };
 	Camera cam = Camera(&CAMERA_SIZE);
 	cam.SetOffset({ (int)(-WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO / 2), (int)(-WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 128) });
 

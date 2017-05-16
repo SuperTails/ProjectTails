@@ -418,8 +418,6 @@ SDL_Surface* Animation::Rotate(SDL_Surface* surface, const SDL_Point* cntr, int 
 
 	double rad = degrees * M_PI / 180.0;
 
-	int minX, maxX, minY, maxY;
-
 	auto rotate = [center, rad](SDL_Point& p, bool reverse = false) {
 		int x = p.x;
 		int y = p.y;

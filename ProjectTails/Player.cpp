@@ -49,7 +49,7 @@ std::vector<std::unique_ptr<PhysicsEntity>>::iterator Player::Damage(std::vector
 	double angle = 101.25;
 	bool n = false;
 	int speed = 4;
-	int dist = std::distance(entities.begin(), iter);
+	__int64 dist = std::distance(entities.begin(), iter);
 	if (damageCountdown == 0) {
 		for (int i = 0; (i < rings) && (i < 32); i++) {
 			PhysStruct p = { {position.x, position.y, 256, 256}, props[1], (int)(phys_paths.size() - 1), std::vector < char >() };
@@ -568,7 +568,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	onGroundPrev = onGround || platform;
 	int cx(position.x);
 	int cy(position.y);
-	int blockX(floor((cx - 9) / 256.0)), blockY(floor((cy + 36) / 256.0));
+	int blockX((cx - 9) / 256), blockY((cy + 36) / 256);
 	int height1(-1), height2(-1), height3(-1), height4(-1), wallHeightLeft(-1), wallHeightRight(-1);
 	double ang1, ang2, ang3, ang4;
 	int yMin(cy);
@@ -937,8 +937,8 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 		return -1;
 	}
 	side = (iterOp - 2) >= 0;
-	int blockX = floor(xStart / 256.0);
-	int blockY = floor(yStart / 256.0);
+	int blockX = floor(xStart / 256);
+	int blockY = floor(yStart / 256);
 	if (blockX >= tiles.size()) {
 		if (sensor == 'E')
 			return -1 * xStart;
@@ -952,8 +952,8 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 	int height = 0;
 	int h = 0;
 	int count = 0;
-	int tileX = floor((xStart - blockX * 256) / 16.0);
-	int tileY = floor((yStart - blockY * 256) / 16.0);
+	int tileX = floor((xStart - blockX * 256) / 16);
+	int tileY = floor((yStart - blockY * 256) / 16);
 	bool check = false;
 	bool flip = false;
 	bool pathC = tiles[blockX][blockY].getMulti() & path; //Do not check the second path if there is no second path
@@ -1154,7 +1154,8 @@ int Player::getHeight(std::vector < std::vector < Ground > >& ground, SDL_Point 
 			flip = false;
 		}
 		if (ground[block.x][block.y].getFlag(tile.x + tile.y * 16 + 256 * pathC) & SDL_FLIP_HORIZONTAL) {
-			h = 16 * ceil(h / 16) - (h % 16);
+			//(h + 15) / 16 is a another way of doing ceil(h / 16)
+			h = 16 * ((h + 15) / 16) - (h % 16);
 		}
 	}
 	else {
@@ -1169,7 +1170,7 @@ int Player::getHeight(std::vector < std::vector < Ground > >& ground, SDL_Point 
 			flip = false;
 		}
 		if (ground[block.x][block.y].getFlag(tile.x + tile.y * 16 + 256 * pathC) & SDL_FLIP_VERTICAL) {
-			h = 16 * ceil(h / 16) - (h % 16);
+			h = 16 * ((h + 15) / 16) - (h % 16);
 		}
 	}
 	return h;
@@ -1201,18 +1202,6 @@ void Player::Render(SDL_Rect& cam, double screenRatio) {
 	pos.y += centerOffset.y;
 	//For only 45-degree rotations 
 	double frames((time - last_time) / (1000.0 / 60.0));
-	/*if (abs(displayAngle - (angle + 256)) < abs(displayAngle - angle)) {
-		//Move towards angle + 256
-		displayAngle += signum((angle + 256) - displayAngle) * std::pow(int(displayAngle - angle + 256) % 256, frames / 2);
-	}
-	else if (abs(displayAngle - angle) < abs(displayAngle - (angle - 256))) {
-		//Move towards angle
-		displayAngle += signum(angle - displayAngle) * std::pow(int(displayAngle - angle + 256) % 256, frames / 2);
-	}
-	else {
-		//Move towards angle - 256
-		displayAngle += signum((angle - 256) - displayAngle) * std::pow(int(displayAngle - angle + 512) % 256, frames / 2);
-	}*/
 	displayAngle = angle;
 	displayAngle += 256;
 	displayAngle %= 256;
@@ -1239,8 +1228,7 @@ void Player::Render(SDL_Rect& cam, double screenRatio) {
 				tailPos.x -= centerOffset.x + 7;
 				tailPos.y -= 2 * centerOffset.y + offset;
 				if (velocity.x != 0.0 || velocity.y != 0.0) {
-					tailRot += -45 * (((atan2(-1 * velocity.y, -1 * velocity.x) * 180.0 / M_PI) * -1.0) / 45.0);
-					//tailRot += -45 * atan2(-1 * velocity.y, -1 * velocity.x) * 180.0 / M_PI;
+					tailRot += atan2(-velocity.y, -velocity.x) * 180.0 / M_PI;
 				}
 				tailFlip = static_cast < SDL_RendererFlip > (SDL_FLIP_HORIZONTAL & (velocity.x > 0.0));
 				efxType = effectType::ROTATION;
@@ -1277,6 +1265,8 @@ SDL_Rect Player::getCollisionRect() {
 		return SDL_Rect{ position.x - (collisionRect.w / 2), position.y - centerOffset.y - collisionRect.h, collisionRect.w, collisionRect.h };
 	case RIGHT_WALL:
 		return SDL_Rect{ position.x + centerOffset.x, position.y + centerOffset.y, collisionRect.h, collisionRect.w };
+	default:
+		return SDL_Rect{ -1, -1, -1, -1 };
 	}
 }
 
