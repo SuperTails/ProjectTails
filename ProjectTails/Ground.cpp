@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "Ground.h"
 
-SDL_Window* Ground::window;
 SDL_Surface* Ground::map;
 std::vector < CollisionTile > Ground::tileList;
 std::string Ground::mPath;
@@ -10,7 +9,7 @@ void Ground::setMap(std::string mapPath) {
 	SDL_FreeSurface(map);
 	mPath = mapPath;
 	SDL_Surface* temp = IMG_Load(mapPath.c_str());
-	map = SDL_ConvertSurface(temp, SDL_GetWindowSurface(window)->format, SDL_RLEACCEL);
+	map = SDL_ConvertSurface(temp, SDL_GetWindowSurface(globalObjects::window)->format, SDL_RLEACCEL);
 	SDL_FreeSurface(temp);
 }
 
@@ -65,7 +64,7 @@ Ground::Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip) :
 	tileFlags(new int[arrayData.collideFlags.size()]),
 	multiPath(arrayData.collideIndices.size() / 256 - 1),
 	flip(pFlip),
-	PhysicsEntity({ p.x * 256, p.y * 256, 256, 256 }, window, std::max(arrayData.collideIndices.size() / 256 - 1, arrayData.graphicsIndices.size() / 256 - 1))
+	PhysicsEntity({ p.x * 256, p.y * 256, 256, 256 }, std::max(arrayData.collideIndices.size() / 256 - 1, arrayData.graphicsIndices.size() / 256 - 1))
 {
 	SDL_Rect current = { 0, 0, 16, 16 };
 	SDL_Rect dest = { 0, 0, 16, 16 };
@@ -153,7 +152,7 @@ Ground::~Ground()
 void Ground::Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position, const int layer, const bool flip) const {
 	SDL_Rect pos = position ? *position : GetRelativePos(camPos);
 	if (layer < animations.size()) {
-		animations[layer]->Render(&pos, 0, globalObjects::window, NULL, 1.0 / ratio, SDL_RendererFlip(flip));
+		animations[layer]->Render(&pos, 0, NULL, 1.0 / ratio, SDL_RendererFlip(flip));
 	}
 }
 
@@ -211,7 +210,6 @@ Ground& Ground::operator = (const Ground& arg) {
 	std::memmove(tileIndices, arg.tileIndices, sizeof(int) * 256 * (multiPath + 1));
 	std::memmove(tileFlags, arg.tileFlags, sizeof(int) * 256 * (multiPath + 1));
 	invis = false;
-	window = arg.window;
 	for (int i = 0; i < arg.animations.size(); i++) {
 		animations.emplace_back(new Animation(*arg.animations[i]));
 	}

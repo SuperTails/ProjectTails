@@ -62,12 +62,12 @@ std::vector < SDL_Rect > Text::IndicesToWindows(std::vector < int > ind) {
 	return r;
 }
 
-void Text::WindowsToText(std::vector < SDL_Rect > win, SDL_Window* window) {
+void Text::WindowsToText(std::vector < SDL_Rect > win) {
 	int x = 0;
 	SDL_Rect dest;
 	SDL_Surface* temp = SDL_CreateRGBSurface(0, totalWidth, 11, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 	SDL_FreeSurface(text);
-	text = SDL_ConvertSurface(temp, SDL_GetWindowSurface(window)->format, NULL);
+	text = SDL_ConvertSurface(temp, SDL_GetWindowSurface(globalObjects::window)->format, NULL);
 	SDL_FreeSurface(temp);
 	SDL_SetColorKey(text, SDL_TRUE, SDL_MapRGBA(text->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
 	SDL_FillRect(text, NULL, SDL_MapRGBA(text->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
@@ -82,7 +82,7 @@ SDL_Surface*& Text::getText() {
 	return text;
 }
 
-void Text::WindowsToText(std::vector < SDL_Rect > win, SDL_Window* window, SDL_Surface* text) {
+void Text::WindowsToText(std::vector < SDL_Rect > win, SDL_Surface* text) {
 	int x = 0;
 	SDL_Rect dest;
 	SDL_SetColorKey(text, SDL_TRUE, SDL_MapRGBA(text->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
@@ -94,18 +94,18 @@ void Text::WindowsToText(std::vector < SDL_Rect > win, SDL_Window* window, SDL_S
 	}
 }
 
-void Text::StringToText(std::string str, SDL_Window* window) {
+void Text::StringToText(std::string str) {
 	if (str == lastStr)
 		return;
 	else
 		lastStr = str;
-	WindowsToText(IndicesToWindows(StringToIndex(str)), window);
+	WindowsToText(IndicesToWindows(StringToIndex(str)));
 }
 
-void Text::StringToText(std::string str, SDL_Window* window, SDL_Surface* surface) {
+void Text::StringToText(std::string str, SDL_Surface* surface) {
 	if (str == lastStr)
 		return;
 	else
 		lastStr = str;
-	WindowsToText(IndicesToWindows(StringToIndex(str)), window, surface);
+	WindowsToText(IndicesToWindows(StringToIndex(str)), surface);
 }

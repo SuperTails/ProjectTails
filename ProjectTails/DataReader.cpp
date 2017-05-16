@@ -385,10 +385,10 @@ void DataReader::LoadTileBlocks(std::string path, matrix < int >& blocks, matrix
 	DataFile.close();
 };
 
-void DataReader::LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles, SDL_Window* window) {
+void DataReader::LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles) {
 	SDL_Surface* s = IMG_Load(path.c_str());
 	
-	SDL_Surface* DataFile = SDL_ConvertSurface(s, SDL_GetWindowSurface(window)->format, NULL);
+	SDL_Surface* DataFile = SDL_ConvertSurface(s, SDL_GetWindowSurface(globalObjects::window)->format, NULL);
 	SDL_FreeSurface(s);
 	if (DataFile == NULL) {
 		throw "Could not open image file!\n";
@@ -437,7 +437,7 @@ void DataReader::LoadCollisionsFromImage(std::string path, matrix < int >& heigh
 	SDL_FreeSurface(DataFile);
 };
 
-void DataReader::LoadBackground(std::string path, std::vector < std::vector < Animation > >& background, int numTiles, SDL_Window* window) {
+void DataReader::LoadBackground(std::string path, std::vector < std::vector < Animation > >& background, int numTiles) {
 	typedef ::Animation::effectType effectType;
 	typedef ::Animation::effectData effectData;
 	
@@ -449,7 +449,7 @@ void DataReader::LoadBackground(std::string path, std::vector < std::vector < An
 		for (int layer = 0; layer < 8; layer++) {
 			std::string fullCurrentPath = currentPath + std::to_string(layer) + ".png";
 			current = IMG_Load(fullCurrentPath.c_str());
-			background[layer].push_back(Animation(current, 12.0 * 1000.0 / 60.0, 1, window));
+			background[layer].push_back(Animation(current, 12.0 * 1000.0 / 60.0, 1));
 			if (layer == 0) {
 				std::vector < std::vector < effectType > > types(4, std::vector<effectType>(1, effectType::PALETTE_SWAP));
 				std::vector < std::vector < effectData > > data(4, std::vector<effectData>(1));

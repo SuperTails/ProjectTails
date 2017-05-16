@@ -3,7 +3,7 @@
 #include "SDL.h"
 #include <vector>
 #include "SDL_image.h"
-
+#include "Miscellaneous.h"
 
 class Text
 {
@@ -13,10 +13,10 @@ public:
 
 	std::vector < int > StringToIndex(std::string str);
 	std::vector < SDL_Rect > IndicesToWindows(std::vector < int > ind);
-	void WindowsToText(std::vector < SDL_Rect > win, SDL_Window* window);
-	void WindowsToText(std::vector < SDL_Rect > win, SDL_Window* window, SDL_Surface* surface);
-	void StringToText(std::string str, SDL_Window* window);
-	void StringToText(std::string str, SDL_Window* window, SDL_Surface* surface);
+	void WindowsToText(std::vector < SDL_Rect > win);
+	void WindowsToText(std::vector < SDL_Rect > win, SDL_Surface* surface);
+	void StringToText(std::string str);
+	void StringToText(std::string str, SDL_Surface* surface);
 	SDL_Surface*& getText();
 
 private:

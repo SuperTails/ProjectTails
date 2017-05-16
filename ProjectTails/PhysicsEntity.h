@@ -47,10 +47,10 @@ public:
 	typedef std::vector < std::unique_ptr < PhysicsEntity > >::iterator entityListIter;
 	
 	PhysicsEntity();
-	PhysicsEntity(PhysStruct, SDL_Window*);
+	PhysicsEntity(PhysStruct);
 	PhysicsEntity(const PhysicsEntity& arg);
 	PhysicsEntity(PhysicsEntity&& other);
-	PhysicsEntity(SDL_Rect pos, SDL_Window* win, bool multi, SDL_Point tileSize = { 16, 16 });
+	PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize = { 16, 16 });
 	~PhysicsEntity();
 
 	//Returns true if this entity needs to be destroyed
@@ -58,7 +58,7 @@ public:
 
 	std::unique_ptr < Animation >& GetAnim(int index);
 	std::unique_ptr < Animation >& GetAnim();
-	void AddAnim(AnimStruct, SDL_Window*);
+	void AddAnim(AnimStruct);
 
 	void Render(SDL_Rect& camPos, double ratio, bool absolute = false);
 
@@ -66,7 +66,7 @@ public:
 	void SetTime(Uint32 t) { time = t; };
 	EntType GetType() { return eType; };
 
-	void Destroy(double ratio, SDL_Window* window);
+	void Destroy(double ratio);
 
 	SDL_Rect GetRelativePos(const SDL_Rect& p) const;
 
@@ -134,7 +134,6 @@ protected:
 	std::vector < double > customVars;
 	Uint32 time;
 	Uint32 last_time;
-	SDL_Window* window;
 	int currentAnim;
 	bool invis;
 	double gravity;

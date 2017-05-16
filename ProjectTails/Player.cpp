@@ -53,7 +53,7 @@ std::vector<std::unique_ptr<PhysicsEntity>>::iterator Player::Damage(std::vector
 	if (damageCountdown == 0) {
 		for (int i = 0; (i < rings) && (i < 32); i++) {
 			PhysStruct p = { {position.x, position.y, 256, 256}, props[1], (int)(phys_paths.size() - 1), std::vector < char >() };
-			entities.emplace_back(new PhysicsEntity(p, window));
+			entities.emplace_back(new PhysicsEntity(p));
 			doublePoint vel = { -1 * sin(angle * toRad) * speed, cos(angle * toRad) * speed };
 			entities.back()->setVelocity(vel);
 			entities.back()->setGravity(.09375);
@@ -1255,13 +1255,13 @@ void Player::Render(SDL_Rect& cam, double screenRatio) {
 				tailFlip = static_cast < SDL_RendererFlip >(SDL_FLIP_HORIZONTAL & !horizFlip);
 				efxType = effectType::NONE;
 			}
-			animations[temp % animations.size()]->Render(&tailPos, tailRot, window, &tailCenter, 1.0 / screenRatio, tailFlip, efxType, &efxData);
+			animations[temp % animations.size()]->Render(&tailPos, tailRot, &tailCenter, 1.0 / screenRatio, tailFlip, efxType, &efxData);
 		}
 		else {
 			efxType = effectType::ROTATION;
 			efxData.rot.degrees = rot;
 			*efxData.rot.center = center;
-			animations[temp % animations.size()]->Render(&pos, rot, window, &center, 1.0 / screenRatio, flip, efxType, &efxData);
+			animations[temp % animations.size()]->Render(&pos, rot, &center, 1.0 / screenRatio, flip, efxType, &efxData);
 		}
 		temp /= animations.size();
 	} while (temp != 0);

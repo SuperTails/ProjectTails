@@ -35,7 +35,6 @@ PhysicsEntity::PhysicsEntity(PhysicsEntity&& other) :
 PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) {
 	invis = false;
 	posError = arg.posError;
-	window = arg.window;
 	prop = arg.prop;
 	for (int i = 0; i < arg.animations.size(); i++) {
 		animations.emplace_back(new Animation(*arg.animations[i]));
@@ -58,10 +57,9 @@ PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) {
 	self = nullptr;
 };
 
-PhysicsEntity::PhysicsEntity(PhysStruct p, SDL_Window* w) :
+PhysicsEntity::PhysicsEntity(PhysStruct p) :
 	invis(false),
 	anim_data(p.prop.anim),
-	window(w),
 	prop(p.prop),
 	velocity(p.prop.vel),
 	loaded(false),
@@ -78,7 +76,7 @@ PhysicsEntity::PhysicsEntity(PhysStruct p, SDL_Window* w) :
 {
 	posError = { 0.0, 0.0 };
 	for (int i = 0; i < anim_data.size(); i++) {
-		animations.emplace_back(new Animation(anim_data[i], window));
+		animations.emplace_back(new Animation(anim_data[i]));
 	}
 	position.w = collisionRect.w;
 	position.h = collisionRect.h;
@@ -91,12 +89,12 @@ PhysicsEntity::PhysicsEntity(PhysStruct p, SDL_Window* w) :
 	this->customInit();
 }
 
-PhysicsEntity::PhysicsEntity(SDL_Rect pos, SDL_Window* win, bool multi, SDL_Point tileSize) {
+PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) {
 	self = nullptr;
 	position = convertRect(pos);
-	animations.emplace_back(new Animation({ 16, 16 }, win));
+	animations.emplace_back(new Animation({ 16, 16 }));
 	if (multi)
-		animations.emplace_back(new Animation({ 16, 16 }, win));
+		animations.emplace_back(new Animation({ 16, 16 }));
 	currentAnim = 0;
 	posError = { 0.0, 0.0 };
 	velocity = { 0.0, 0.0 };
@@ -148,15 +146,15 @@ PhysicsEntity::entityPtrType& PhysicsEntity::platformPtr() {
 	return self;
 }
 
-void PhysicsEntity::AddAnim(AnimStruct n, SDL_Window* w) {
-	animations.emplace_back(new Animation(n, w));
+void PhysicsEntity::AddAnim(AnimStruct n) {
+	animations.emplace_back(new Animation(n));
 }
 
 SDL_Rect PhysicsEntity::GetRelativePos(const SDL_Rect& p) const {
 	return { (position.x - p.x), (position.y - p.y), (position.w), (position.h) };
 }
 
-void PhysicsEntity::Destroy(double ratio, SDL_Window* window) {
+void PhysicsEntity::Destroy(double ratio) {
 	velocity.x = 0;
 	velocity.y = 0;
 	canCollide = false;
@@ -234,7 +232,7 @@ if (player && player->getPosition().x != position.x && abs(double(position.y - p
 				if (customVars[0] < 60.0 && !customVars[1]) {
 					customVars[1] = 1.0;
 					PhysStruct temp(SDL_Rect{ position.x + 30, position.y + 25, position.w, position.h }, *physProps->find(std::string("BEEPROJECTILE"))->second, -1, std::vector<char>());
-					entityList->emplace(*iter, new PhysicsEntity(temp, globalObjects::window));
+					entityList->emplace(*iter, new PhysicsEntity(temp));
 					*iter = entityList->begin() + distance;
 				}
 				velocity.x = 0;
@@ -390,7 +388,7 @@ void PhysicsEntity::setCustom(int index, double value) {
 
 void PhysicsEntity::Render(SDL_Rect& camPos, double ratio, bool absolute) {
 	if (absolute) {
-		animations[currentAnim]->Render(&convertRect(position), 0, window, NULL, 1.0 / ratio);
+		animations[currentAnim]->Render(&convertRect(position), 0, NULL, 1.0 / ratio);
 		return;
 	}
 	if (!animations.empty()) {
@@ -415,18 +413,18 @@ void PhysicsEntity::Render(SDL_Rect& camPos, double ratio, bool absolute) {
 				relativePos.x += (customVars[1] != 0) << 3;
 				break;
 			}
-			animations[currentAnim]->Render(&relativePos, rot, window, NULL, 1.0 / ratio);
+			animations[currentAnim]->Render(&relativePos, rot, NULL, 1.0 / ratio);
 		}
 		else if (key == "BRIDGE") {
 			int xStart = relativePos.x;
 			int yStart = relativePos.y;
 			for (int& x = relativePos.x; x < customVars[0] * 16 + xStart; x += 16) {
 				relativePos.y = yStart + customVars[(x - xStart) / 16 + 2];
-				animations[currentAnim]->Render(&relativePos, rot, window, NULL, 1.0 / ratio);
+				animations[currentAnim]->Render(&relativePos, rot, NULL, 1.0 / ratio);
 			}
 		}
 		else {
-			animations[currentAnim]->Render(&relativePos, rot, window, NULL, 1.0 / ratio);
+			animations[currentAnim]->Render(&relativePos, rot, NULL, 1.0 / ratio);
 		}
 	}
 }

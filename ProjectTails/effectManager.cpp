@@ -87,7 +87,7 @@ void effectManager::loadEHZRain() {
 void effectManager::renderEHZRain() {
 	SDL_Rect dst = { 0, 0, int(WINDOW_HORIZONTAL_SIZE), int(WINDOW_VERTICAL_SIZE) };
 	rain->Update();
-	rain->Render(&dst, 0, globalObjects::window, NULL, 1.0 / globalObjects::ratio);
+	rain->Render(&dst, 0, NULL, 1.0 / globalObjects::ratio);
 }
 
 void effectManager::unloadEHZRain() {

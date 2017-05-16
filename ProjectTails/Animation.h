@@ -41,9 +41,9 @@ public:
 	Animation();
 
 	//Creates a new animation from the given sprite sheet
-	Animation(SDL_Surface* Sprites, int delay, int frames, SDL_Window* w, bool tile = false);
-	Animation(AnimStruct, SDL_Window* w);
-	Animation(SDL_Point tileSize, SDL_Window* w);
+	Animation(SDL_Surface* Sprites, int delay, int frames, bool tile = false);
+	Animation(AnimStruct);
+	Animation(SDL_Point tileSize);
 	Animation(const Animation& arg);
 	Animation(Animation&& other);
 
@@ -53,8 +53,8 @@ public:
 
 	void setLooped(bool b) { looped = b; };
 
-	void Render(const SDL_Rect* dest, const int& rot, const SDL_Window* window, SDL_Point* center, const double& ratio, const SDL_RendererFlip& flip = SDL_FLIP_NONE, const effectType& effect = NONE, const effectData* efxData = nullptr);
-	void SizeRender(SDL_Rect* dest, int rot, SDL_Window* window, SDL_Point* center, double ratio);
+	void Render(const SDL_Rect* dest, const int& rot, SDL_Point* center, const double& ratio, const SDL_RendererFlip& flip = SDL_FLIP_NONE, const effectType& effect = NONE, const effectData* efxData = nullptr);
+	void SizeRender(SDL_Rect* dest, int rot, SDL_Point* center, double ratio);
 
 	void SetDelay(int delay);
 

@@ -48,12 +48,12 @@ void LevelEditor::init(std::vector < DataReader::groundData >& levelGround, SDL_
 	std::unordered_map <  std::string, PhysProp* >::iterator i = entityList->begin();
 	while (i != entityList->end()) {
 		if (!i->second->anim.empty()) {
-			Animation current(i->second->anim.front(), globalObjects::window);
+			Animation current(i->second->anim.front());
 			entityView.emplace(i->first, current);
 		}
 		else if(i->second->eType == PATHSWITCH) {
 			AnimStruct temp{ "..\\..\\asset\\pathswitch.png", 10, 1 };
-			Animation current(temp, globalObjects::window);
+			Animation current(temp);
 			entityView.emplace(i->first, current);
 		}
 		else {
@@ -96,7 +96,7 @@ void LevelEditor::renderEntities() {
 	for (PhysStructInit& i : levelEntities) {
 		SDL_Rect dst{ i.pos.x, i.pos.y, 16, 16 };
 		dst = PhysicsEntity::getRelativePos(dst, cam->getPosition());
-		entityView.find(i.prop)->second.Render(&dst, 0, globalObjects::window, NULL, globalObjects::ratio);
+		entityView.find(i.prop)->second.Render(&dst, 0, NULL, globalObjects::ratio);
 	}
 	if (currentEntity != levelEntities.end()) {
 		SDL_Rect dst(PhysicsEntity::getRelativePos(currentEntity->pos, cam->getPosition()));
@@ -111,7 +111,7 @@ void LevelEditor::renderEntities() {
 
 void LevelEditor::renderText() {
 	Text t("..\\..\\asset\\FontGUI.png");
-	t.StringToText("Mode: " + mtos(mode) + " Size: " + std::to_string(levelBlocks.size()) + " " + std::to_string(levelBlocks[0].size()), globalObjects::window);
+	t.StringToText("Mode: " + mtos(mode) + " Size: " + std::to_string(levelBlocks.size()) + " " + std::to_string(levelBlocks[0].size()));
 	SDL_Texture* tex = SDL_CreateTextureFromSurface(globalObjects::renderer, t.getText());
 	SDL_Rect dst{ 10, 10, t.getText()->w, t.getText()->h };
 	SDL_RenderCopyEx(globalObjects::renderer, tex, NULL, &dst, 0.0, NULL, SDL_FLIP_NONE);

@@ -58,7 +58,6 @@ public:
 	void setFlag(int ind, int value) { tileFlags[ind] |= value; };
 	void unsetFlag(int ind, int value) { tileFlags[ind] &= ~value; };
 
-	static void setWindow(SDL_Window* win) { window = win; };
 	static void setMap(std::string mapPath);
 	static void setList(std::vector < CollisionTile > list);
 
@@ -77,7 +76,6 @@ private:
 	static std::string mPath;
 	static std::vector < CollisionTile > tileList;
 	static SDL_Surface* map;
-	static SDL_Window* window;
 	int* tileIndices;
 	int* tileFlags;
 	bool multiPath;

@@ -34,8 +34,8 @@ namespace DataReader
 	void LoadTileData(std::vector < CollisionTile >& tiles, matrix < int >& heights, std::vector < double >& angles);
 	void LoadTileBlocks(std::string path, matrix < int >& blocks, matrix < int >& blockFlags);
 	void LoadJSONBlock(std::string path, Ground::groundArrayData& arrayData);
-	void LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles, SDL_Window* window);
-	void LoadBackground(std::string path, std::vector < std::vector < Animation > >& background, int numTiles, SDL_Window* window);
+	void LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles);
+	void LoadBackground(std::string path, std::vector < std::vector < Animation > >& background, int numTiles);
 
 	/**
 	* Tile data (height and angle) is loaded from a file into a vector < CollisionTile >

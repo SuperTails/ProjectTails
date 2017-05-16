@@ -29,14 +29,14 @@ void globalObjects::renderBackground(std::vector < std::vector < Animation > >& 
 			}
 			if (newPos < 0) {
 				SDL_Rect current{ newPos, WINDOW_VERTICAL_SIZE * ratio - 256, 256, 256 };
-				background[layer][tile].Render(&current, 0, window, NULL, 1.0 / ratio);
+				background[layer][tile].Render(&current, 0, NULL, 1.0 / ratio);
 			}
 			while (newPos < 0) {
 				newPos += 256 * background[layer].size();
 			}
 			if (newPos < WINDOW_HORIZONTAL_SIZE * ratio) {
 				SDL_Rect current{ newPos, WINDOW_VERTICAL_SIZE * ratio - 256, 256, 256 };
-				background[layer][tile].Render(&current, 0, window, NULL, 1.0 / ratio, SDL_FLIP_NONE);
+				background[layer][tile].Render(&current, 0, NULL, 1.0 / ratio, SDL_FLIP_NONE);
 			}
 		}
 	}
@@ -48,15 +48,15 @@ void globalObjects::renderTitleScreen(std::vector < std::vector < Animation > >&
 
 	if (titleScreen.size() == 0) {
 		AnimStruct current{ "..\\..\\asset\\Sky.png", -1, 1 };
-		titleScreen.emplace_back(current, window); // Sky
+		titleScreen.emplace_back(current); // Sky
 		current = { "..\\..\\asset\\TitleScreen\\TitleScreen_Circle.png", -1, 1 };
-		titleScreen.emplace_back(current, window); //Circle
+		titleScreen.emplace_back(current); //Circle
 		current = { "..\\..\\asset\\TitleScreen\\TitleScreen_Tails.png", 80, 11 };
-		titleScreen.emplace_back(current, window); //Tails
+		titleScreen.emplace_back(current); //Tails
 		current = { "..\\..\\asset\\TitleScreen\\TitleScreen_Banner.png", -1, 1 };
-		titleScreen.emplace_back(current, window); // Banner
+		titleScreen.emplace_back(current); // Banner
 		current = { "..\\..\\asset\\TitleScreen\\TitleScreen_Text.png", -1, 1 };
-		titleScreen.emplace_back(current, window); //Text
+		titleScreen.emplace_back(current); //Text
 		titleScreenHoverBegin = SDL_GetTicks();
 	}
 
@@ -86,7 +86,7 @@ void globalObjects::renderTitleScreen(std::vector < std::vector < Animation > >&
 				efxData.swp.newColors[i] = lerp(efxData.swp.oldColors[i], 0x00FFFFFF, thisCurve);
 			}
 		}
-		titleScreen[i].Render(&current, 0, window, NULL, 1.0 / ratio, SDL_FLIP_NONE, efxType, &efxData);
+		titleScreen[i].Render(&current, 0, NULL, 1.0 / ratio, SDL_FLIP_NONE, efxType, &efxData);
 		current = { int(WINDOW_HORIZONTAL_SIZE * ratio / 2 - 128), int(WINDOW_VERTICAL_SIZE * ratio / 2) - 72 + titleScreenOffset, 256, 144 };
 	}
 }
@@ -117,7 +117,7 @@ void globalObjects::updateLoading(const double& incr) {
 	Text t("..\\..\\asset\\FontGUI.png");
 	SDL_Rect currentBar{ WINDOW_HORIZONTAL_SIZE / 4, currentHeight + 15, WINDOW_HORIZONTAL_SIZE / 2, 10 };
 	for (int i = 0; i < loadProgress.size(); i++) {
-		t.StringToText(loadProgress[i].label, window);
+		t.StringToText(loadProgress[i].label);
 		currentBar.w = WINDOW_HORIZONTAL_SIZE / 2;
 		SDL_RenderDrawRect(renderer, &currentBar);
 		currentBar.w = loadProgress[i].progress * WINDOW_HORIZONTAL_SIZE / 2;

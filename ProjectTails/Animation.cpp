@@ -55,7 +55,7 @@ Animation::Animation(Animation&& other) :
 	std::cout << "Animation move constructor was called!\n";
 }
 
-Animation::Animation(SDL_Surface* Sprites, int delay, int frames, SDL_Window* w, bool til) :
+Animation::Animation(SDL_Surface* Sprites, int delay, int frames, bool til) :
 	timeError(0),
 	tile(til),
 	Delay(delay),
@@ -67,14 +67,14 @@ Animation::Animation(SDL_Surface* Sprites, int delay, int frames, SDL_Window* w,
 {
 	SDL_Surface* s = Sprites;
 	SDL_FreeSurface(SpriteSheet);
-	SpriteSheet = SDL_ConvertSurface(s, SDL_GetWindowSurface(w)->format, NULL);
+	SpriteSheet = SDL_ConvertSurface(s, SDL_GetWindowSurface(globalObjects::window)->format, NULL);
 	if (SpriteSheet == NULL) {
 		std::cout << SDL_GetError() << "\n";
 		throw "Spritesheet could not be created";
 	}
 	SDL_FreeSurface(s);
 	SDL_SetSurfaceRLE(SpriteSheet, SDL_TRUE);
-	SDL_SetColorKey(SpriteSheet, SDL_RLEACCEL, SDL_MapRGBA(SDL_GetWindowSurface(w)->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
+	SDL_SetColorKey(SpriteSheet, SDL_RLEACCEL, SDL_MapRGBA(SDL_GetWindowSurface(globalObjects::window)->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
 	SDL_SetSurfaceBlendMode(SpriteSheet, SDL_BLENDMODE_NONE);
 	for (int i = 0; i < frames; i++) {
 		FrameWindows[i].x = i*(Sprites->w) / frames;
@@ -89,7 +89,7 @@ Animation::Animation(SDL_Surface* Sprites, int delay, int frames, SDL_Window* w,
 	}
 }
 
-Animation::Animation(AnimStruct a, SDL_Window* w) :
+Animation::Animation(AnimStruct a) :
 	timeError(0),
 	tile(false),
 	Delay(a.delay),
@@ -100,14 +100,14 @@ Animation::Animation(AnimStruct a, SDL_Window* w) :
 	tex(NULL)
 {
 	SDL_Surface* s = IMG_Load(a.SpritePath.c_str());
-	SpriteSheet = SDL_ConvertSurface(s, SDL_GetWindowSurface(w)->format, NULL);
+	SpriteSheet = SDL_ConvertSurface(s, SDL_GetWindowSurface(globalObjects::window)->format, NULL);
 	if (SpriteSheet == NULL) {
 		std::cout << SDL_GetError() << "\n";
 		throw "Spritesheet could not be created";
 	}
 	SDL_FreeSurface(s);
 	SDL_SetSurfaceRLE(SpriteSheet, SDL_TRUE);
-	SDL_SetColorKey(SpriteSheet, SDL_TRUE, SDL_MapRGBA(SDL_GetWindowSurface(w)->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
+	SDL_SetColorKey(SpriteSheet, SDL_TRUE, SDL_MapRGBA(SDL_GetWindowSurface(globalObjects::window)->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
 	SDL_SetSurfaceBlendMode(SpriteSheet, SDL_BLENDMODE_NONE);
 	for (int i = 0; i < a.frames; i++) {
 		FrameWindows[i].x = i*(SpriteSheet->w) / a.frames;
@@ -122,7 +122,7 @@ Animation::Animation(AnimStruct a, SDL_Window* w) :
 	}
 }
 
-Animation::Animation(SDL_Point tileSize, SDL_Window* w) :
+Animation::Animation(SDL_Point tileSize) :
 	timeError(0),
 	tile(true),
 	FrameWindows(1, { 0, 0, 256, 256 }),
@@ -130,15 +130,15 @@ Animation::Animation(SDL_Point tileSize, SDL_Window* w) :
 	tex(NULL)
 {
 	SDL_Surface* s = SDL_CreateRGBSurface(0, 256, 256, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-	SpriteSheet = SDL_ConvertSurface(s, SDL_GetWindowSurface(w)->format, NULL);
+	SpriteSheet = SDL_ConvertSurface(s, SDL_GetWindowSurface(globalObjects::window)->format, NULL);
 	if (SpriteSheet == NULL) {
 		std::cout << SDL_GetError() << "\n";
 		throw "Spritesheet could not be created";
 	}
 	SDL_FreeSurface(s);
 	SDL_SetSurfaceRLE(SpriteSheet, SDL_TRUE);
-	SDL_SetColorKey(SpriteSheet, SDL_RLEACCEL, SDL_MapRGBA(SDL_GetWindowSurface(w)->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
-	SDL_FillRect(SpriteSheet, NULL, SDL_MapRGBA(SDL_GetWindowSurface(w)->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
+	SDL_SetColorKey(SpriteSheet, SDL_RLEACCEL, SDL_MapRGBA(SDL_GetWindowSurface(globalObjects::window)->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
+	SDL_FillRect(SpriteSheet, NULL, SDL_MapRGBA(SDL_GetWindowSurface(globalObjects::window)->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
 };
 
 void Animation::SetFrame(int f) {
@@ -171,7 +171,7 @@ Animation::~Animation()
 	std::vector< SDL_Rect >().swap(FrameWindows);
 }
 
-void Animation::Render(const SDL_Rect* dest, const int& rot, const SDL_Window* window, SDL_Point* center, const double& ratio, const SDL_RendererFlip& flip, const effectType& effect, const effectData* efxData){
+void Animation::Render(const SDL_Rect* dest, const int& rot, SDL_Point* center, const double& ratio, const SDL_RendererFlip& flip, const effectType& effect, const effectData* efxData){
 	if (SpriteSheet == NULL) {
 		std::cout << "\nSpritesheet is null\n";
 		throw "Animation Render Exception: Spritesheet Is Null!";
@@ -232,7 +232,7 @@ void Animation::Render(const SDL_Rect* dest, const int& rot, const SDL_Window* w
 	}
 }
 
-void Animation::SizeRender(SDL_Rect* dest, int rot, SDL_Window* window, SDL_Point* center, double ratio) {
+void Animation::SizeRender(SDL_Rect* dest, int rot, SDL_Point* center, double ratio) {
 	if (SpriteSheet == NULL) {
 		throw "Animation Render Exception: Spritesheet Is Null!";
 		std::cerr << "Anim render Exception!";

@@ -29,13 +29,11 @@ public:
 
 	void SetRenderer(SDL_Renderer* r);
 	void SetCamera(Camera* c);
-
-	void SetWindow(SDL_Window* w) { window = w; };
 	
 	SDL_Rect GetWinArea() { return win; };
 
 
-	void RenderObjects(PRHS_Window* win, Player& player);
+	void RenderObjects(Player& player);
 
 
 	void UpdateCollisions(Player* player);
@@ -99,7 +97,6 @@ private:
 	int loaded_entities;
 	SDL_Rect win;
 	ActType aType;
-	SDL_Window* window;
 	int frame;
 	static std::vector < PhysProp > props;
 	static std::unordered_map < std::string, PhysProp* > entityKeys;

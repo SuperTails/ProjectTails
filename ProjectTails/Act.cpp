@@ -23,7 +23,6 @@ Act::Act(Act&& other) :
 	loaded_entities(std::move(other.loaded_entities)),
 	win(std::move(other.win)),
 	aType(std::move(other.aType)),
-	window(std::move(other.window)),
 	ratio(std::move(other.ratio)),
 	frame(std::move(other.frame)),
 	entities(std::move(other.entities)),
@@ -53,7 +52,6 @@ Act::Act(const int& num, const std::string& name1, const std::vector < PhysStruc
 	loaded_entities(0),
 	win(w),
 	aType(a),
-	window(nullptr),
 	ratio(screenRatio),
 	frame(0),
 	debounce(false),
@@ -78,7 +76,7 @@ void Act::Init() {
 		if (SDL_HasIntersection(&(i->pos), &(cam->getCollisionRect()))) {
 			std::cout << "Loading entity with number " << i->num << " at position " << i->pos.x << " " << i->pos.y << "\n";
 			loaded_entities++;
-			entities.emplace_back(new PhysicsEntity(*i, window));
+			entities.emplace_back(new PhysicsEntity(*i));
 			i->loaded = true;
 		}
 	}
@@ -134,7 +132,7 @@ void Act::UpdateEntities(Player& player) {
 	for (entityLoadIterator i = phys_paths.begin(); i < phys_paths.end(); i++) {
 		if (SDL_HasIntersection(&(i->pos), &(cam->getCollisionRect())) && i->loaded == false && i->num != -1) {
 			std::cout << "Loading entity with number " << i->num << " at position " << i->pos.x << " " << i->pos.y << "\n";
-			entities.emplace_back(new PhysicsEntity(*i, window));
+			entities.emplace_back(new PhysicsEntity(*i));
 			entities.back()->SetTime(SDL_GetTicks());
 			entities.back()->loaded = true;
 			entities.back()->num = std::distance(phys_paths.begin(), i);
@@ -182,8 +180,8 @@ void Act::SetCamera(Camera* c) {
 	cam = c;
 }
 
-void Act::RenderObjects(PRHS_Window* wind, Player& player) {
-	globalObjects::renderBackground(background, window, cam->getPosition().x - cam->GetOffset().x, ratio);
+void Act::RenderObjects(Player& player) {
+	globalObjects::renderBackground(background, globalObjects::window, cam->getPosition().x - cam->GetOffset().x, ratio);
 	entityListIterator i = entities.begin();
 	SDL_Rect pos = cam->getPosition();
 	while (i != entities.end()) {
@@ -225,7 +223,7 @@ void Act::UpdateCollisions(Player* player) {
 				std::cout << "Entity's number is " << (*i)->num << "\n";
 				center.x = (*i)->getPosition().x + (*i)->getCollisionRect().x + (*i)->getCollisionRect().w / 2;
 				center.y = (*i)->getPosition().y + (*i)->getCollisionRect().y + (*i)->getCollisionRect().h / 2;
-				(*i)->Destroy(ratio, window);
+				(*i)->Destroy(ratio);
 				i = player->hitEnemy(entities, i, phys_paths, props, globalObjects::window, center);
 				destroyed = true;
 				break;
@@ -233,7 +231,7 @@ void Act::UpdateCollisions(Player* player) {
 				if (player->AddRing()) {
 					std::cout << "Collision type was with ring\n";
 					std::cout << "Entity's number is " << (*i)->num << "\n";
-					(*i)->Destroy(ratio, window);
+					(*i)->Destroy(ratio);
 					destroyed = true;
 				}
 				break;
@@ -308,7 +306,7 @@ void Act::UpdateCollisions(Player* player) {
 				if (player->canDamage()) {
 					player->AddRing(10);
 					player->setVelocity({ player->getVelocity().x, player->getVelocity().y * -0.9 });
-					(*i)->Destroy(ratio, window);
+					(*i)->Destroy(ratio);
 					destroyed = true;
 				}
 				break;

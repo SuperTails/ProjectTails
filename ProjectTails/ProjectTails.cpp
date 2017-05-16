@@ -31,10 +31,9 @@ const double stepLength = 1000.0 / 60.0;
 
 const double LOAD_STEPS = 7.0;
 
-void LoadAct(Act* a, Camera* c, SDL_Renderer* r, SDL_Window* w, std::vector < PhysProp > p) {
+void LoadAct(Act* a, Camera* c, SDL_Renderer* r, std::vector < PhysProp > p) {
 	a->SetCamera(c);
 	a->SetRenderer(r);
-	a->SetWindow(w);
 	a->Init();
 	a->setProps(p);
 }
@@ -105,20 +104,20 @@ int main( int argc, char* argv[] ) {
 	Player Tails = Player();
 
 	Tails.updatePosition({ 20, 0, 120, 64, 0 }, PRHS_UPDATE_ABSOLUTE);
-	Tails.AddAnim({ TORNADO_PATH, 50, 4 }, window.getWindow());		//0
-	Tails.AddAnim({ IDLE_PATH, 133, 4 }, window.getWindow());
-	Tails.AddAnim({ WALK_PATH, 133, 7 }, window.getWindow());
-	Tails.AddAnim({ RUN_PATH,  133, 4 }, window.getWindow());
-	Tails.AddAnim({ ROLL_BODY_PATH, 64, 6 }, window.getWindow());	//4
-	Tails.AddAnim({ ROLL_TAILS_PATH, 128, 3 }, window.getWindow());
-	Tails.AddAnim({ CROUCH_PATH, 133, 5 }, window.getWindow());
-	Tails.AddAnim({ SPINDASH_PATH, 30, 5 }, window.getWindow());
-	Tails.AddAnim({ FLY_PATH, 50, 2 }, window.getWindow());			//8
-	Tails.AddAnim({ FLY_TIRED_PATH, 60, 4 }, window.getWindow());
-	Tails.AddAnim({ LOOK_UP_PATH, 133, 5 }, window.getWindow());
-	Tails.AddAnim({ CORKSCREW_PATH, 50, 11 }, window.getWindow());
-	Tails.AddAnim({ HURT_PATH, 32, 2 }, window.getWindow());		//12
-	Tails.AddAnim({ ACT_CLEAR_PATH, 150, 3 }, window.getWindow());
+	Tails.AddAnim({ TORNADO_PATH, 50, 4 });		//0
+	Tails.AddAnim({ IDLE_PATH, 133, 4 });
+	Tails.AddAnim({ WALK_PATH, 133, 7 });
+	Tails.AddAnim({ RUN_PATH,  133, 4 });
+	Tails.AddAnim({ ROLL_BODY_PATH, 64, 6 });	//4
+	Tails.AddAnim({ ROLL_TAILS_PATH, 128, 3 });
+	Tails.AddAnim({ CROUCH_PATH, 133, 5 });
+	Tails.AddAnim({ SPINDASH_PATH, 30, 5 });
+	Tails.AddAnim({ FLY_PATH, 50, 2 });			//8
+	Tails.AddAnim({ FLY_TIRED_PATH, 60, 4 });
+	Tails.AddAnim({ LOOK_UP_PATH, 133, 5 });
+	Tails.AddAnim({ CORKSCREW_PATH, 50, 11 });
+	Tails.AddAnim({ HURT_PATH, 32, 2 });		//12
+	Tails.AddAnim({ ACT_CLEAR_PATH, 150, 3 });
 	Tails.setCollisionRect({ 0,19,120,30 });
 	//REMOVE LATER	
 
@@ -155,13 +154,12 @@ int main( int argc, char* argv[] ) {
 	
 	Animation::setRenderer(globalObjects::renderer);
 
-	Ground::setWindow(window.getWindow());
 	std::vector < CollisionTile > tiles;
 	
 	std::vector < Ground > ground;
 	matrix < int > collides(221);
 	std::vector < double > angles(221);
-	DataReader::LoadCollisionsFromImage(ASSET"SolidGraph.png", collides, angles, window.getWindow());
+	DataReader::LoadCollisionsFromImage(ASSET"SolidGraph.png", collides, angles);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
 	collides[220] = std::vector < int >(16, 16);
@@ -184,7 +182,7 @@ int main( int argc, char* argv[] ) {
 		DataReader::LoadJSONBlock(ASSET"EmeraldHillBlock" + std::to_string(i + 1) + ".json", arrayData[i]);
 		globalObjects::updateLoading((1 / LOAD_STEPS) / NUM_BLOCKS);
 	}
-	DataReader::LoadBackground(ASSET"EmeraldHillZone\\Background", background, 2, window.getWindow());
+	DataReader::LoadBackground(ASSET"EmeraldHillZone\\Background", background, 2);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
 	DataReader::LoadActData(ACT1_DATA_PATH, actNum, actName, entities, winRect, actType, &ground, &arrayData, &groundIndices, &levelSize);
@@ -219,7 +217,7 @@ int main( int argc, char* argv[] ) {
 
 	Tails.SetActType(acts.front().getType());
 
-	LoadAct(&(acts.front()), &cam, globalObjects::renderer, window.getWindow(), EntityData);
+	LoadAct(&(acts.front()), &cam, globalObjects::renderer, EntityData);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
 	Tails.SetRings(0);
@@ -233,10 +231,10 @@ int main( int argc, char* argv[] ) {
 	Text debug_text = Text(FONT_PATH);
 	Text debug_text2 = Text(FONT_PATH);
 
-	rings_text.StringToText("RINGS:", window.getWindow());
-	rings_count_text.StringToText(to_string(Tails.GetRings()), window.getWindow());
-	debug_text.StringToText("", window.getWindow());
-	debug_text2.StringToText("", window.getWindow());
+	rings_text.StringToText("RINGS:");
+	rings_count_text.StringToText(to_string(Tails.GetRings()));
+	debug_text.StringToText("");
+	debug_text2.StringToText("");
 
 	//Load Surfaces
 	SDL_Surface* Sky = IMG_Load(SKY_PATH.c_str());
@@ -284,7 +282,7 @@ int main( int argc, char* argv[] ) {
 
 	double avg_fps = 0;
 
-	debug_text.StringToText("nope", window.getWindow());
+	debug_text.StringToText("nope");
 
 	SoundHandler::setMusic(ASSET"TheAdventureContinues", true);
 
@@ -311,18 +309,18 @@ int main( int argc, char* argv[] ) {
 			acts.front().UpdateEntities(Tails);
 			acts.front().UpdateCollisions(&Tails);
 
-			rings_count_text.StringToText(to_string(Tails.GetRings()), window.getWindow());
+			rings_count_text.StringToText(to_string(Tails.GetRings()));
 			rings_count_texture = SDL_CreateTextureFromSurface(window.getRenderer(), rings_count_text.getText());
 			debug_text_texture2 = SDL_CreateTextureFromSurface(window.getRenderer(), debug_text2.getText());
 
 
-			debug_text2.StringToText(Tails.CollideGround(acts.front().getGround()), window.getWindow());
+			debug_text2.StringToText(Tails.CollideGround(acts.front().getGround()));
 			Tails.UpdateP(cam);
 			cam.updatePos(Tails.getPosition(), Tails.lookDirection());
 
 			window.render(Sky_Texture, { 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE, 0 });
 
-			acts.front().RenderObjects(&window, Tails);
+			acts.front().RenderObjects(Tails);
 
 			window.render(rings_text_texture, { 25, 25, rings_text.getText()->w, rings_text.getText()->h, 0 });
 			window.render(rings_count_texture, { 25 + rings_text.getText()->w + 3, 25, rings_count_text.getText()->w, rings_count_text.getText()->h, 0 });
@@ -349,7 +347,7 @@ int main( int argc, char* argv[] ) {
 				effectManager::fadeFrom(false, 120.0);
 				Tails.setActCleared(false);
 				Tails.GetAnim(13)->SetFrame(0);
-				LoadAct(&acts.front(), &cam, globalObjects::renderer, globalObjects::window, EntityData);
+				LoadAct(&acts.front(), &cam, globalObjects::renderer, EntityData);
 				SoundHandler::setMusic("..\\..\\asset\\TheAdventureContinues", true);
 			}
 			
