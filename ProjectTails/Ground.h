@@ -2,10 +2,15 @@
 #include "PhysicsEntity.h"
 #include "CollisionTile.h"
 #include "Typedefs.h"
+#include "CollisionTile.h"
 #include <vector>
 #include <json.hpp>
 
 using json = nlohmann::json;
+
+using constants::GROUND_SIZE;
+using constants::GROUND_WIDTH;
+using constants::TILE_WIDTH;
 
 class Ground : public PhysicsEntity
 {
@@ -43,7 +48,6 @@ public:
 	
 	void Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position = nullptr, const int layer = 0, const bool flip = false) const;
 	int* getIndices() { return tileIndices; };
-	void setIndices(std::vector < int > ind);
 	void setPoint(SDL_Point p) { position = { 256 * p.x, 256 * p.y, 256, 256 }; };
 	bool getHeight(int x, int yMax, int yMin, int& height);
 	bool getMulti() { return multiPath; };

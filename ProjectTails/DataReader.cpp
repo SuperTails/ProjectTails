@@ -14,11 +14,11 @@ void DataReader::LoadJSONBlock(std::string path, Ground::groundArrayData& arrayD
 
 	const int MAX_GRAPHICS_TILE_INDEX = 339;
 
-	arrayData.graphicsIndices.resize(256, 0);
-	arrayData.graphicsFlags.resize(256, 0);
+	arrayData.graphicsIndices.resize(GROUND_SIZE, 0);
+	arrayData.graphicsFlags.resize(GROUND_SIZE, 0);
 
 	//Load image data
-	for (int i = 0; i < 256; i++) {
+	for (int i = 0; i < GROUND_SIZE; i++) {
 		auto& thisTile = j["layers"][0]["tiles"][i];
 
 		arrayData.graphicsIndices[i] = thisTile["tile"].get<int>();
@@ -35,38 +35,38 @@ void DataReader::LoadJSONBlock(std::string path, Ground::groundArrayData& arrayD
 		if (j["layers"][1]["tiles"][0]["tile"].get<int>() <= MAX_GRAPHICS_TILE_INDEX) {
 			isDoubleLayer = true;
 			//Load image data for layer 2
-			arrayData.graphicsIndices.resize(512);
-			arrayData.graphicsFlags.resize(512);
-			for (int i = 0; i < 256; i++) {
+			arrayData.graphicsIndices.resize(GROUND_SIZE * 2);
+			arrayData.graphicsFlags.resize(GROUND_SIZE * 2);
+			for (int i = 0; i < GROUND_SIZE; i++) {
 				auto& thisTile = j["layers"][1]["tiles"][i];
-				arrayData.graphicsIndices[i + 256] = thisTile["tile"].get<int>();
+				arrayData.graphicsIndices[i + GROUND_SIZE] = thisTile["tile"].get<int>();
 				if (thisTile["rot"].get<int>() == 2) {
-					arrayData.graphicsFlags[i + 256] |= SDL_FLIP_VERTICAL;
-					arrayData.graphicsFlags[i + 256] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+					arrayData.graphicsFlags[i + GROUND_SIZE] |= SDL_FLIP_VERTICAL;
+					arrayData.graphicsFlags[i + GROUND_SIZE] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
 				}
 				else {
-					arrayData.graphicsFlags[i + 256] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
+					arrayData.graphicsFlags[i + GROUND_SIZE] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
 				}
 			}
 		}
 	}
-	arrayData.collideIndices.resize(256 * (numLayers - isDoubleLayer - 1), MAX_GRAPHICS_TILE_INDEX + 1);
-	arrayData.collideFlags.resize(256 * (numLayers - isDoubleLayer - 1), 0);
+	arrayData.collideIndices.resize(GROUND_SIZE * (numLayers - isDoubleLayer - 1), MAX_GRAPHICS_TILE_INDEX + 1);
+	arrayData.collideFlags.resize(GROUND_SIZE * (numLayers - isDoubleLayer - 1), 0);
 	for (int l = 1 + isDoubleLayer; l < numLayers; l++) {
 		//Load collision data
-		for (int i = 0; i < 256; i++) {
+		for (int i = 0; i < GROUND_SIZE; i++) {
 			auto& thisTile = j["layers"][l]["tiles"][i];
 			int current = thisTile["tile"].get<int>();
 			if (current == 591) {
 				current = 560;
 			}
-			arrayData.collideIndices[i + 256 * (l - isDoubleLayer - 1)] = current - 340;
+			arrayData.collideIndices[i + GROUND_SIZE * (l - isDoubleLayer - 1)] = current - 340;
 			if (thisTile["rot"].get<int>() == 2) {
-				arrayData.collideFlags[i + 256 * (l - isDoubleLayer - 1)] |= SDL_FLIP_VERTICAL;
-				arrayData.collideFlags[i + 256 * (l - isDoubleLayer - 1)] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+				arrayData.collideFlags[i + GROUND_SIZE * (l - isDoubleLayer - 1)] |= SDL_FLIP_VERTICAL;
+				arrayData.collideFlags[i + GROUND_SIZE * (l - isDoubleLayer - 1)] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
 			}
 			else {
-				arrayData.collideFlags[i + 256 * (l - isDoubleLayer - 1)] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
+				arrayData.collideFlags[i + GROUND_SIZE * (l - isDoubleLayer - 1)] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
 			}
 		}
 	}
@@ -310,7 +310,7 @@ void DataReader::LoadTileData(std::string path, std::vector < CollisionTile >& t
 	while (!DataFile.eof()) {
 		DataFile >> data;
 		if (data == "false") {
-			currentTile.setHeights(std::vector < int >(16,0));
+			currentTile.setHeights(std::vector < int >(TILE_WIDTH,0));
 			currentTile.setCollide(false);
 		}
 		else {
@@ -341,7 +341,7 @@ void DataReader::LoadTileData(std::vector < CollisionTile >& tiles, matrix < int
 		currentTile.setHeights(heights[i]);
 		currentTile.calculateSideMap();
 		bool collides(false);
-		for (int j = 0; j < 16; j++) {
+		for (int j = 0; j < TILE_WIDTH; j++) {
 			if (heights[i][j] != 0) {
 				collides = true;
 				break;
@@ -350,39 +350,6 @@ void DataReader::LoadTileData(std::vector < CollisionTile >& tiles, matrix < int
 		currentTile.setCollide(collides);
 		tiles.push_back(currentTile);
 	}
-};
-
-void DataReader::LoadTileBlocks(std::string path, matrix < int >& blocks, matrix < int >& blockFlags) {
-	std::ifstream DataFile;
-	DataFile.open(path + "Blocks.txt");
-	std::string data;
-	DataFile >> data;
-	int numBlocks = atoi(data.c_str());
-	int data1;
-	char nextFlag = ' ';
-	blocks.resize(numBlocks);
-	blockFlags.resize(numBlocks);
-	for (int j = 0; j < numBlocks; j++) {
-		blocks[j].resize(256);
-		blockFlags[j].resize(256);
-		for (int i = 0; i < 256; i++) {
-			DataFile >> data1;
-			blocks[j][i] = data1;
-			blockFlags[j][i] = 0;
-			do {
-				DataFile.get(nextFlag);
-				if (nextFlag == 'h') {
-					blockFlags[j][i] |= SDL_FLIP_HORIZONTAL;
-				}
-				else if (nextFlag == 'v') {
-					blockFlags[j][i] |= SDL_FLIP_VERTICAL;
-				}
-			} while(nextFlag != ' ' && nextFlag != '\n');
-		}
-
-	}
-
-	DataFile.close();
 };
 
 void DataReader::LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles) {

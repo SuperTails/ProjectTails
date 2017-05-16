@@ -74,7 +74,7 @@ void LevelEditor::renderTiles() {
 		for (int row = 0; row < levelBlocks[column].size(); row++) {
 			int tile = levelBlocks[column][row].index;
 			if (tile != -1) {
-				SDL_Rect pos{ column * 256, row * 256, 256, 256 };
+				SDL_Rect pos{ column * int(TILE_WIDTH * GROUND_WIDTH), row * int(TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH) };
 				SDL_Rect relativePos = PhysicsEntity::getRelativePos(pos, cam->getPosition());
 				SDL_RendererFlip currentFlip = static_cast < SDL_RendererFlip >(levelBlocks[column][row].flip);
 				groundList[tile].Render(cam->getPosition(), 1.0 / globalObjects::ratio, &relativePos, 0, currentFlip);
@@ -84,7 +84,7 @@ void LevelEditor::renderTiles() {
 			}
 		}
 	}
-	SDL_Rect boundingRect = PhysicsEntity::getRelativePos(SDL_Rect{ 0, 0, int(levelBlocks.size() * 256), int(levelBlocks[0].size() * 256) }, cam->getPosition());
+	SDL_Rect boundingRect = PhysicsEntity::getRelativePos(SDL_Rect{ 0, 0, int(levelBlocks.size() * TILE_WIDTH * GROUND_WIDTH), int(levelBlocks[0].size() * TILE_WIDTH * GROUND_WIDTH) }, cam->getPosition());
 	boundingRect.x *= globalObjects::ratio;
 	boundingRect.y *= globalObjects::ratio;
 	boundingRect.w *= globalObjects::ratio;
@@ -169,9 +169,9 @@ bool LevelEditor::handleInput() {
 	if (mouseState & (SDL_BUTTON(SDL_BUTTON_LEFT) | SDL_BUTTON(SDL_BUTTON_RIGHT))) {
 		if (!mouseDebounce) {
 			if (mode == TILE) {
-				if ((mouseX / 256.0) / globalObjects::ratio < levelBlocks.size() && (mouseY / 256.0) / globalObjects::ratio < levelBlocks[0].size()) {
+				if ((mouseX / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio < levelBlocks.size() && (mouseY / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio < levelBlocks[0].size()) {
 					int temp = (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) ? 2 : groundList.size() + 1;
-					int& index = levelBlocks[(mouseX / 256.0) / globalObjects::ratio][(mouseY / 256.0) / globalObjects::ratio].index;
+					int& index = levelBlocks[(mouseX / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio][(mouseY / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio].index;
 					index = ((index + temp) % (groundList.size() + 1)) - 1;
 				}
 				mouseDebounce = true;
@@ -196,8 +196,8 @@ bool LevelEditor::handleInput() {
 		}
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
-		if (!mouseDebounce && (mouseX / 256.0) / globalObjects::ratio < levelBlocks.size() && (mouseY / 256.0) / globalObjects::ratio < levelBlocks[0].size()) {
-			levelBlocks[(mouseX / 256.0) / globalObjects::ratio][(mouseY / 256.0) / globalObjects::ratio].flip ^= 0x1;
+		if (!mouseDebounce && (mouseX / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio < levelBlocks.size() && (mouseY / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio < levelBlocks[0].size()) {
+			levelBlocks[(mouseX / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio][(mouseY / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio].flip ^= 0x1;
 		}
 		mouseDebounce = true;
 	}

@@ -39,10 +39,10 @@ Ground::Ground(const Ground& other) :
 	PhysicsEntity(other)
 {
 	if (other.tileIndices != nullptr) {
-		tileIndices = new int[256 * (other.multiPath + 1)];
-		tileFlags = new int[256 * (other.multiPath + 1)];
-		std::memmove(tileIndices, other.tileIndices, sizeof(int) * 256 * (multiPath + 1));
-		std::memmove(tileFlags, other.tileFlags, sizeof(int) * 256 * (multiPath + 1));
+		tileIndices = new int[GROUND_SIZE * (other.multiPath + 1)];
+		tileFlags   = new int[GROUND_SIZE * (other.multiPath + 1)];
+		std::memmove(tileIndices, other.tileIndices, GROUND_SIZE * sizeof(int) * (multiPath + 1));
+		std::memmove(tileFlags  , other.tileFlags  , GROUND_SIZE * sizeof(int) * (multiPath + 1));
 	}
 };
 
@@ -62,14 +62,13 @@ Ground::Ground() :
 Ground::Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip) :
 	tileIndices(new int[arrayData.collideIndices.size()]),
 	tileFlags(new int[arrayData.collideFlags.size()]),
-	multiPath(arrayData.collideIndices.size() / 256 - 1),
+	multiPath(arrayData.collideIndices.size() / GROUND_SIZE - 1),
 	flip(pFlip),
-	PhysicsEntity({ p.x * 256, p.y * 256, 256, 256 }, std::max(arrayData.collideIndices.size() / 256 - 1, arrayData.graphicsIndices.size() / 256 - 1))
+	PhysicsEntity({ int(p.x * TILE_WIDTH * GROUND_WIDTH), int(p.y * TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH) }, std::max(arrayData.collideIndices.size() / GROUND_SIZE - 1, arrayData.graphicsIndices.size() / GROUND_SIZE - 1))
 {
-	SDL_Rect current = { 0, 0, 16, 16 };
-	SDL_Rect dest = { 0, 0, 16, 16 };
+	SDL_Rect current = { 0, 0, TILE_WIDTH, TILE_WIDTH };
+	SDL_Rect dest = { 0, 0, TILE_WIDTH, TILE_WIDTH };
 	int ind = 0;
-	int numFrames = 16;
 
 	SDL_Surface* flipHoriz = Animation::FlipSurface(map, SDL_FLIP_HORIZONTAL);
 	SDL_Surface* flipVertical = Animation::FlipSurface(map, SDL_FLIP_VERTICAL);
@@ -77,19 +76,19 @@ Ground::Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip) :
 
 	for (int i = 0; i < arrayData.graphicsIndices.size(); i++) {
 		ind = arrayData.graphicsIndices[i];
-		current.x = 16 * (ind % (map->w / 16));
-		current.y = 16 * floor(double(ind) / (map->w / 16));
+		current.x = TILE_WIDTH * (ind % (map->w / TILE_WIDTH));
+		current.y = TILE_WIDTH * floor(double(ind) / (map->w / TILE_WIDTH));
 		SDL_RendererFlip currentFlip = SDL_RendererFlip(arrayData.graphicsFlags[i] ^ flip);
 		if (currentFlip & SDL_FLIP_HORIZONTAL) {
-			current.x = map->w - current.x - 16;
+			current.x = map->w - current.x - TILE_WIDTH;
 		}
 		if (currentFlip & SDL_FLIP_VERTICAL) {
-			current.y = map->h - current.y - 16;
+			current.y = map->h - current.y - TILE_WIDTH;
 		}
-		dest.x = (i & 0xF) << 4;
-		dest.y = i & (0xFF & (~0xF));
+		dest.x = (i % GROUND_WIDTH) * TILE_WIDTH;
+		dest.y = TILE_WIDTH * ((i % GROUND_SIZE) / GROUND_WIDTH);
 		if(flip)
-			dest.x = 256 - 16 - dest.x;
+			dest.x = (GROUND_WIDTH * TILE_WIDTH) - TILE_WIDTH - dest.x;
 		SDL_Surface* surfaceFlipped = nullptr;
 		switch (currentFlip) {
 		case SDL_FLIP_NONE:
@@ -107,9 +106,9 @@ Ground::Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip) :
 		}
 		//0 is rendered in front of the player
 		//1 is rendered behind the player
-		if (multiPath && arrayData.graphicsIndices.size() != 512) {
+		if (multiPath && arrayData.graphicsIndices.size() != GROUND_SIZE * 2) {
 			int tilePathFront = arrayData.collideIndices[i];
-			int tilePathBack = arrayData.collideIndices[i + 256];
+			int tilePathBack = arrayData.collideIndices[i + GROUND_SIZE];
 			if (tilePathBack && !tilePathFront) {
 				SDL_BlitSurface(surfaceFlipped, &current, animations[1]->GetSpriteSheet(), &dest);
 				current.x = 0;
@@ -123,8 +122,8 @@ Ground::Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip) :
 				SDL_BlitSurface(map, &current, animations[1]->GetSpriteSheet(), &dest);
 			}
 		}
-		else if (arrayData.graphicsIndices.size() == 512) {
-			SDL_BlitSurface(surfaceFlipped, &current, animations[i / 256]->GetSpriteSheet(), &dest);
+		else if (arrayData.graphicsIndices.size() == GROUND_SIZE * 2) {
+			SDL_BlitSurface(surfaceFlipped, &current, animations[i / GROUND_SIZE]->GetSpriteSheet(), &dest);
 		}
 		else {
 			SDL_BlitSurface(surfaceFlipped, &current, animations[0]->GetSpriteSheet(), &dest); //src, srcrect, dst, dstrect
@@ -139,8 +138,8 @@ Ground::Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip) :
 		i->updateTexture();
 	}
 
-	std::memmove(tileIndices, &arrayData.collideIndices[0], std::size_t(sizeof(int) * 256 * (multiPath + 1)));
-	std::memmove(tileFlags, &arrayData.collideFlags[0], std::size_t(sizeof(int) * 256 * (multiPath + 1)));
+	std::memmove(tileIndices, &arrayData.collideIndices[0], GROUND_SIZE * std::size_t(sizeof(int) * (multiPath + 1)));
+	std::memmove(tileFlags  , &arrayData.collideFlags[0]  , GROUND_SIZE * std::size_t(sizeof(int) * (multiPath + 1)));
 }
 
 Ground::~Ground()
@@ -158,14 +157,16 @@ void Ground::Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect*
 
 CollisionTile& Ground::getTile(int tileX, int tileY) {
 	if(!flip)
-		return tileList[tileIndices[tileY * 16 + tileX]];
-	return tileList[tileIndices[tileY * 16 + 15 - (tileX & 0xFF) + (tileX & 0x100)]];
+		return tileList[tileIndices[tileY * GROUND_WIDTH + tileX]];
+								/*      add Y      */   /*            adding flipped X           */   /*    offset for second path     */
+	return tileList[tileIndices[tileY * GROUND_WIDTH + ((GROUND_WIDTH - 1) - (tileX % GROUND_SIZE)) + GROUND_SIZE * (tileX / GROUND_SIZE)]];
 }
 
 int Ground::getFlag(int ind) {
 	if (!flip)
 		return tileFlags[ind] ^ flip;
-	return tileFlags[(ind & 0x1F0) + 0xF - (ind & 0xF)] ^ flip;
+					 /*       Y remains unchanged      */    /*      adding flipped X component     */    /*   offset for second path     */
+	return tileFlags[((ind % GROUND_SIZE) / GROUND_WIDTH) + ((GROUND_WIDTH - 1) - (ind % GROUND_WIDTH)) + GROUND_SIZE * (ind / GROUND_SIZE)] ^ flip;
 }
 
 bool Ground::getHeight(int x, int yMax, int yMin, int& height) {
@@ -205,10 +206,10 @@ Ground& Ground::operator = (const Ground& arg) {
 	multiPath = arg.multiPath;
 	delete[] tileIndices;
 	delete[] tileFlags;
-	tileIndices = new int[256 * (multiPath + 1)];
-	tileFlags = new int[256 * (multiPath + 1)];
-	std::memmove(tileIndices, arg.tileIndices, sizeof(int) * 256 * (multiPath + 1));
-	std::memmove(tileFlags, arg.tileFlags, sizeof(int) * 256 * (multiPath + 1));
+	tileIndices = new int[GROUND_SIZE * (multiPath + 1)];
+	tileFlags   = new int[GROUND_SIZE * (multiPath + 1)];
+	std::memmove(tileIndices, arg.tileIndices, GROUND_SIZE * sizeof(int) * (multiPath + 1));
+	std::memmove(tileFlags  , arg.tileFlags  , GROUND_SIZE * sizeof(int) * (multiPath + 1));
 	invis = false;
 	for (int i = 0; i < arg.animations.size(); i++) {
 		animations.emplace_back(new Animation(*arg.animations[i]));
@@ -252,7 +253,7 @@ Ground& Ground::operator = (Ground&& arg) {
 
 double Ground::getTileAngle(int tileX, int tileY) {
 	CollisionTile& tile = getTile(tileX, tileY);
-	switch (getFlag(tileY * 16 + tileX)) {
+	switch (getFlag(tileY * GROUND_WIDTH + tileX)) {
 	case SDL_FLIP_NONE:
 		return tile.getAngle();
 	case SDL_FLIP_HORIZONTAL:
@@ -266,7 +267,3 @@ double Ground::getTileAngle(int tileX, int tileY) {
 		return -1;
 	}
 };
-
-void Ground::setIndices(std::vector < int > ind) {
-	std::memmove(tileIndices, &ind[0], sizeof(int) * 256);
-}
