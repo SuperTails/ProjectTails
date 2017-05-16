@@ -159,7 +159,7 @@ int main( int argc, char* argv[] ) {
 	std::vector < CollisionTile > tiles;
 	
 	std::vector < Ground > ground;
-	std::vector < std::vector < int > > collides(221);
+	matrix < int > collides(221);
 	std::vector < double > angles(221);
 	DataReader::LoadCollisionsFromImage(ASSET"SolidGraph.png", collides, angles, window.getWindow());
 	globalObjects::updateLoading(1 / LOAD_STEPS);
@@ -173,12 +173,12 @@ int main( int argc, char* argv[] ) {
 
 	const std::size_t NUM_BLOCKS = 13;
 
-	std::vector < std::vector < int > > blocks(NUM_BLOCKS);
-	std::vector < std::vector < int > > blockFlags(NUM_BLOCKS);
+	matrix < int > blocks(NUM_BLOCKS);
+	matrix < int > blockFlags(NUM_BLOCKS);
 
-	std::vector < std::vector < int > > collideIndices(NUM_BLOCKS);
+	matrix < int > collideIndices(NUM_BLOCKS);
 
-	std::vector < std::vector < int > > collideFlags(NUM_BLOCKS);
+	matrix < int > collideFlags(NUM_BLOCKS);
 	SDL_Point levelSize;
 
 	std::vector < DataReader::groundData > groundIndices;
@@ -217,9 +217,7 @@ int main( int argc, char* argv[] ) {
 		return 0;
 	}
 
-	//std::vector < Ground > tempGround = ground;
 	acts.emplace_back(actNum, actName, entities, winRect, actType, SCREEN_RATIO, levelSize, background, std::move(ground));
-	//acts.emplace_back(actNum, actName, entities, winRect, actType, SCREEN_RATIO, levelSize, background, std::move(tempGround));
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
 	Tails.SetActType(acts.front().getType());

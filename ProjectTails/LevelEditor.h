@@ -11,6 +11,7 @@
 #include "Camera.h"
 #include "Miscellaneous.h"
 #include "Text.h"
+#include "Typedefs.h"
 
 namespace LevelEditor {
 	enum editMode { TILE, ENTITY };
@@ -58,7 +59,7 @@ namespace LevelEditor {
 
 	extern double mouseWheelValue;
 
-	void init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, std::vector < std::vector < int > >& blocks, std::vector < std::vector < int > >& blockFlags, std::vector < std::vector < int > >& collides, std::vector < std::vector < int > >& collideFlags);
+	void init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, matrix < int >& blocks, matrix < int >& blockFlags, matrix < int >& collides, matrix < int >& collideFlags);
 
 	void renderTiles();
 

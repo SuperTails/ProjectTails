@@ -178,6 +178,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Text.h" />
+    <ClInclude Include="Typedefs.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Act.cpp" />

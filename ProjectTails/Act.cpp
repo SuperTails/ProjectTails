@@ -103,7 +103,7 @@ void Act::UpdateEntities(Player& player) {
 	Player::entityPtrType& playerWall = player.wallPtr();
 	SDL_Point platformPos = playerPlatform ? PhysicsEntity::xyPoint((*playerPlatform)->getPosition()) : SDL_Point{ -1, -1 };
 	SDL_Rect wallPos = playerWall ? (*playerWall)->getPosition() : SDL_Rect{ -1, -1, -1, -1 };
-	std::vector< std::unique_ptr < PhysicsEntity > >::iterator j = entities.begin();
+	entityListIterator j = entities.begin();
  	while(j != entities.end()){
 		bool shouldDestroy = (*j)->Update(true, &player, &entities, &j);
 		if (shouldDestroy) {
@@ -131,7 +131,7 @@ void Act::UpdateEntities(Player& player) {
 		}
 	}
 	//Load new entities
-	for (std::vector<PhysStruct>::iterator i = phys_paths.begin(); i < phys_paths.end(); i++) {
+	for (entityLoadIterator i = phys_paths.begin(); i < phys_paths.end(); i++) {
 		if (SDL_HasIntersection(&(i->pos), &(cam->getCollisionRect())) && i->loaded == false && i->num != -1) {
 			std::cout << "Loading entity with number " << i->num << " at position " << i->pos.x << " " << i->pos.y << "\n";
 			entities.emplace_back(new PhysicsEntity(*i, window));
@@ -184,13 +184,13 @@ void Act::SetCamera(Camera* c) {
 
 void Act::RenderObjects(PRHS_Window* wind, Player& player) {
 	globalObjects::renderBackground(background, window, cam->getPosition().x - cam->GetOffset().x, ratio);
-	std::vector< std::unique_ptr < PhysicsEntity > >::iterator i = entities.begin();
+	entityListIterator i = entities.begin();
 	SDL_Rect pos = cam->getPosition();
 	while (i != entities.end()) {
 		(*i)->Render(pos, ratio);
 		i++;
 	}
-	std::list < Ground* >::iterator solidLayer = solidTileRender.begin();
+	solidRenderListIterator solidLayer = solidTileRender.begin();
 	while (solidLayer != solidTileRender.end()) {
 		if(SDL_HasIntersection(&(*solidLayer)->getPosition(), &cam->getCollisionRect()))
 			(*solidLayer)->Render(pos, ratio, nullptr, 1);
@@ -208,7 +208,7 @@ void Act::RenderObjects(PRHS_Window* wind, Player& player) {
 void Act::UpdateCollisions(Player* player) {
 	bool destroyed = false;
 	bool hurt = false;
-	std::vector< std::unique_ptr < PhysicsEntity > >::iterator i = entities.begin();
+	entityListIterator i = entities.begin();
 	SDL_Point center{ -1, -1 };
 	while  ( i != entities.end() ) {
 		destroyed = false;

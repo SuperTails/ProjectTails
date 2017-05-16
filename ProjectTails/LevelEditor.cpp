@@ -31,7 +31,7 @@ SDL_Texture* LevelEditor::SkyTexture;
 
 double LevelEditor::mouseWheelValue = 0;
 
-void LevelEditor::init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, std::vector < std::vector < int > >& blocks, std::vector < std::vector < int > >& blockFlags, std::vector < std::vector < int > >& collides, std::vector < std::vector < int > >& collideFlags) {
+void LevelEditor::init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, matrix < int >& blocks, matrix < int >& blockFlags, matrix < int >& collides, matrix < int >& collideFlags) {
 	levelBlocks.resize(levelSize.x, std::vector < groundData >(levelSize.y, groundData{ -1, false }));
 	Sky = IMG_Load("..\\..\\asset\\Sky.png");
 	SkyTexture = SDL_CreateTextureFromSurface(globalObjects::renderer, Sky);

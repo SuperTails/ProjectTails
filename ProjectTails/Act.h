@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include "SoundHandler.h"
 #include "DataReader.h"
+#include "Typedefs.h"
 
 enum ActType { TITLE, TORNADO, NORMAL };
 
@@ -67,11 +68,19 @@ public:
 
 	ActType getType() { return aType; };
 
-	typedef std::vector < std::vector < int > > matrix;
+	typedef matrix < int > matrix;
 
 	static void loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, int& currentAct, matrix& blocks, matrix& blockFlags, matrix& collides, matrix& collideFlags,std::vector<std::vector<Animation>>& background);
 
 private:
+	typedef std::vector < std::unique_ptr < PhysicsEntity > > entityList;
+	typedef std::vector < PhysStruct > entityLoadList;
+	typedef std::list < Ground* > solidRenderList;
+
+	typedef entityList::iterator entityListIterator;
+	typedef entityLoadList::iterator entityLoadIterator;
+	typedef solidRenderList::iterator solidRenderListIterator;
+
 	Act(const Act& other) {};
 	bool debounce;
 	Uint32 time;
@@ -80,11 +89,11 @@ private:
 	double ratio; //Ratio of playfield coords to screen coords
 	std::string name; //The zone's name. Does NOT include "zone," that's added later.
 	std::vector < std::string > sound_paths; //Strings for the sound paths.
-	std::vector < PhysStruct > phys_paths; //Data for initializing the physics objects
-	std::vector < std::unique_ptr < PhysicsEntity > > entities; //Array for the generic physics objects
+	entityLoadList phys_paths; //Data for initializing the physics objects
+	entityList entities; //Array for the generic physics objects
 	std::vector < std::vector < Ground > > solidTiles; //Array for ground
 	std::vector < std::vector < Animation > > background;
-	std::list < Ground* > solidTileRender;
+	solidRenderList solidTileRender;
 	SDL_Renderer* renderer;
 	Camera* cam;
 	int loaded_entities;
