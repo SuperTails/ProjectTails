@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include "Player.h"
 
-
-
 Player::Player() :
 	accel(0.046875),
 	decel(0.5),
@@ -586,8 +584,12 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	//Calculate which mode to be in based on angle
 	collideMode = Mode((static_cast<int>(angle + 0x20) & 0xFF) >> 6);
 
-	if (globalObjects::input.GetKeyPress(InputComponent::X))
+	static double logData = 0.0;
+
+	if (globalObjects::input.GetKeyPress(InputComponent::X)) {
 		std::cout << "Panic\n";
+		logData = 2.0;
+	}
 
 	//Check for left floor:
 	h = checkSensor('A', tiles, ang1);
@@ -598,6 +600,23 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	h = checkSensor('B', tiles, ang2);
 	height2 = abs(h);
 	onGround2 = (h >= 0);
+
+	if (logData) {
+		logData -= (time - last_time) / 1000.0;
+		std::cout << "position: " << position.x % 256 << ", " << position.y % 256 << "\n";
+		std::cout << "heights: " << height1 % 256 << ", " << height2 % 256 << "\n";
+		std::cout << "angles: " << int(ang1) << ", " << int(ang2) << "\n";
+		std::cout << "collide mode: " << modeToString(collideMode) << "\n\n";
+		if (logData < 0.0) {
+			logData = 0.0;
+		}
+		if (!(onGround1 || onGround2)) {
+			std::cout << "Panic!\n";
+		}
+	}
+
+	int temph1 = checkSensor('A', tiles, ang1);
+	int temph2 = checkSensor('B', tiles, ang2);
 
 	std::string output(std::to_string(position.x));
 	output += " ";
@@ -700,7 +719,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 
 	//Push the player out of ceilings
 	if (onGround3 || onGround4) {
-		switch (collideMode) {
+		/*switch (collideMode) {
 		case GROUND:
 			height3 -= position.y - 10;
 			height4 -= position.y - 10;
@@ -750,6 +769,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 			}
 			break;
 		}
+		/**/
 	}
 
 	//Check for left wall
@@ -817,6 +837,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 		}
 		break;
 	}
+	/**/
 
 	if (wall) {
 		SDL_Rect objCollide = (*wall)->getCollisionRect();
@@ -996,8 +1017,9 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 					break;
 				}
 
-				if (!rightDir)
+				if (!rightDir) {
 					h = 16;
+				}
 
 				if (side) {
 					if (h < TILE_WIDTH) {
@@ -1007,7 +1029,10 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 								ang = tiles[blockX][blockY].getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
 								return -1 * (yStart + 20);
 							}
-							height = (tileX + 3 - iterOp) * TILE_WIDTH - h + blockX * TILE_WIDTH * GROUND_WIDTH;
+							if (h == 0 && flip) {
+								h = 16;
+							}
+							height = blockX * TILE_WIDTH * GROUND_WIDTH + (tileX + 1) * TILE_WIDTH - h;
 							ang = tiles[blockX][blockY].getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
 							return height;
 						}
@@ -1018,7 +1043,7 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 							}
 							if (iterOp == 3) {
 								//Sensor is pointing right, add h to right side of tile
-								height = blockX * TILE_WIDTH * GROUND_WIDTH + tileX * TILE_WIDTH + h;
+								height = blockX * TILE_WIDTH * GROUND_WIDTH + (tileX + 1) * TILE_WIDTH - h;
 							}
 							else {
 								//Sensor is pointing left, subtract h from left side of tile
@@ -1036,7 +1061,10 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 								ang = tiles[blockX][blockY].getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
 								return yStart + 20;
 							}
-							height = (tileY + 1 - iterOp) * TILE_WIDTH - h + blockY * TILE_WIDTH * GROUND_WIDTH;
+							if (h == 0 && flip) {
+								h = 16;
+							}
+							height = blockY * TILE_WIDTH * GROUND_WIDTH + (tileY + 1) * TILE_WIDTH - h;
 							ang = tiles[blockX][blockY].getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
 							return height;
 						}
@@ -1045,7 +1073,7 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 								return -1 * xStart;
 							}
 							if (iterOp == 1) {
-								height = blockY * TILE_WIDTH * GROUND_WIDTH + tileY * TILE_WIDTH + h;
+								height = blockY * TILE_WIDTH * GROUND_WIDTH + (tileY + 1) * TILE_WIDTH - h;
 							}
 							else {
 								height = blockY * TILE_WIDTH * GROUND_WIDTH + (tileY + 1) * TILE_WIDTH - h;
@@ -1057,9 +1085,9 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 					}
 				}
 				check = false;
-			} // <-- if(getCollide)
+			}
+			//No collision and on first tile
 			else if (count == 0) {
-				//If our first tile doesn't collide, then we have our answer.
 				if (sensor == 'E') {
 					return -1 * xStart;
 				}
@@ -1145,19 +1173,19 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 
 int Player::getHeight(std::vector < std::vector < Ground > >& ground, SDL_Point block, SDL_Point tile, bool side, bool pathC, int xStart, int xEnd, int yStart, int yEnd, bool& flip) {
 	int h;
+	flip = false;
 	if (side) {
 		if (ground[block.x][block.y].getFlag(tile.x + tile.y * GROUND_WIDTH + GROUND_SIZE * pathC) & SDL_FLIP_VERTICAL) {
 			//Tile is flipped, so set the current height to the flipped heightMap
 			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight(TILE_WIDTH - 1 - ((yStart - ground[block.x][block.y].getPosition().y) % TILE_WIDTH), side);
-			flip = true;
 		}
 		else {
 			//Tile is not flipped, set the current height normally.
 			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight((yStart - ground[block.x][block.y].getPosition().y) % TILE_WIDTH, side);
-			flip = false;
 		}
 		if (ground[block.x][block.y].getFlag(tile.x + tile.y * GROUND_WIDTH + GROUND_SIZE * pathC) & SDL_FLIP_HORIZONTAL) {
 			h = TILE_WIDTH * ((h + TILE_WIDTH - 1) / TILE_WIDTH) - (h % TILE_WIDTH);
+			flip = true;
 		}
 	}
 	else {
@@ -1169,10 +1197,10 @@ int Player::getHeight(std::vector < std::vector < Ground > >& ground, SDL_Point 
 		else {
 			//Tile is not flipped, set the current height normally.
 			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight((xStart - ground[block.x][block.y].getPosition().x) % TILE_WIDTH, side);
-			flip = false;
 		}
 		if (ground[block.x][block.y].getFlag(tile.x + tile.y * GROUND_WIDTH + GROUND_SIZE * pathC) & SDL_FLIP_VERTICAL) {
 			h = TILE_WIDTH * ((h + TILE_WIDTH - 1) / TILE_WIDTH) - (h % TILE_WIDTH);
+			flip = true;
 		}
 	}
 	return h;
