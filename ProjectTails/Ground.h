@@ -56,7 +56,7 @@ public:
 	CollisionTile& getTile(int tileX, int tileY);
 	double getTileAngle(int tileX, int tileY);
 	int getFlag(int ind);
-	bool isEmpty() { return (!tileIndices); };
+	bool empty() { return (!tileIndices); };
 
 	void setIndice(int ind, int value) { tileIndices[ind] = value; };
 	void setFlag(int ind, int value) { tileFlags[ind] |= value; };

@@ -591,6 +591,10 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 		logData = 2.0;
 	}
 
+	/*position.x = 1346;
+	position.y = 227;
+	collideMode = CEILING;*/
+
 	//Check for left floor:
 	h = checkSensor('A', tiles, ang1);
 	height1 = abs(h);
@@ -640,7 +644,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 				height1 -= position.y + y_radius;
 				height2 -= position.y + y_radius;
 				//Make sure d1 is closer
-				if (height1 < height2 || !onGround2) {
+				if (height1 < height2 && onGround1) {
 					angle = ang1;
 				}
 				else {
@@ -655,7 +659,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 				height2 -= position.x - y_radius;
 				height1 *= -1;
 				height2 *= -1;
-				if (height1 < height2 || !onGround2) {
+				if (height1 < height2 && onGround1) {
 					angle = ang1;
 				}
 				else {
@@ -669,7 +673,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 				height2 -= position.y - y_radius;
 				height1 *= -1;
 				height2 *= -1;
-				if (height1 < height2 || !onGround2) {
+				if (height1 < height2 && onGround1) {
 					angle = ang1;
 				}
 				else {
@@ -681,7 +685,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 			case RIGHT_WALL:
 				height1 -= position.x + y_radius;
 				height2 -= position.x + y_radius;
-				if (height1 < height2 || !onGround2) {
+				if (height1 < height2 && onGround1) {
 					angle = ang1;
 				}
 				else {
@@ -837,7 +841,6 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 		}
 		break;
 	}
-	/**/
 
 	if (wall) {
 		SDL_Rect objCollide = (*wall)->getCollisionRect();
@@ -870,7 +873,8 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 	int c = position.x;
 	int d = position.y;
 	int xRadius = 9 - (rolling << 1);
-	int iterOp; //0 = y--, 1 = y++, 2 = x--, 3 = x++
+	enum class direction { UP, DOWN, LEFT, RIGHT };
+	direction iterOp; //0 = y--, 1 = y++, 2 = x--, 3 = x++
 	bool side = false;
 
 	switch (5 * collideMode + sensor - 'A') {
@@ -879,88 +883,90 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 		xStart = xEnd = c - xRadius;
 		yStart = d + 36;
 		yEnd = d;
-		iterOp = 0; // y--
+		iterOp = (direction)0; // y--
 		break;
 	case 1: //Ground B
 	case 12: //Ceiling C
 		xStart = xEnd = c + xRadius;
 		yStart = d + 36;
 		yEnd = d;
-		iterOp = 0; // y--
+		iterOp = (direction)0; // y--
 		break;
 	case 2: //Ground C
 	case 11: //Ceiling B
 		xStart = xEnd = c - xRadius;
 		yStart = d - 36;
 		yEnd = d;
-		iterOp = 1; // y++
+		iterOp = (direction)1; // y++
 		break;
 	case 3: //Ground D
 	case 10: //Ceiling A
 		xStart = xEnd = c + xRadius;
 		yStart = d - 36;
 		yEnd = d;
-		iterOp = 1; // y++
+		iterOp = (direction)1; // y++
 		break;
 	case 5: //LW A
 	case 18: //RW D
 		xStart = c - 36;
 		xEnd = c;
 		yStart = yEnd = d - xRadius;
-		iterOp = 3; // x++
+		iterOp = (direction)3; // x++
 		break;
 	case 6: //LW B
 	case 17: //RW C
 		xStart = c - 36;
 		xEnd = c;
 		yStart = yEnd = d + xRadius;
-		iterOp = 3; // x++
+		iterOp = (direction)3; // x++
 		break;
 	case 7: //LW C
 	case 16: //RW B
 		xStart = c + 36;
 		xEnd = c;
 		yStart = yEnd = d - xRadius;
-		iterOp = 2; // x--
+		iterOp = (direction)2; // x--
 		break;
 	case 8: //LW D
 	case 15: //RW A
 		xStart = c + 36;
 		xEnd = c;
 		yStart = yEnd = d + xRadius;
-		iterOp = 2; // x--
+		iterOp = (direction)2; // x--
 		break;
 	case 4: //Ground E
 		xStart = c + 16 * ang;
 		xEnd = c;
 		yStart = yEnd = d + 4;
-		iterOp = static_cast< int >(2.5 - ang / 2.0);
+		iterOp = (direction)static_cast< int >(2.5 - ang / 2.0);
 		break;
 	case 9: //LW E
 		xStart = xEnd = c - 4;
 		yStart = d + 16 * ang;
 		yEnd = d;
-		iterOp = static_cast < int >(0.5 - ang / 2.0);
+		iterOp = (direction)static_cast < int >(0.5 - ang / 2.0);
 		break;
 	case 14: //Ceil E
 		xStart = c - 16 * ang;
 		xEnd = c;
 		yStart = yEnd = d - 4;
-		iterOp = static_cast < int >(2.5 + ang / 2.0);
+		iterOp = (direction)static_cast < int >(2.5 + ang / 2.0);
 		break;
 	case 19: //RW E
 		xStart = xEnd = c + 4;
 		yStart = d - 16 * ang;
 		yEnd = d;
-		iterOp = static_cast <int>(0.5 + ang / 2.0);
+		iterOp = (direction)static_cast <int>(0.5 + ang / 2.0);
 		break;
 	}
+
+
 	if (xStart < 0 || yStart < 0) {
 		if (sensor == 'E')
 			return -1 * xStart;
 		return -1;
 	}
-	side = (iterOp - 2) >= 0;
+	side = (int(iterOp) - 2) >= 0;
 	int blockX = xStart / (TILE_WIDTH * GROUND_WIDTH);
 	int blockY = yStart / (TILE_WIDTH * GROUND_WIDTH);
 	if (blockX >= tiles.size()) {
@@ -973,201 +979,138 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 			return -1 * xStart;
 		return -1 * (yStart + 20);
 	}
-	int height = 0;
-	int h = 0;
 	int count = 0;
 	int tileX = (xStart - blockX * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
 	int tileY = (yStart - blockY * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
-	bool check = false;
 	bool flip = false;
 	bool pathC = tiles[blockX][blockY].getMulti() & path; //Do not check the second path if there is no second path
-	if (tiles[blockX][blockY].isEmpty()) {
+	if (tiles[blockX][blockY].empty()) {
 		//There is no point to checking because we are in an empty tile.
 		if (sensor != 'E') {
-			height = yStart + 20;
-			return -1 * height;
+			return -1;
 		}
 		else {
-			height = side ? xStart : yStart;
-			return -1 * height;
+			return -1;
 		}
 	}
 
+	ang = 0.0;
 
 	while (true) {
-		if (!tiles[blockX][blockY].isEmpty()) {
-			if (tiles[blockX][blockY].getTile(tileX + GROUND_SIZE * pathC, tileY).getCollide()) {
-				//Tile does collide
-				h = Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, pathC, xStart, xEnd, yStart, yEnd, flip);
-				
-				bool rightDir;
-				int currentFlags = tiles[blockX][blockY].getFlag(tileX + GROUND_SIZE * pathC + tileY * GROUND_WIDTH);
-				switch (iterOp) {
-				case 0: //y--
-					rightDir = !(currentFlags & SDL_FLIP_VERTICAL);
-					break;
-				case 1: //y++
-					rightDir = (currentFlags & SDL_FLIP_VERTICAL);
-					break;
-				case 2: //x--
-					rightDir = !(currentFlags & SDL_FLIP_HORIZONTAL);
-					break;
-				case 3: //x++
-					rightDir = (currentFlags & SDL_FLIP_HORIZONTAL);
-					break;
-				}
-
-				if (!rightDir) {
-					h = 16;
-				}
-
-				if (side) {
-					if (h < TILE_WIDTH) {
-						//If the height is not at the top, then we have our answer, UNLESS we are on the first tile and the height is zero, in which case no collision.
-						if (sensor != 'E') {
-							if (count == 0 && h == 0) {
-								ang = tiles[blockX][blockY].getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
-								return -1 * (yStart + 20);
-							}
-							if (h == 0 && flip) {
-								h = 16;
-							}
-							height = blockX * TILE_WIDTH * GROUND_WIDTH + (tileX + 1) * TILE_WIDTH - h;
-							ang = tiles[blockX][blockY].getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
-							return height;
-						}
-						else {
-							//Wall sensor is special
-							if (count == 0 && h == 0) {
-								return -1 * xStart;
-							}
-							if (iterOp == 3) {
-								//Sensor is pointing right, add h to right side of tile
-								height = blockX * TILE_WIDTH * GROUND_WIDTH + (tileX + 1) * TILE_WIDTH - h;
-							}
-							else {
-								//Sensor is pointing left, subtract h from left side of tile
-								height = blockX * TILE_WIDTH * GROUND_WIDTH + (tileX + 1) * TILE_WIDTH - h;
-							}
-							return height;
-						}
-					}
-				}
-				else {
-					if (h < TILE_WIDTH) {
-						//If the height is not at the top, then we have our answer.
-						if (sensor != 'E') {
-							if (count == 0 && h == 0) {
-								ang = tiles[blockX][blockY].getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
-								return yStart + 20;
-							}
-							if (h == 0 && flip) {
-								h = 16;
-							}
-							height = blockY * TILE_WIDTH * GROUND_WIDTH + (tileY + 1) * TILE_WIDTH - h;
-							ang = tiles[blockX][blockY].getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
-							return height;
-						}
-						else {
-							if (count == 0 && h == 0) {
-								return -1 * xStart;
-							}
-							if (iterOp == 1) {
-								height = blockY * TILE_WIDTH * GROUND_WIDTH + (tileY + 1) * TILE_WIDTH - h;
-							}
-							else {
-								height = blockY * TILE_WIDTH * GROUND_WIDTH + (tileY + 1) * TILE_WIDTH - h;
-							}
-							return height;
-							
-						}
-						
-					}
-				}
-				check = false;
-			}
-			//No collision and on first tile
-			else if (count == 0) {
-				if (sensor == 'E') {
-					return -1 * xStart;
-				}
-				else {
-					ang = 0.0;
-					height = yStart + 20;
-				}
-				return -1 * height;
-			}
-		}
-		//If we have detected a tile with a height of 16 but there is no tile above it, then we are done.
-		if (check) {
-			if (side) {
-				height = (tileX + 3 - iterOp) * TILE_WIDTH + blockX * TILE_WIDTH * GROUND_WIDTH;
-				if (sensor != 'E')
-					ang = angles[iterOp];
-				return height;
-			}
-			else {
-				height = (tileY + 1 - iterOp) * TILE_WIDTH + blockY * TILE_WIDTH * GROUND_WIDTH;
-				if (sensor != 'E')
-					ang = angles[iterOp];
-				return height;
-			}
-		}
-
-		//Increment tile search
-		check = true;
-		switch (iterOp) {
-		case 0:
-			tileY--;
-			break;
-		case 1:
-			tileY++;
-			break;
-		case 2:
-			tileX--;
-			break;
-		case 3:
-			tileX++;
-			break;
-		}
-		count++;
+		Ground& block = tiles[blockX][blockY];
 		
-		//Endpoint checks
-		if (side) {
-			if (signum(xEnd - xStart) * ((tileX + 3 - iterOp) * TILE_WIDTH + blockX * TILE_WIDTH * GROUND_WIDTH) > signum(xEnd - xStart) * xEnd) {
-				height = xEnd + 20;
-				if (sensor != 'E')
-					ang = 0;
-				return -1 * height;
+		if (!block.empty()) {
+			CollisionTile& tile = block.getTile(tileX + GROUND_SIZE * pathC, tileY);
+
+			bool flip;
+
+			int tileHeight = Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, pathC, xStart, xEnd, yStart, yEnd, flip);
+
+			// Get height of tile and check edge cases
+			if (tile.getCollide()) {
+				bool isFlippedAway = false;
+
+				switch (iterOp) {
+				case direction::UP:
+				case direction::LEFT:
+					isFlippedAway = flip;
+					break;
+				case direction::DOWN:
+				case direction::RIGHT:
+					isFlippedAway = !flip;
+					break;
+				}
+
+				if (isFlippedAway && tileHeight != 0) {
+					tileHeight = TILE_WIDTH;
+				}
+			}
+
+			// If the height is 0 on the first tile,
+			// then there is no collision.
+			if (tileHeight == 0 && count == 0) {
+				return -1;
+			}
+
+			// If the height is 0 but there is a tile
+			// below the current one, return the top of
+			// the last found tile
+			if (tileHeight == 0) {
+				/*   Return position of top of last found tile, x or y depends on the type of check     */
+				ang = angles[int(iterOp)];
+				if (iterOp == direction::UP || iterOp == direction::LEFT) {
+					return ((side ? tileX : tileY) + 1) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY);
+				}
+				else {
+					return ((side ? tileX : tileY) + 0) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY);
+				}
+			}
+
+			if (tileHeight < 16) {
+				ang = block.getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
+				if (iterOp == direction::UP || iterOp == direction::LEFT) {
+					return ((side ? tileX : tileY) + 1) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY) - tileHeight;
+				}
+				else {
+					return ((side ? tileX : tileY) + 0) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY) + tileHeight;
+				}
+			}
+
+			count++;
+			switch (iterOp) {
+			case direction::UP:
+				--tileY;
+				break;
+			case direction::DOWN:
+				++tileY;
+				break;
+			case direction::LEFT:
+				--tileX;
+				break;
+			case direction::RIGHT:
+				++tileX;
+				break;
+			}
+
+			if (tileX == GROUND_WIDTH) {
+				tileX = 0;
+				++blockX;
+			}
+			else if (tileX == -1) {
+				tileX = GROUND_WIDTH - 1;
+				--blockX;
+			}
+
+			if (tileY == GROUND_WIDTH) {
+				tileY = 0;
+				++blockY;
+			}
+			else if (tileY == -1) {
+				tileY = GROUND_WIDTH - 1;
+				--blockY;
+			}
+
+			int startTileX = (xStart - blockX * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
+			int startTileY = (yStart - blockY * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
+
+			if (signum(tileX - startTileX) * tileX < signum(tileX - startTileX) * startTileX) {
+				return -1;
+			}
+
+			if (signum(tileY - startTileY) * tileY < signum(tileY - startTileY) * startTileY) {
+				return -1;
+			}
+
+			if (blockX < 0 || blockX > tiles.size()) {
+				return -1;
+			}
+			if (blockY < 0 || blockY > tiles[0].size()) {
+				return -1;
 			}
 		}
 		else {
-			if (signum(yEnd - yStart) * ((tileY + 1 - iterOp) * TILE_WIDTH + blockY * TILE_WIDTH * GROUND_WIDTH) > signum(yEnd - yStart) * yEnd) {
-				//If we have gone past our endpoint, stop checking.
-				height = yEnd + 20;
-				if (sensor != 'E')
-					ang = 0;
-				return -1 * height;
-			}
+			return -1;
 		}
-		if (tileY == -1) {
-			tileY = GROUND_WIDTH - 1;
-			blockY--;
-		}
-		if (tileY == GROUND_WIDTH) {
-			tileY = 0;
-			blockY++;
-		}
-		if (tileX == -1) {
-			tileX = GROUND_WIDTH - 1;
-			blockX--;
-		}
-		if (tileX == GROUND_WIDTH) {
-			tileX = 0;
-			blockX++;
-		}
-
-		pathC = tiles[blockX][blockY].getMulti() & path;
 	}
 }
 
@@ -1177,29 +1120,26 @@ int Player::getHeight(std::vector < std::vector < Ground > >& ground, SDL_Point 
 	if (side) {
 		if (ground[block.x][block.y].getFlag(tile.x + tile.y * GROUND_WIDTH + GROUND_SIZE * pathC) & SDL_FLIP_VERTICAL) {
 			//Tile is flipped, so set the current height to the flipped heightMap
-			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight(TILE_WIDTH - 1 - ((yStart - ground[block.x][block.y].getPosition().y) % TILE_WIDTH), side);
+			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight(TILE_WIDTH - 1 - ((yStart - block.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
 		}
 		else {
 			//Tile is not flipped, set the current height normally.
-			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight((yStart - ground[block.x][block.y].getPosition().y) % TILE_WIDTH, side);
+			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight((yStart - block.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
 		}
 		if (ground[block.x][block.y].getFlag(tile.x + tile.y * GROUND_WIDTH + GROUND_SIZE * pathC) & SDL_FLIP_HORIZONTAL) {
-			h = TILE_WIDTH * ((h + TILE_WIDTH - 1) / TILE_WIDTH) - (h % TILE_WIDTH);
 			flip = true;
 		}
 	}
 	else {
 		if (ground[block.x][block.y].getFlag(tile.x + GROUND_SIZE * pathC + tile.y * GROUND_WIDTH) & SDL_FLIP_HORIZONTAL) {
 			//Tile is flipped, so set the current height to the flipped heightMap
-			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight(TILE_WIDTH - 1 - ((xStart - ground[block.x][block.y].getPosition().x) % TILE_WIDTH), side);
-			flip = true;
+			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight(TILE_WIDTH - 1 - ((xStart - block.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
 		}
 		else {
 			//Tile is not flipped, set the current height normally.
-			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight((xStart - ground[block.x][block.y].getPosition().x) % TILE_WIDTH, side);
+			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight((xStart - block.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
 		}
 		if (ground[block.x][block.y].getFlag(tile.x + tile.y * GROUND_WIDTH + GROUND_SIZE * pathC) & SDL_FLIP_VERTICAL) {
-			h = TILE_WIDTH * ((h + TILE_WIDTH - 1) / TILE_WIDTH) - (h % TILE_WIDTH);
 			flip = true;
 		}
 	}
