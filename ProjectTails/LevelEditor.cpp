@@ -169,9 +169,9 @@ bool LevelEditor::handleInput() {
 	if (mouseState & (SDL_BUTTON(SDL_BUTTON_LEFT) | SDL_BUTTON(SDL_BUTTON_RIGHT))) {
 		if (!mouseDebounce) {
 			if (mode == TILE) {
-				if ((mouseX / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio < levelBlocks.size() && (mouseY / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio < levelBlocks[0].size()) {
+				if ((mouseX / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio)) < levelBlocks.size() && (mouseY / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio)) < levelBlocks[0].size()) {
 					int temp = (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) ? 2 : groundList.size() + 1;
-					int& index = levelBlocks[(mouseX / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio][(mouseY / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio].index;
+					int& index = levelBlocks[(mouseX / (GROUND_PIXEL_WIDTH * globalObjects::ratio))][(mouseY / (GROUND_PIXEL_WIDTH * globalObjects::ratio))].index;
 					index = ((index + temp) % (groundList.size() + 1)) - 1;
 				}
 				mouseDebounce = true;

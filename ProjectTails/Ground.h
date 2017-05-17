@@ -11,6 +11,7 @@ using json = nlohmann::json;
 using constants::GROUND_SIZE;
 using constants::GROUND_WIDTH;
 using constants::TILE_WIDTH;
+using constants::GROUND_PIXEL_WIDTH;
 
 class Ground : public PhysicsEntity
 {

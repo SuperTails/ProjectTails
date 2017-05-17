@@ -64,7 +64,7 @@ Ground::Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip) :
 	tileFlags(new int[arrayData.collideFlags.size()]),
 	multiPath(arrayData.collideIndices.size() / GROUND_SIZE - 1),
 	flip(pFlip),
-	PhysicsEntity({ int(p.x * TILE_WIDTH * GROUND_WIDTH), int(p.y * TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH) }, std::max(arrayData.collideIndices.size() / GROUND_SIZE - 1, arrayData.graphicsIndices.size() / GROUND_SIZE - 1))
+	PhysicsEntity({ int(p.x * GROUND_PIXEL_WIDTH), int(p.y * GROUND_PIXEL_WIDTH), int(GROUND_PIXEL_WIDTH), int(GROUND_PIXEL_WIDTH) }, std::max(arrayData.collideIndices.size() / GROUND_SIZE - 1, arrayData.graphicsIndices.size() / GROUND_SIZE - 1))
 {
 	SDL_Rect current = { 0, 0, TILE_WIDTH, TILE_WIDTH };
 	SDL_Rect dest = { 0, 0, TILE_WIDTH, TILE_WIDTH };

@@ -998,117 +998,114 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 
 	while (true) {
 		Ground& block = tiles[blockX][blockY];
-		
-		if (!block.empty()) {
-			CollisionTile& tile = block.getTile(tileX + GROUND_SIZE * pathC, tileY);
 
-			bool flip;
+		CollisionTile dummy;
 
-			int tileHeight = Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, pathC, xStart, xEnd, yStart, yEnd, flip);
+		CollisionTile& tile = block.empty() ? dummy : block.getTile(tileX + GROUND_SIZE * pathC, tileY);
 
-			// Get height of tile and check edge cases
-			if (tile.getCollide()) {
-				bool isFlippedAway = false;
+		bool flip;
 
-				switch (iterOp) {
-				case direction::UP:
-				case direction::LEFT:
-					isFlippedAway = flip;
-					break;
-				case direction::DOWN:
-				case direction::RIGHT:
-					isFlippedAway = !flip;
-					break;
-				}
+		int tileHeight = (block.empty()) ? 0 : Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, pathC, xStart, xEnd, yStart, yEnd, flip);
 
-				if (isFlippedAway && tileHeight != 0) {
-					tileHeight = TILE_WIDTH;
-				}
-			}
+		// Get height of tile and check edge cases
+		if (tile.getCollide()) {
+			bool isFlippedAway = false;
 
-			// If the height is 0 on the first tile,
-			// then there is no collision.
-			if (tileHeight == 0 && count == 0) {
-				return -1;
-			}
-
-			// If the height is 0 but there is a tile
-			// below the current one, return the top of
-			// the last found tile
-			if (tileHeight == 0) {
-				/*   Return position of top of last found tile, x or y depends on the type of check     */
-				ang = angles[int(iterOp)];
-				if (iterOp == direction::UP || iterOp == direction::LEFT) {
-					return ((side ? tileX : tileY) + 1) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY);
-				}
-				else {
-					return ((side ? tileX : tileY) + 0) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY);
-				}
-			}
-
-			if (tileHeight < 16) {
-				ang = block.getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
-				if (iterOp == direction::UP || iterOp == direction::LEFT) {
-					return ((side ? tileX : tileY) + 1) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY) - tileHeight;
-				}
-				else {
-					return ((side ? tileX : tileY) + 0) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY) + tileHeight;
-				}
-			}
-
-			count++;
 			switch (iterOp) {
 			case direction::UP:
-				--tileY;
+			case direction::LEFT:
+				isFlippedAway = flip;
 				break;
 			case direction::DOWN:
-				++tileY;
-				break;
-			case direction::LEFT:
-				--tileX;
-				break;
 			case direction::RIGHT:
-				++tileX;
+				isFlippedAway = !flip;
 				break;
 			}
 
-			if (tileX == GROUND_WIDTH) {
-				tileX = 0;
-				++blockX;
-			}
-			else if (tileX == -1) {
-				tileX = GROUND_WIDTH - 1;
-				--blockX;
-			}
-
-			if (tileY == GROUND_WIDTH) {
-				tileY = 0;
-				++blockY;
-			}
-			else if (tileY == -1) {
-				tileY = GROUND_WIDTH - 1;
-				--blockY;
-			}
-
-			int startTileX = (xStart - blockX * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
-			int startTileY = (yStart - blockY * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
-
-			if (signum(tileX - startTileX) * tileX < signum(tileX - startTileX) * startTileX) {
-				return -1;
-			}
-
-			if (signum(tileY - startTileY) * tileY < signum(tileY - startTileY) * startTileY) {
-				return -1;
-			}
-
-			if (blockX < 0 || blockX > tiles.size()) {
-				return -1;
-			}
-			if (blockY < 0 || blockY > tiles[0].size()) {
-				return -1;
+			if (isFlippedAway && tileHeight != 0) {
+				tileHeight = TILE_WIDTH;
 			}
 		}
-		else {
+
+		// If the height is 0 on the first tile,
+		// then there is no collision.
+		if (tileHeight == 0 && count == 0) {
+			return -1;
+		}
+
+		// If the height is 0 but there is a tile
+		// below the current one, return the top of
+		// the last found tile
+		if (tileHeight == 0) {
+			/*   Return position of top of last found tile, x or y depends on the type of check     */
+			ang = angles[int(iterOp)];
+			if (iterOp == direction::UP || iterOp == direction::LEFT) {
+				return ((side ? tileX : tileY) + 1) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY);
+			}
+			else {
+				return ((side ? tileX : tileY) + 0) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY);
+			}
+		}
+
+		if (tileHeight < 16) {
+			ang = block.getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
+			if (iterOp == direction::UP || iterOp == direction::LEFT) {
+				return ((side ? tileX : tileY) + 1) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY) - tileHeight;
+			}
+			else {
+				return ((side ? tileX : tileY) + 0) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY) + tileHeight;
+			}
+		}
+
+		count++;
+		switch (iterOp) {
+		case direction::UP:
+			--tileY;
+			break;
+		case direction::DOWN:
+			++tileY;
+			break;
+		case direction::LEFT:
+			--tileX;
+			break;
+		case direction::RIGHT:
+			++tileX;
+			break;
+		}
+
+		if (tileX == GROUND_WIDTH) {
+			tileX = 0;
+			++blockX;
+		}
+		else if (tileX == -1) {
+			tileX = GROUND_WIDTH - 1;
+			--blockX;
+		}
+
+		if (tileY == GROUND_WIDTH) {
+			tileY = 0;
+			++blockY;
+		}
+		else if (tileY == -1) {
+			tileY = GROUND_WIDTH - 1;
+			--blockY;
+		}
+
+		int startTileX = (xStart - blockX * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
+		int startTileY = (yStart - blockY * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
+
+		if (signum(tileX - startTileX) * tileX < signum(tileX - startTileX) * startTileX) {
+			return -1;
+		}
+
+		if (signum(tileY - startTileY) * tileY < signum(tileY - startTileY) * startTileY) {
+			return -1;
+		}
+
+		if (blockX < 0 || blockX > tiles.size()) {
+			return -1;
+		}
+		if (blockY < 0 || blockY > tiles[0].size()) {
 			return -1;
 		}
 	}

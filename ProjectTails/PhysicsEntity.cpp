@@ -89,15 +89,16 @@ PhysicsEntity::PhysicsEntity(PhysStruct p) :
 	this->customInit();
 }
 
-PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) {
-	self = nullptr;
+PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) :
+	self(nullptr),
+	velocity{ 0.0, 0.0 },
+	posError{ 0.0, 0.0 },
+	currentAnim(0)
+{
 	position = convertRect(pos);
-	animations.emplace_back(new Animation({ 16, 16 }));
+	animations.emplace_back(new Animation(tileSize));
 	if (multi)
-		animations.emplace_back(new Animation({ 16, 16 }));
-	currentAnim = 0;
-	posError = { 0.0, 0.0 };
-	velocity = { 0.0, 0.0 };
+		animations.emplace_back(new Animation(tileSize));
 };
 
 PhysicsEntity::~PhysicsEntity() {

@@ -125,11 +125,11 @@ Animation::Animation(AnimStruct a) :
 Animation::Animation(SDL_Point tileSize) :
 	timeError(0),
 	tile(true),
-	FrameWindows(1, { 0, 0, 256, 256 }),
+	FrameWindows(1, { 0, 0, constants::GROUND_PIXEL_WIDTH, constants::GROUND_PIXEL_WIDTH }),
 	numFrames(1),
 	tex(NULL)
 {
-	SDL_Surface* s = SDL_CreateRGBSurface(0, 256, 256, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+	SDL_Surface* s = SDL_CreateRGBSurface(0, constants::GROUND_PIXEL_WIDTH, constants::GROUND_PIXEL_WIDTH, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
 	SpriteSheet = SDL_ConvertSurface(s, SDL_GetWindowSurface(globalObjects::window)->format, NULL);
 	if (SpriteSheet == NULL) {
 		std::cout << SDL_GetError() << "\n";
