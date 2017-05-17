@@ -6,6 +6,7 @@
 #include "prhsGameLib.h"
 #include <iostream>
 #include "Miscellaneous.h"
+#include "Constants.h"
 #include <cassert>
 
 //SpritePath, delay, frames

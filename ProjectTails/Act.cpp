@@ -63,8 +63,8 @@ Act::Act(const int& num, const std::string& name1, const std::vector < PhysStruc
 	SDL_Rect pos;
 	for (int i = 0; i != ground.size(); i++) {
 		pos = ground[i].getPosition();
-		solidTiles[floor(pos.x / 256.0)][floor(pos.y / 256.0)] = std::move(ground[i]);
-		solidTileRender.push_back(&solidTiles[floor(pos.x / 256.0)][floor(pos.y / 256.0)]);
+		solidTiles[pos.x / (TILE_WIDTH * GROUND_WIDTH)][pos.y / (TILE_WIDTH * GROUND_WIDTH)] = std::move(ground[i]);
+		solidTileRender.push_back(&solidTiles[pos.x / (TILE_WIDTH * GROUND_WIDTH)][pos.y / (TILE_WIDTH * GROUND_WIDTH)]);
 	}
 	
 }

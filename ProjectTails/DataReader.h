@@ -32,7 +32,6 @@ namespace DataReader
 	void LoadEntityData(std::string path, std::vector < PhysProp >& prop, std::unordered_map < std::string, PhysProp* >& entityKeys, std::vector < std::string >& Types);
 	void LoadTileData(std::string path, std::vector < CollisionTile >& tiles);
 	void LoadTileData(std::vector < CollisionTile >& tiles, matrix < int >& heights, std::vector < double >& angles);
-	void LoadTileBlocks(std::string path, matrix < int >& blocks, matrix < int >& blockFlags);
 	void LoadJSONBlock(std::string path, Ground::groundArrayData& arrayData);
 	void LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles);
 	void LoadBackground(std::string path, std::vector < std::vector < Animation > >& background, int numTiles);

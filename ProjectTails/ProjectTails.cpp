@@ -169,18 +169,16 @@ int main( int argc, char* argv[] ) {
 
 	Ground::setList(tiles);
 
-	const std::size_t NUM_BLOCKS = 13;
-
 	std::vector < Ground::groundArrayData > arrayData;
 	SDL_Point levelSize;
 
 	std::vector < DataReader::groundData > groundIndices;
 
-	arrayData.resize(NUM_BLOCKS);
+	arrayData.resize(constants::NUM_BLOCKS);
 
-	for (int i = 0; i < NUM_BLOCKS; i++) {
-		DataReader::LoadJSONBlock(ASSET"EmeraldHillBlock" + std::to_string(i + 1) + ".json", arrayData[i]);
-		globalObjects::updateLoading((1 / LOAD_STEPS) / NUM_BLOCKS);
+	for (int i = 0; i < constants::NUM_BLOCKS; i++) {
+		DataReader::LoadJSONBlock(ASSET"EmeraldHillZone\\Block" + std::to_string(i + 1) + ".json", arrayData[i]);
+		globalObjects::updateLoading((1 / LOAD_STEPS) / constants::NUM_BLOCKS);
 	}
 	DataReader::LoadBackground(ASSET"EmeraldHillZone\\Background", background, 2);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
