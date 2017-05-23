@@ -579,6 +579,8 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	collisionRect = SDL_Rect{ -1 * x_radius, centerOffset.y, 2 * x_radius, 30 };
 
 	bool onGround1, onGround2, onGround3, onGround4, wallCollideLeft, wallCollideRight;
+	bool topOnly[6];
+	std::memset(topOnly, 0, 6);
 
 	Mode last_mode = collideMode;
 	//Calculate which mode to be in based on angle
@@ -596,12 +598,12 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	collideMode = CEILING;*/
 
 	//Check for left floor:
-	h = checkSensor('A', tiles, ang1);
+	h = checkSensor('A', tiles, ang1, &topOnly[0]);
 	height1 = abs(h);
 	onGround1 = (h >= 0);
 
 	//Check for right floor:
-	h = checkSensor('B', tiles, ang2);
+	h = checkSensor('B', tiles, ang2, &topOnly[1]);
 	height2 = abs(h);
 	onGround2 = (h >= 0);
 
@@ -619,8 +621,8 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 		}
 	}
 
-	int temph1 = checkSensor('A', tiles, ang1);
-	int temph2 = checkSensor('B', tiles, ang2);
+	int temph1 = checkSensor('A', tiles, ang1, &topOnly[0]);
+	int temph2 = checkSensor('B', tiles, ang2, &topOnly[1]);
 
 	std::string output(std::to_string(position.x));
 	output += " ";
@@ -643,23 +645,34 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 				//Get dist of sensor
 				height1 -= position.y + y_radius;
 				height2 -= position.y + y_radius;
+
 				//Make sure d1 is closer
-				if (height1 < height2 && onGround1) {
+				if ((height1 < height2 && onGround1) || !onGround2) {
 					angle = ang1;
 				}
 				else {
 					angle = ang2;
 					std::swap(height1, height2);
+					std::swap(topOnly[0], topOnly[1]);
 				}
-				//Stick to ground by subtracting distance
-				position.y += height1;
+
+				if (topOnly[0] && (height1 < -2 || velocity.y < 0.0)) {
+					onGround1 = false;
+					onGround = false;
+					angle = 0;
+					collideMode = GROUND;
+				}
+				else {
+					//Stick to ground by subtracting distance
+					position.y += height1;
+				}
 				break;
 			case LEFT_WALL:
 				height1 -= position.x - y_radius;
 				height2 -= position.x - y_radius;
 				height1 *= -1;
 				height2 *= -1;
-				if (height1 < height2 && onGround1) {
+				if ((height1 < height2 && onGround1) || !onGround2) {
 					angle = ang1;
 				}
 				else {
@@ -673,7 +686,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 				height2 -= position.y - y_radius;
 				height1 *= -1;
 				height2 *= -1;
-				if (height1 < height2 && onGround1) {
+				if ((height1 < height2 && onGround1) || !onGround2) {
 					angle = ang1;
 				}
 				else {
@@ -685,7 +698,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 			case RIGHT_WALL:
 				height1 -= position.x + y_radius;
 				height2 -= position.x + y_radius;
-				if (height1 < height2 && onGround1) {
+				if ((height1 < height2 && onGround1) || !onGround2) {
 					angle = ang1;
 				}
 				else {
@@ -704,26 +717,39 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	}
 	else {
 		if (velocity.y > 0) {
-			if (std::max(height1, height2) - position.y - y_radius <= 0 && (onGround1 || onGround2)) {
-				onGround = true;
-				jumping = false;
+			height1 -= position.y + y_radius;
+			height2 -= position.y + y_radius;
+			if ((height1 < height2 && onGround1) || !onGround2) {
+				angle = ang1;
+			}
+			else {
+				angle = ang2;
+				std::swap(height1, height2);
+				std::swap(topOnly[0], topOnly[1]);
+			}
+			if (height1 <= 0 && (onGround1 || onGround2)) { 
+				if (!topOnly[0] || (height1 >= -2)) {
+					onGround = true;
+					jumping = false;
+					position.y += height1;
+				}
 			}
 		}
 	}
 
 	//Check for left ceiling
-	h = checkSensor('C', tiles, ang3);
+	h = checkSensor('C', tiles, ang3, &topOnly[2]);
 	height3 = abs(h);
 	onGround3 = (h >= 0);
 
 	//Check for right ceiling
-	h = checkSensor('D', tiles, ang4);
+	h = checkSensor('D', tiles, ang4, &topOnly[3]);
 	height4 = abs(h);
 	onGround4 = (h >= 0);
 
 	//Push the player out of ceilings
-	if (onGround3 || onGround4) {
-		/*switch (collideMode) {
+	if ((onGround3 && !topOnly[2]) || (onGround4 && !topOnly[3])) {
+		switch (collideMode) {
 		case GROUND:
 			height3 -= position.y - 10;
 			height4 -= position.y - 10;
@@ -733,6 +759,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 			ceilingBlocked = (height3 >= -5);
 			if (height3 > -3) {
 				position.y += height3 + 3;
+				velocity.y = std::max(0.0, velocity.y);
 			}
 			break;
 		case LEFT_WALL:
@@ -746,6 +773,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 			ceilingBlocked = (height3 >= -5);
 			if (height3 > -3) {
 				position.x -= height3 + 3;
+				velocity.x = std::min(0.0, velocity.x);
 			}
 			break;
 		case CEILING:
@@ -759,6 +787,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 			ceilingBlocked = (height3 >= -5);
 			if (height3 > -3) {
 				position.y -= height3 + 3;
+				velocity.y = std::min(0.0, velocity.y);
 			}
 			break;
 		case RIGHT_WALL:
@@ -770,6 +799,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 			ceilingBlocked = (height3 >= -5);
 			if (height3 > -3) {
 				position.x += height3 + 3;
+				velocity.x = std::max(0.0, velocity.x);
 			}
 			break;
 		}
@@ -777,14 +807,14 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	}
 
 	//Check for left wall
-	h = checkSensor('E', tiles, sensorDir);
+	h = checkSensor('E', tiles, sensorDir, &topOnly[4]);
 	wallHeightLeft = abs(h);
 	wallCollideLeft = (h >= 0);
 
 	sensorDir = 1;
 
 	//Check for right wall
-	h = checkSensor('E', tiles, sensorDir);
+	h = checkSensor('E', tiles, sensorDir, &topOnly[5]);
 	wallHeightRight = abs(h);
 	wallCollideRight = (h >= 0);
 
@@ -793,12 +823,12 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	case GROUND:
 		wallHeightLeft -= position.x;
 		wallHeightRight -= position.x;
-		if (wallHeightRight < 10 && wallCollideRight) {
+		if (wallHeightRight < 10 && wallCollideRight && !topOnly[5]) {
 			position.x -= 10 - wallHeightRight;
 			velocity.x = std::min(velocity.x, 0.0);
 			gsp = std::min(gsp, 0.0);
 		}
-		if (wallHeightLeft > -10 && wallCollideLeft) {
+		if (wallHeightLeft > -10 && wallCollideLeft && !topOnly[4]) {
 			position.x += 10 + wallHeightLeft;
 			velocity.x = std::max(velocity.x, 0.0);
 			gsp = std::max(gsp, 0.0);
@@ -868,7 +898,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 
 const std::vector < double > angles = { 0.0, 128.0, 192.0, 64.0 };
 
-int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& tiles, double& ang) {
+int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& tiles, double& ang, bool* isTopOnly) {
 	int xEnd, xStart, yEnd, yStart;
 	int c = position.x;
 	int d = position.y;
@@ -876,6 +906,10 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 	enum class direction { UP, DOWN, LEFT, RIGHT };
 	direction iterOp; //0 = y--, 1 = y++, 2 = x--, 3 = x++
 	bool side = false;
+
+	if (isTopOnly) {
+		*isTopOnly = false;
+	}
 
 	switch (5 * collideMode + sensor - 'A') {
 	case 0: //Ground A
@@ -984,28 +1018,27 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 	int tileY = (yStart - blockY * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
 	bool flip = false;
 	bool pathC = tiles[blockX][blockY].getMulti() & path; //Do not check the second path if there is no second path
-	if (tiles[blockX][blockY].empty()) {
-		//There is no point to checking because we are in an empty tile.
-		if (sensor != 'E') {
-			return -1;
-		}
-		else {
-			return -1;
-		}
-	}
 
 	ang = 0.0;
 
 	while (true) {
 		Ground& block = tiles[blockX][blockY];
 
+		pathC = path & block.getMulti();
+
 		CollisionTile dummy;
 
 		CollisionTile& tile = block.empty() ? dummy : block.getTile(tileX + GROUND_SIZE * pathC, tileY);
 
-		bool flip;
+		bool flip = false;
 
 		int tileHeight = (block.empty()) ? 0 : Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, pathC, xStart, xEnd, yStart, yEnd, flip);
+
+		if (!block.empty() && (block.getFlag(tileX + GROUND_SIZE * pathC + GROUND_WIDTH * tileY) & int(Ground::Flags::TOP_SOLID))) {
+			if (isTopOnly) {
+				*isTopOnly = true;
+			}
+		}
 
 		// Get height of tile and check edge cases
 		if (tile.getCollide()) {

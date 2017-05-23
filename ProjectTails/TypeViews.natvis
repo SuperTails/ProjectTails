@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="PhysicsEntity">
+    <DisplayString>{{ key={prop.key} }}</DisplayString>
+    <Expand>
+      <Item Name="Position">position</Item>
+      <Item Name="CollisionRect">collisionRect</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>

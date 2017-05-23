@@ -11,6 +11,7 @@ void DataReader::LoadJSONBlock(std::string path, Ground::groundArrayData& arrayD
 
 	int numLayers = j["layers"].size();
 	bool isDoubleLayer = false;
+	bool hasAdditionalFlags = false;
 
 	const int MAX_GRAPHICS_TILE_INDEX = 339;
 
@@ -52,7 +53,8 @@ void DataReader::LoadJSONBlock(std::string path, Ground::groundArrayData& arrayD
 	}
 	arrayData.collideIndices.resize(GROUND_SIZE * (numLayers - isDoubleLayer - 1), MAX_GRAPHICS_TILE_INDEX + 1);
 	arrayData.collideFlags.resize(GROUND_SIZE * (numLayers - isDoubleLayer - 1), 0);
-	for (int l = 1 + isDoubleLayer; l < numLayers; l++) {
+	hasAdditionalFlags = (j["layers"].back()["name"] == "AdditionalFlags");
+	for (int l = 1 + isDoubleLayer; l < numLayers - hasAdditionalFlags; l++) {
 		//Load collision data
 		for (int i = 0; i < GROUND_SIZE; i++) {
 			auto& thisTile = j["layers"][l]["tiles"][i];
@@ -67,6 +69,16 @@ void DataReader::LoadJSONBlock(std::string path, Ground::groundArrayData& arrayD
 			}
 			else {
 				arrayData.collideFlags[i + GROUND_SIZE * (l - isDoubleLayer - 1)] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
+			}
+		}
+	}
+
+	if (hasAdditionalFlags) {
+		for (int i = 0; i < GROUND_SIZE; i++) {
+			auto& thisTile = j["layers"].back()["tiles"][i];
+			int current = thisTile["tile"].get<int>();
+			if (current == 592) {
+				arrayData.collideFlags[i] |= int(Ground::Flags::TOP_SOLID);
 			}
 		}
 	}

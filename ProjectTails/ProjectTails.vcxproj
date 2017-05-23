@@ -219,6 +219,9 @@
   <ItemGroup>
     <Media Include="..\..\asset\WorldToExplore.wav" />
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="TypeViews.natvis" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

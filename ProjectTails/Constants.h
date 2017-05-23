@@ -10,5 +10,5 @@ namespace constants {
 	const std::size_t GROUND_WIDTH = 8;
 	const std::size_t GROUND_SIZE = GROUND_WIDTH * GROUND_WIDTH;
 	const std::size_t GROUND_PIXEL_WIDTH = GROUND_WIDTH * TILE_WIDTH;
-	const std::size_t NUM_BLOCKS = 5;
+	const std::size_t NUM_BLOCKS = 14;
 };

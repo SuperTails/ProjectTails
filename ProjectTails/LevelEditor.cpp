@@ -52,7 +52,7 @@ void LevelEditor::init(std::vector < DataReader::groundData >& levelGround, SDL_
 			entityView.emplace(i->first, current);
 		}
 		else if(i->second->eType == PATHSWITCH) {
-			AnimStruct temp{ "..\\..\\asset\\pathswitch.png", 10, 1 };
+			AnimStruct temp{ ASSET"pathswitch.png", 10, 1 };
 			Animation current(temp);
 			entityView.emplace(i->first, current);
 		}
@@ -77,10 +77,8 @@ void LevelEditor::renderTiles() {
 				SDL_Rect pos{ column * int(TILE_WIDTH * GROUND_WIDTH), row * int(TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH) };
 				SDL_Rect relativePos = PhysicsEntity::getRelativePos(pos, cam->getPosition());
 				SDL_RendererFlip currentFlip = static_cast < SDL_RendererFlip >(levelBlocks[column][row].flip);
+				groundList[tile].Render(cam->getPosition(), 1.0 / globalObjects::ratio, &relativePos, 1, currentFlip);
 				groundList[tile].Render(cam->getPosition(), 1.0 / globalObjects::ratio, &relativePos, 0, currentFlip);
-				if (groundList[tile].getMulti()) {
-					groundList[tile].Render(cam->getPosition(), 1.0 / globalObjects::ratio, &relativePos, 1, currentFlip);
-				}
 			}
 		}
 	}
@@ -196,8 +194,8 @@ bool LevelEditor::handleInput() {
 		}
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
-		if (!mouseDebounce && (mouseX / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio < levelBlocks.size() && (mouseY / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio < levelBlocks[0].size()) {
-			levelBlocks[(mouseX / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio][(mouseY / (TILE_WIDTH * GROUND_WIDTH)) / globalObjects::ratio].flip ^= 0x1;
+		if (!mouseDebounce && (mouseX / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio)) < levelBlocks.size() && (mouseY / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio)) < levelBlocks[0].size()) {
+			levelBlocks[(mouseX / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio))][(mouseY / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio))].flip ^= 0x1;
 		}
 		mouseDebounce = true;
 	}

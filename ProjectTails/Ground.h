@@ -16,6 +16,8 @@ using constants::GROUND_PIXEL_WIDTH;
 class Ground : public PhysicsEntity
 {
 public:
+	enum class Flags { TOP_SOLID = 4 };
+
 	struct groundArrayData {
 		std::vector < int > graphicsIndices;
 		std::vector < int > graphicsFlags;

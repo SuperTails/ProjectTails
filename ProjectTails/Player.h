@@ -40,7 +40,7 @@ public:
 	int lookDirection() { return looking; };
 	Mode getMode() { return collideMode; };
 	std::string CollideGround(std::vector < std::vector < Ground > >& tiles);
-	int checkSensor(char sensor, std::vector < std::vector < Ground > >& tiles, double& ang);
+	int checkSensor(char sensor, std::vector < std::vector < Ground > >& tiles, double& ang, bool* isTopOnly = nullptr);
 	SDL_RendererFlip getFlip() { return SDL_RendererFlip(horizFlip); };
 	double getAngle() { return hexToDeg(angle); };
 	double getGsp() { return gsp; };

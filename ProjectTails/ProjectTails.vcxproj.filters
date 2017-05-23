@@ -159,4 +159,7 @@
       <Filter>Resource Files</Filter>
     </Media>
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="TypeViews.natvis" />
+  </ItemGroup>
 </Project>
