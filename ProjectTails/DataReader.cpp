@@ -458,3 +458,15 @@ void DataReader::LoadBackground(std::string path, std::vector < std::vector < An
 		std::cout << "Tile " << tile << " done\n";
 	}
 }
+
+void DataReader::LoadLevelBlocks(std::string path, std::vector<Ground::groundArrayData>& arrayData) {
+	int currentBlockNum = 0;
+	std::string currentBlock = path + std::to_string(currentBlockNum + 1) + ".json";
+	arrayData.clear();
+	while (std::experimental::filesystem::exists(currentBlock)) {
+		arrayData.emplace_back();
+		LoadJSONBlock(currentBlock, arrayData.back());
+		currentBlockNum++;
+		currentBlock = path + std::to_string(currentBlockNum + 1) + ".json";
+	}
+}

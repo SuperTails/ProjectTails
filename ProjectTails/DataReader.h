@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <unordered_map>
 #include "Typedefs.h"
+#include <experimental/filesystem>
 
 using json = nlohmann::json;
 
@@ -28,6 +29,7 @@ namespace DataReader
 	*collides, *collideFlags
 	*groundIndices, *levelSize
 	*/
+
 	void LoadActData(std::string path, int& n, std::string& name1, std::vector < PhysStructInit >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >* ground, std::vector < Ground::groundArrayData >* = nullptr, std::vector < groundData >* groundIndices = nullptr, SDL_Point* levelSize = nullptr);
 	void LoadEntityData(std::string path, std::vector < PhysProp >& prop, std::unordered_map < std::string, PhysProp* >& entityKeys, std::vector < std::string >& Types);
 	void LoadTileData(std::string path, std::vector < CollisionTile >& tiles);
@@ -35,10 +37,11 @@ namespace DataReader
 	void LoadJSONBlock(std::string path, Ground::groundArrayData& arrayData);
 	void LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles);
 	void LoadBackground(std::string path, std::vector < std::vector < Animation > >& background, int numTiles);
+	void LoadLevelBlocks(std::string path, std::vector < Ground::groundArrayData >& arrayData);
 
 	/**
 	* Tile data (height and angle) is loaded from a file into a vector < CollisionTile >
-	* Tiles are arranged into 256x256 pixel 'blocks' (vector < int > referring to the indices)
+	* Tiles are arranged into GROUND_PIXEL_WIDTH x GROUND_PIXEL_WIDTH pixel 'blocks' (vector < int > referring to the indices)
 	* Ground is initialized from those blocks
 	* Act has a vector < Ground > 
 	**/
