@@ -11,7 +11,7 @@ Animation::Animation() {
 
 Animation::Animation(const Animation& arg) {
 	Delay = arg.Delay;
-	SpriteSheet = SDL_ConvertSurface(arg.SpriteSheet, arg.SpriteSheet->format, 0);
+	SpriteSheet = SDL_ConvertSurface(arg.SpriteSheet, arg.SpriteSheet->format, SDL_RLEACCEL);
 	if (SpriteSheet == NULL) {
 		std::cout << SDL_GetError() << "\n";
 		throw "Spritesheet could not be created";

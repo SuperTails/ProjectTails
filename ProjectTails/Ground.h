@@ -72,11 +72,9 @@ public:
 	
 	static std::vector < CollisionTile >& getList();
 
-	Ground& operator = (const Ground& arg);
+	Ground& operator = (Ground arg);
 
-	Ground& operator = (Ground&& arg);
-
-	
+	friend void swap(Ground& lhs, Ground& rhs);
 
 	~Ground();
 private:

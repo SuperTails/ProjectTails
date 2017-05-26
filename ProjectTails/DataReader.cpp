@@ -51,9 +51,9 @@ void DataReader::LoadJSONBlock(std::string path, Ground::groundArrayData& arrayD
 			}
 		}
 	}
-	arrayData.collideIndices.resize(GROUND_SIZE * (numLayers - isDoubleLayer - 1), MAX_GRAPHICS_TILE_INDEX + 1);
-	arrayData.collideFlags.resize(GROUND_SIZE * (numLayers - isDoubleLayer - 1), 0);
 	hasAdditionalFlags = (j["layers"].back()["name"] == "AdditionalFlags");
+	arrayData.collideIndices.resize(GROUND_SIZE * (numLayers - isDoubleLayer - hasAdditionalFlags - 1), MAX_GRAPHICS_TILE_INDEX + 1);
+	arrayData.collideFlags.resize(GROUND_SIZE * (numLayers - isDoubleLayer - hasAdditionalFlags - 1), 0);
 	for (int l = 1 + isDoubleLayer; l < numLayers - hasAdditionalFlags; l++) {
 		//Load collision data
 		for (int i = 0; i < GROUND_SIZE; i++) {
@@ -179,7 +179,7 @@ void DataReader::LoadActData(std::string path, int& n, std::string& name1, std::
 			if (groundIndices != nullptr) {
 				(*groundIndices)[count] = DataReader::groundData{ a.x, a.y, ind, flip };
 			}
-			(*ground)[count] = Ground(a, (*arrayData)[ind], flip);
+			(*ground)[count] = std::move(Ground(a, (*arrayData)[ind], flip));
 			count++;
 		}
 	}

@@ -200,55 +200,23 @@ bool Ground::getHeight(int x, int yMax, int yMin, int& height) {
 	}
 }
 
-Ground& Ground::operator = (const Ground& arg) {
-	if (this == &arg)
-		return *this;
-	multiPath = arg.multiPath;
-	delete[] tileIndices;
-	delete[] tileFlags;
-	tileIndices = new int[GROUND_SIZE * (multiPath + 1)];
-	tileFlags   = new int[GROUND_SIZE * (multiPath + 1)];
-	std::memmove(tileIndices, arg.tileIndices, GROUND_SIZE * sizeof(int) * (multiPath + 1));
-	std::memmove(tileFlags  , arg.tileFlags  , GROUND_SIZE * sizeof(int) * (multiPath + 1));
-	invis = false;
-	for (int i = 0; i < arg.animations.size(); i++) {
-		animations.emplace_back(new Animation(*arg.animations[i]));
-	}
-	position = arg.position;
-	previousPosition = arg.previousPosition;
-	loaded = arg.loaded;
-	num = arg.num;
-	time = SDL_GetTicks();
-	last_time = time;
-	currentAnim = arg.currentAnim;
-	canCollide = true;
-	gravity = arg.gravity;
-	customVars = arg.customVars;
-	flip = arg.flip;
+Ground& Ground::operator= (Ground arg) {
+	using std::swap;
+
+	swap(*this, arg);
+
+	return *this;
 }
 
-Ground& Ground::operator = (Ground&& arg) {
-	if (this == &arg)
-		return *this;
-	multiPath = std::move(arg.multiPath);
-	delete[] tileIndices;
-	delete[] tileFlags;
-	tileIndices = arg.tileIndices;
-	tileFlags = arg.tileFlags;
-	arg.tileIndices = nullptr;
-	arg.tileFlags = nullptr;
-	position = std::move(arg.position);
-	previousPosition = std::move(arg.previousPosition);
-	loaded = std::move(arg.loaded);
-	num = std::move(arg.num);
-	time = SDL_GetTicks();
-	last_time = time;
-	currentAnim = std::move(arg.currentAnim);
-	canCollide = true;
-	gravity = std::move(arg.gravity);
-	customVars = std::move(arg.customVars);
-	flip = std::move(arg.flip);
-	animations = std::move(arg.animations);
+void swap(Ground& lhs, Ground& rhs) {
+	using std::swap;
+
+	swap(static_cast<PhysicsEntity&>(lhs), static_cast<PhysicsEntity&>(rhs));
+
+	swap(lhs.tileIndices, rhs.tileIndices);
+	swap(lhs.tileFlags, rhs.tileFlags);
+	swap(lhs.multiPath, rhs.multiPath);
+	swap(lhs.flip, rhs.flip);
 }
 
 double Ground::getTileAngle(int tileX, int tileY) {

@@ -51,7 +51,7 @@ public:
 	PhysicsEntity(const PhysicsEntity& arg);
 	PhysicsEntity(PhysicsEntity&& other);
 	PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize = { 16, 16 });
-	~PhysicsEntity();
+	virtual ~PhysicsEntity() = default;
 
 	//Returns true if this entity needs to be destroyed
 	bool Update(bool updateTime = true, PhysicsEntity* player = nullptr, entityListPtr entityList = nullptr, entityListIter* iter = nullptr);
@@ -106,6 +106,8 @@ public:
 
 	const std::string& getKey() { return prop.key; };
 
+	friend void swap(PhysicsEntity& lhs, PhysicsEntity& rhs);
+
 	static SDL_Rect getRelativePos(const SDL_Rect& objPos, const SDL_Rect& camPos);
 
 	static void setEntityList(std::vector < std::unique_ptr < PhysicsEntity > >* actEntities) { actEntityList = actEntities; };
@@ -113,7 +115,6 @@ public:
 	bool loaded;
 	doublePoint velocity;
 	int num;
-	std::vector < SDL_Point > anim_sizes;
 	bool canCollide;
 
 	static SDL_Point xyPoint(SDL_Rect rect) { return SDL_Point{ rect.x, rect.y }; };

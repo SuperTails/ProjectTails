@@ -13,48 +13,38 @@ PhysicsEntity::PhysicsEntity()
 }
 
 PhysicsEntity::PhysicsEntity(PhysicsEntity&& other) :
-	invis(std::move(other.invis)),
-	anim_data(std::move(other.anim_data)),
-	posError(std::move(other.posError)),
-	prop(std::move(other.prop)),
-	velocity(std::move(other.velocity)),
-	loaded(std::move(other.loaded)),
-	num(std::move(other.num)),
-	currentAnim(std::move(other.currentAnim)),
-	eType(std::move(other.eType)),
-	collisionRect(std::move(other.collisionRect)),
-	gravity(std::move(other.gravity)),
-	customVars(std::move(other.customVars)),
-	self(nullptr),
-	animations(std::move(other.animations)),
-	PRHS_Entity(std::move(other))
+	PhysicsEntity()
 {
+	swap(*this, other);
+#if _DEBUG
 	std::cout << "PhysicsEntity move constructor was called.\n";
+#endif
 }
 
-PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) {
-	invis = false;
-	posError = arg.posError;
-	prop = arg.prop;
+PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
+	invis(arg.invis),
+	posError(arg.posError),
+	prop(arg.prop),
+	velocity(arg.prop.vel),
+	loaded(arg.loaded),
+	num(arg.num),
+	time(SDL_GetTicks()),
+	last_time(time),
+	currentAnim(arg.currentAnim),
+	eType(arg.eType),
+	collisionRect(arg.prop.collision),
+	anim_data(arg.anim_data),
+	canCollide(true),
+	destroyAfterLoop(arg.destroyAfterLoop),
+	gravity(arg.gravity),
+	customVars(arg.customVars),
+	self(nullptr)
+{
 	for (int i = 0; i < arg.animations.size(); i++) {
 		animations.emplace_back(new Animation(*arg.animations[i]));
 	}
 	position = arg.position;
 	previousPosition = arg.previousPosition;
-	velocity = arg.prop.vel;
-	loaded = arg.loaded;
-	num = arg.num;
-	time = SDL_GetTicks();
-	last_time = time;
-	currentAnim = arg.currentAnim;
-	eType = arg.prop.eType;
-	collisionRect = arg.prop.collision;
-	anim_data = arg.anim_data;
-	canCollide = true;
-	destroyAfterLoop = arg.destroyAfterLoop;
-	gravity = arg.gravity;
-	customVars = arg.customVars;
-	self = nullptr;
 };
 
 PhysicsEntity::PhysicsEntity(PhysStruct p) :
@@ -72,21 +62,24 @@ PhysicsEntity::PhysicsEntity(PhysStruct p) :
 	canCollide(true),
 	destroyAfterLoop(false),
 	gravity(p.prop.gravity),
-	self(nullptr)
+	self(nullptr),
+	posError{ 0.0, 0.0 }
 {
-	posError = { 0.0, 0.0 };
 	for (int i = 0; i < anim_data.size(); i++) {
 		animations.emplace_back(new Animation(anim_data[i]));
 	}
+
 	position.w = collisionRect.w;
 	position.h = collisionRect.h;
 
 	previousPosition = convertRect(p.pos);
 	position = convertRect(p.pos);
+
 	for (int i = 0; i < p.flags.size(); i++) {
 		customVars.push_back(p.flags[i]);
 	}
-	this->customInit();
+
+	customInit();
 }
 
 PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) :
@@ -100,14 +93,7 @@ PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) :
 	if (multi)
 		animations.emplace_back(new Animation(tileSize));
 };
-
-PhysicsEntity::~PhysicsEntity() {
-	std::vector < std::unique_ptr < Animation > >::iterator i = animations.begin();
-	while (i != animations.end()) {
-		i = animations.erase(i);
-	}
-};
-
+ 
 bool PhysicsEntity::Update(bool updateTime, PhysicsEntity* player, entityListPtr entityList, entityListIter* iter) {
 	if (updateTime) {
 		last_time = time;
@@ -458,4 +444,29 @@ SDL_Point PhysicsEntity::calcRectDirection(SDL_Rect& objCollide) {
 	}
 
 	return ret;
+}
+
+void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) {
+	using std::swap;
+
+	swap(static_cast<PRHS_Entity&>(lhs), static_cast<PRHS_Entity&>(rhs));
+
+	swap(lhs.loaded, rhs.loaded);
+	swap(lhs.velocity, rhs.velocity);
+	swap(lhs.num, rhs.num);
+	swap(lhs.canCollide, rhs.canCollide);
+	swap(lhs.anim_data, rhs.anim_data);
+	swap(lhs.self, rhs.self);
+	swap(lhs.prop, rhs.prop);
+	swap(lhs.eType, rhs.eType);
+	swap(lhs.destroyAfterLoop, rhs.destroyAfterLoop);
+	lhs.animations.swap(rhs.animations);
+	swap(lhs.collisionRect, rhs.collisionRect);
+	lhs.customVars.swap(rhs.customVars);
+	swap(lhs.time, rhs.time);
+	swap(lhs.last_time, rhs.last_time);
+	swap(lhs.currentAnim, rhs.currentAnim);
+	swap(lhs.invis, rhs.invis);
+	swap(lhs.gravity, rhs.gravity);
+	swap(lhs.posError, rhs.posError);
 }
