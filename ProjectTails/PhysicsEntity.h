@@ -31,6 +31,7 @@ struct PhysStructInit {
 	PhysStructInit(const PhysStructInit& other) : pos(other.pos), flags(other.flags), prop(other.prop) {};
 	PhysStructInit(SDL_Rect& p, std::vector < char >& f, std::string& pr) : pos(p), flags(f), prop(pr) {};
 };
+
 struct PhysStruct {
 	SDL_Rect pos;
 	PhysProp prop;
@@ -39,6 +40,7 @@ struct PhysStruct {
 	std::vector < char > flags;
 	PhysStruct(SDL_Rect p, PhysProp pr, int n, std::vector < char > f) : pos(p), prop(pr), num(n), loaded(false), flags(f) {};
 };
+
 class PhysicsEntity : public PRHS_Entity
 {
 public:
@@ -106,7 +108,7 @@ public:
 
 	const std::string& getKey() { return prop.key; };
 
-	friend void swap(PhysicsEntity& lhs, PhysicsEntity& rhs);
+	friend void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept;
 
 	static SDL_Rect getRelativePos(const SDL_Rect& objPos, const SDL_Rect& camPos);
 

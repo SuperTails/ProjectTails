@@ -37,13 +37,15 @@ Animation::Animation(Animation&& other) :
 	frame(std::move(other.frame)),
 	tile(std::move(other.tile)),
 	timeError(std::move(other.timeError)),
-	tex(nullptr)
+	tex(nullptr),
+	SpriteSheet(nullptr)
 {
-	SpriteSheet = other.SpriteSheet;
-	other.SpriteSheet = nullptr;
+	using std::swap;
+
+	swap(SpriteSheet, other.SpriteSheet);
+
 	if (other.tex) {
-		tex = other.tex;
-		other.tex = nullptr;
+		swap(tex, other.tex);
 	}
 	else {
 		tex = SDL_CreateTextureFromSurface(globalObjects::renderer, SpriteSheet);

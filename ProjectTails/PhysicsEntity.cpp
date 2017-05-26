@@ -446,7 +446,7 @@ SDL_Point PhysicsEntity::calcRectDirection(SDL_Rect& objCollide) {
 	return ret;
 }
 
-void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) {
+void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept {
 	using std::swap;
 
 	swap(static_cast<PRHS_Entity&>(lhs), static_cast<PRHS_Entity&>(rhs));
