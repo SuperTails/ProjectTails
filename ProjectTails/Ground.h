@@ -23,12 +23,7 @@ public:
 		std::vector < int > graphicsFlags;
 		std::vector < int > collideIndices;
 		std::vector < int > collideFlags;
-		groundArrayData() :
-			graphicsIndices(),
-			graphicsFlags(),
-			collideIndices(),
-			collideFlags()
-		{};
+		groundArrayData() = default;
 		groundArrayData(const std::vector<int>& indices, const std::vector<int>& flags, const std::vector<int>& collides, const std::vector<int>& collideFlags) :
 			graphicsIndices(indices),
 			graphicsFlags(flags),
@@ -46,20 +41,20 @@ public:
 	collideFlags - collision tile flags
 	*/
 	Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip = false);
+	Ground(const Ground&);
 	Ground(Ground&& other);
-	Ground(const Ground &);
 	
-	void Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position = nullptr, const int layer = 0, const bool flip = false) const;
+	void Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position = nullptr, int layer = 0, bool flip = false) const;
 	int* getIndices() { return tileIndices; };
 	void setPoint(SDL_Point p) { position = { 256 * p.x, 256 * p.y, 256, 256 }; };
-	bool getHeight(int x, int yMax, int yMin, int& height);
-	bool getMulti() { return multiPath; };
+	bool getHeight(int x, int yMax, int yMin, int& height) const;
+	bool getMulti() const { return multiPath; };
 
-	CollisionTile& getTile(int ind) { return tileList[tileIndices[ind]]; };
-	CollisionTile& getTile(int tileX, int tileY);
-	double getTileAngle(int tileX, int tileY);
-	int getFlag(int ind);
-	bool empty() { return (!tileIndices); };
+	CollisionTile& getTile(int ind) const { return tileList[tileIndices[ind]]; };
+	CollisionTile& getTile(int tileX, int tileY) const;
+	double getTileAngle(int tileX, int tileY) const;
+	int getFlag(int ind) const;
+	bool empty() const { return (tileIndices == nullptr); };
 
 	void setIndice(int ind, int value) { tileIndices[ind] = value; };
 	void setFlag(int ind, int value) { tileFlags[ind] |= value; };
@@ -69,10 +64,8 @@ public:
 	static void setList(std::vector < CollisionTile > list);
 
 	static std::string getMapPath() { return mPath; };
-	
-	static std::vector < CollisionTile >& getList();
 
-	Ground& operator = (Ground arg);
+	Ground& operator= (Ground arg);
 
 	friend void swap(Ground& lhs, Ground& rhs);
 
@@ -85,4 +78,5 @@ private:
 	int* tileFlags;
 	bool multiPath;
 	bool flip;
+	bool renderBehindPlayer;
 };

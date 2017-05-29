@@ -190,16 +190,23 @@ void Act::RenderObjects(Player& player) {
 	}
 	solidRenderListIterator solidLayer = solidTileRender.begin();
 	while (solidLayer != solidTileRender.end()) {
-		if(SDL_HasIntersection(&(*solidLayer)->getPosition(), &cam->getCollisionRect()))
+		if (SDL_HasIntersection(&(*solidLayer)->getPosition(), &cam->getCollisionRect())) {
 			(*solidLayer)->Render(pos, ratio, nullptr, 1);
+		}
 		solidLayer++;
 	}
-	player.Render(pos, ratio);
+	if (player.getOnGround()) {
+		player.Render(pos, ratio);
+	}
 	solidLayer = solidTileRender.begin();
 	while (solidLayer != solidTileRender.end()) {
-		if (SDL_HasIntersection(&(*solidLayer)->getPosition(), &cam->getCollisionRect()))
+		if (SDL_HasIntersection(&(*solidLayer)->getPosition(), &cam->getCollisionRect())) {
 			(*solidLayer)->Render(pos, ratio, nullptr, 0);
+		}
 		solidLayer++;
+	}
+	if (!player.getOnGround()) {
+		player.Render(pos, ratio);
 	}
 }
 

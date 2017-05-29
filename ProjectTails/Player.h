@@ -9,9 +9,11 @@
 
 enum Mode { GROUND, LEFT_WALL, CEILING, RIGHT_WALL };
 
-class Player: public PhysicsEntity
+class Player : public PhysicsEntity
 {
 public:
+	enum class State { IDLE, WALKING, JUMPING, FLYING, CROUCHING, SPINDASH, ROLLING, ROLLJUMPING, LOOKING_UP };
+
 	Player();
 
 	typedef PhysicsEntity::entityPtrType entityPtrType;
@@ -23,12 +25,12 @@ public:
 	void SetActType(int aType);
 	void Render(SDL_Rect& cam, double screenRatio);
 	bool grounded() { return onGround; };
-	bool isRolling() { return rolling; };
+	bool isRolling() { return state == State::ROLLING; };
 	void setJumping(bool j) { jumping = j; };
 	void setControlLock(int c) { controlLock = c; };
 	void switchPath() { path = !path; };
 	void setPath(int p) { path = p; };
-	void setRolling(bool r) { rolling = r; };
+	void setRolling(bool r) { state = r ? State::ROLLING : state; };
 	void setFlying(double f) { flying = f; };
 	void setCorkscrew(bool c) { corkscrew = c; };
 	void hitPlatform(const entityPtrType entity);
@@ -39,8 +41,9 @@ public:
 	entityPtrType& wallPtr() { return wall; };
 	int lookDirection() { return looking; };
 	Mode getMode() { return collideMode; };
+	bool getOnGround() { return onGround || platform; };
 	std::string CollideGround(std::vector < std::vector < Ground > >& tiles);
-	int checkSensor(char sensor, std::vector < std::vector < Ground > >& tiles, double& ang, bool* isTopOnly = nullptr);
+	int checkSensor(char sensor, const std::vector < std::vector < Ground > >& tiles, double& ang, bool* isTopOnly = nullptr);
 	SDL_RendererFlip getFlip() { return SDL_RendererFlip(horizFlip); };
 	double getAngle() { return hexToDeg(angle); };
 	double getGsp() { return gsp; };
@@ -64,8 +67,6 @@ private:
 	bool onGround;
 	bool onGroundPrev;
 	bool jumping;
-	bool spinDebounce;
-	bool rolling;
 	bool corkscrew;
 	bool ceilingBlocked;
 	bool actCleared;
@@ -101,7 +102,14 @@ private:
 	
 	bool path;
 
-	static int getHeight(std::vector < std::vector < Ground > >& ground, SDL_Point block, SDL_Point tile, bool side, bool pathC, int xStart, int xEnd, int yStart, int yEnd, bool& flip);
+	State state;
 
+	void walkLeftAndRight(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc);
+
+	void updateIfWalkOrIdle(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc);
+
+	void updateInAir(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc);
+
+	static int getHeight(const std::vector < std::vector < Ground > >& ground, SDL_Point block, SDL_Point tile, bool side, bool pathC, int xStart, int xEnd, int yStart, int yEnd, bool& flip);
 };
 

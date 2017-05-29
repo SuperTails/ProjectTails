@@ -11,12 +11,13 @@ public:
 
 	void UpdateKeys(); 
 
-	//Returns whether the given key is pressed or not
-	bool GetKeyState(int k) { return KeyStates[k];  };
+	// Returns true if the given key is currently held
+	bool GetKeyState(int k) const { return KeyStates[k];  };
 
-	bool GetKeyPress(int k) { return KeyPress[k]; };
+	// Returns true if the given key was just pressed on this frame
+	bool GetKeyPress(int k) const { return KeyPress[k]; };
 
-	int GetWheel() { return mouseWheel; };
+	int GetWheel() const { return mouseWheel; };
 
 	SDL_Event KeyEvent;
 

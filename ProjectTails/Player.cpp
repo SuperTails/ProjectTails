@@ -12,17 +12,17 @@ Player::Player() :
 	controlLock(0),
 	spindash(-1),
 	looking(0),
-	rolling(false),
 	flying(-1),
 	corkscrew(false),
 	ceilingBlocked(false),
 	displayAngle(0.0),
 	platform(nullptr),
 	wall(nullptr),
-	actCleared(false)
+	actCleared(false),
+	state(State::IDLE),
+	centerOffset{ -25, -11 }
 {
 	loaded = true;
-	centerOffset = { -25, -11 };
 }
 
 void Player::SetActType(int aType) {
@@ -164,281 +164,265 @@ void Player::UpdateP(Camera& cam) {
 			gsp = std::max(0.0, gsp);
 			velocity.x = std::max(0.0, velocity.x);
 		}
-		if (damageCountdown > 0) {
-			gsp = 0.0;
-			damageCountdown = std::max(0, damageCountdown - int(time - last_time));
+
+		bool standingOnSomething = onGround || platform;
+
+		Uint32 deltaTime = time - last_time;
+
+		decel = 0.5;
+		slp = 0.125;
+		top = 6;
+
+		if (state != State::FLYING) {
+			gravity = 0.21875;
 		}
-		else if (onGround || platform) {
-			//On ground
-			if (platform)
-				velocity.y = std::min(0.0, velocity.y);
+
+		if (standingOnSomething) {
 			flying = -1;
 			accel = 0.046875;
-			decel = rolling ? 0.125 : 0.5;
 			frc = accel;
-			top = rolling ? 16 : 6;
 			jmp = 0;
-			gravity = 0.21875;
 			corkscrew = false;
-			controlLock = std::max(0, controlLock - int(time - last_time));
-			double thisAccel(((time - last_time) / (1000.0 / 60.0)) * accel);
-			double thisDecel(((time - last_time) / (1000.0 / 60.0)) * decel);
-			double thisFrc(((time - last_time) / (1000.0 / 60.0)) * frc);
-			if (rolling) {
-				if (abs(gsp) < 2.0 && collideMode != GROUND) {
-					if (collideMode == CEILING || (angle >= 0x40 && angle <= 0xC0)) {
-						collideMode = GROUND;
-						angle = 0.0;
-						onGround = false;
-					}
-					else {
-						onGround = true;
-					}
-					controlLock = 400;
-				}
-				else if (input.GetKeyState(InputComponent::LEFT) && !controlLock) {
-					if (gsp >= thisDecel) {
-						gsp -= thisDecel;
-					}
-				}
-				else if (input.GetKeyState(InputComponent::RIGHT) && !controlLock) {
-					if (gsp <= thisDecel) {
-						gsp += thisDecel;
-					}
-				}
-				if (signum(gsp) == signum(sin(hexToDeg(angle) * M_PI / 180.0))) {
-					//Uphill
-					slp = 0.078125;
-				}
-				else {
-					//Downhill
-					slp = 0.3125;
-				}
-
-				double thisSlp(sin(hexToDeg(angle) * M_PI / 180.0) * slp * (time - last_time) / (1000.0 / 60.0));
-				gsp -= thisSlp;
-					
-				if (abs(gsp) < thisFrc / 2) {
-					gsp = 0.0;
-					rolling = false;
-					looking = 0;
-				}
-				else {
-					gsp -= thisFrc * signum(gsp) / 2.0;
-				}
-				if (abs(gsp) <= 0.5) {
-					rolling = false;
-					looking = 0;
-				}
-
-				if (!input.GetKeyState(InputComponent::JUMP)) {
-					spinDebounce = false;
-				}
-
-				if (input.GetKeyState(InputComponent::JUMP) && !controlLock && !spinDebounce && !ceilingBlocked) {
-					onGround = false;
-					platform = false;
-					jumping = true;
-					spinDebounce = true;
-					collideMode = GROUND;
-					jmp = 6.5;
-					velocity.x -= jmp * sin(hexToDeg(angle) * M_PI / 180.0);
-					velocity.y -= jmp * cos(hexToDeg(angle) * M_PI / 180.0);
-					angle = 0.0;
-				}
-			}
-			else if (looking == 0) {
-				//Perform normal actions
-				slp = 0.125;
-				spinDebounce = false;
-				if (abs(gsp) < 2.0 && collideMode != GROUND && !controlLock) {
-					if (collideMode == CEILING) {
-						collideMode = GROUND;
-						angle = 0.0;
-						onGround = false;
-					}
-					controlLock = 400;
-				}
-				if (input.GetKeyState(InputComponent::LEFT) && !controlLock) {
-					if (gsp == 0) {
-						//velocity.x -= thisAccel;
-						gsp -= thisAccel;
-					}
-					else if (gsp < 0) {
-						//velocity.x -= thisAccel;
-						gsp -= thisAccel;
-					}
-					else {
-						if (abs(gsp - thisDecel) != gsp - thisDecel) {
-							gsp = 0;
-						}
-						else {
-							gsp -= thisDecel;
-						}
-					}
-				}
-				else if (input.GetKeyState(InputComponent::RIGHT) && !controlLock) {
-					if (gsp == 0) {
-						gsp += thisAccel;
-					}
-					else if (gsp > 0) {
-						gsp += thisAccel;
-					}
-					else {
-						if (abs(gsp + thisDecel) != gsp + thisDecel) {
-							gsp = 0;
-						}
-						else {
-							gsp += thisDecel;
-						}
-					}
-				}
-				else {
-					if (abs(gsp) < thisFrc) {
-						gsp = 0;
-					}
-					else {
-						gsp -= thisFrc * signum(gsp);
-					}
-				}
-				if (gsp != 0 || collideMode != GROUND) {
-					double thisSlp((time - last_time) / (1000.0 / 60.0) * slp);
-					gsp -= thisSlp * sin(hexToDeg(angle) * M_PI / 180.0);
-				}
-
-				if (input.GetKeyState(InputComponent::JUMP) && (onGround || platform)) {
-					onGround = false;
-					platform = false;
-					jumping = true;
-					spinDebounce = true;
-					collideMode = GROUND;
-					jmp = 6.5;
-					velocity.x -= jmp * sin(hexToDeg(angle) * M_PI / 180.0);
-					velocity.y -= jmp * cos(hexToDeg(angle) * M_PI / 180.0);
-					angle = 0.0;
-				};
-
-				//If pressing down...
-				if (input.GetKeyState(InputComponent::DOWN)) {
-					//..and not moving, then crouch.
-					if (gsp == 0.0) {
-						//Crouch
-						looking = -1;
-					}
-					else if(abs(gsp) > 0.5) {
-						rolling = true;
-					}
-				}
-				if (input.GetKeyState(InputComponent::UP) && gsp == 0.0) {
-					looking = 1;
-				}
-			}
-			else if(looking == -1){
-				double thisDecay(256.0 / ((time - last_time) / (1000.0 / 60.0)));
-				double thisAdd(((time - last_time) / (1000.0 / 60.0)) * 2.0);
-				if (!input.GetKeyState(InputComponent::DOWN)) {
-					if (spindash != -1) {
-						gsp = 8.0 + floor(spindash) / 2;
-						gsp *= (horizFlip * -2 + 1);
-						spindash = -1;
-						rolling = true;
-						top = 16;
-					}
-					looking = 0;
-				}
-				//Down is still being held
-				else {
-					if (input.GetKeyState(InputComponent::JUMP)) {
-						if (spindash == -1)
-							spindash = 0;
-						if (!spinDebounce) {
-							spindash += thisAdd;
-							spinDebounce = true;
-						}
-					}
-					else {
-						spinDebounce = false;
-					}
-					if (spindash > 0.0) {
-						spindash -= double((floor(spindash) * 8) / thisDecay);
-					}
-				}
-			}
-			else if (looking == 1) {
-				if (!input.GetKeyState(InputComponent::UP)) {
-					looking = 0;
-				}
-			}
 		}
-		//Flying
-		else if (flying != -1) {
-			accel = 0.09375;
-			if (velocity.y < -1) {
-				gravity = 0.03125;
-			}
-			frc = 0.96875;
-			double thisAccel = ((time - last_time) / (1000.0 / 60.0)) * accel;
-			double thisDecel = ((time - last_time) / (1000.0 / 60.0)) * decel;
-			double thisFrc = pow(frc, (time - last_time) / (1000.0 / 60.0));
-			if (input.GetKeyState(InputComponent::LEFT)) {
-				velocity.x -= thisAccel;
-			}
-			if (input.GetKeyState(InputComponent::RIGHT)) {
-				velocity.x += thisAccel;
-			}
-			if (flying > 0.0) {
-				if (input.GetKeyState(InputComponent::JUMP)) {
-					if (!spinDebounce && velocity.y >= -1) {
-						gravity = -0.125;
-						spinDebounce = true;
-					}
-				}
-				else {
-					spinDebounce = false;
-				}
-				flying = std::max(0.0, flying - (time - last_time));
-			}
-			horizFlip = velocity.x < 0;
-			if (velocity.y < 0 && velocity.y > -4 && abs(velocity.x) >= 0.125) {
-				velocity.x *= thisFrc;
-			}
-		}
-		//Jumping/Falling
 		else {
 			accel = 0.09375;
 			decel = accel;
 			frc = 0.96875;
-			gravity = 0.21875;
-			top = 6;
+		}
+
+		const double FRAME_TIME_MS = 1000.0 / 60.0;
+
+		double thisFrameCount = deltaTime / FRAME_TIME_MS;
+
+		double thisAccel = thisFrameCount * accel;
+		double thisDecel = thisFrameCount * decel;
+		double thisFrc   = thisFrameCount * frc;
+
+		double thisDecay = 256.0 / thisFrameCount;
+		double thisAdd = 2.0 * thisFrameCount;
+
+		controlLock = std::max(0, controlLock - int(time - last_time));
+
+		if (state != State::CROUCHING && state != State::LOOKING_UP) {
+			looking = 0;
+		}
+
+		switch (state) {
+		case State::IDLE:
+
+			// If pressing down, crouch.
+			if (input.GetKeyState(InputComponent::DOWN)) {
+				looking = -1;
+				state = State::CROUCHING;
+				break;
+			}
+			// If pressing up, look up
+			else if (input.GetKeyState(InputComponent::UP)) {
+				looking = 1;
+				state = State::LOOKING_UP;
+				break;
+			}
+
+			updateIfWalkOrIdle(input, thisAccel, thisDecel, thisFrc);
+
+			break;
+		case State::WALKING:
+
+			// If moving slowly enough, just crouch. Otherwise, roll.
+			if (input.GetKeyState(InputComponent::DOWN)) {
+				if (abs(gsp) < 0.5) {
+					state = State::CROUCHING;
+					break;
+				}
+				else {
+					state = State::ROLLING;
+					break;
+				}
+			}
+
+			updateIfWalkOrIdle(input, thisAccel, thisDecel, thisFrc);
+
+			break;
+		case State::JUMPING:
+
+			// Start flying
+			if (input.GetKeyPress(InputComponent::JUMP) && !corkscrew) {
+				flying = 8000.0;
+				gravity = 0.03125;
+				state = State::FLYING;
+				break;
+			}
+			// Allow for variable jump heights
+			else if (!input.GetKeyState(InputComponent::JUMP) && jumping && velocity.y < -4.0 && !corkscrew) {
+				velocity.y = -4.0;
+			}
+			
+			break;
+		case State::FLYING:
+
+			accel = 0.09375;
+			frc = 0.96875;
+			if (velocity.y < -1) {
+				gravity = 0.03125;
+			}
+
+			thisAccel = thisFrameCount * accel;
+			thisFrc = pow(frc, thisFrameCount);
+			
+			// If there is flight time remaining, check for the jump button being pressed
+			if (flying > 0.0) {
+				if (input.GetKeyPress(InputComponent::JUMP)) {
+					if (velocity.y >= -1) {
+						gravity = -0.125;
+					}
+				}
+				flying = std::max(0.0, flying - deltaTime);
+			}
+
+			// Change flip only if velocity crosses zero, not just touches it
+			horizFlip = (horizFlip ? velocity.x <= 0 : velocity.x < 0);
+
+			break;
+		case State::CROUCHING:
+
+			// If no longer pressing down, return to normal
+			if (!input.GetKeyState(InputComponent::DOWN)) {
+				state = State::IDLE;
+				looking = 0;
+				break;
+			}
+			// If jump is pressed, start a spindash
+			else if (input.GetKeyPress(InputComponent::JUMP)) {
+				state = State::SPINDASH;
+				spindash = thisAdd;
+			}
+
+			break;
+		case State::SPINDASH:
+
+			// If no longer pressing down, start rolling
+			if (!input.GetKeyState(InputComponent::DOWN)) {
+				state = State::ROLLING;
+				gsp = 8.0 + floor(spindash) / 2;
+				gsp *= (horizFlip * -2 + 1);
+				spindash = -1.0;
+				top = 16;
+				looking = 0;
+			}
+			// If jump is pressed, add speed
+			else if (input.GetKeyPress(InputComponent::JUMP)) {
+				spindash += thisAdd;
+			}
+
+			// Make sure spindash decays
+			spindash -= double((floor(spindash) * 8) / thisDecay);
+
+			break;
+		case State::ROLLING:
+			decel = 0.125;
+			top = 16;
+
+			thisDecel = thisFrameCount * decel;
+
+			// Check for moving too slowly on a wall or ceiling
+			if (abs(gsp) < 2.0 && collideMode != GROUND) {
+				if (collideMode == CEILING || (angle >= 0x40 && angle <= 0xC0)) {
+					collideMode = GROUND;
+					angle = 0.0;
+					onGround = false;
+				}
+				else {
+					onGround = true;
+				}
+				controlLock = 400;
+			}
+			// Normal input to the left
+			else if (input.GetKeyState(InputComponent::LEFT) && !controlLock) {
+				if (gsp >= thisDecel) {
+					gsp -= thisDecel;
+				}
+			}
+			// Normal input to the right
+			else if (input.GetKeyState(InputComponent::RIGHT) && !controlLock) {
+				if (gsp <= thisDecel) {
+					gsp += thisDecel;
+				}
+			}
+
+			// Calculate slope value
+			if (signum(gsp) == signum(sin(hexToDeg(angle) * M_PI / 180.0))) {
+				// Uphill
+				slp = 0.078125;
+			}
+			else {
+				// Downhill
+				slp = 0.3125;
+			}
+
+			// Slope calculations
+			gsp -= sin(hexToDeg(angle) * M_PI / 180.0) * slp * thisFrameCount;
+			
+			// If friction would cause a sign change, stop
+			if (abs(gsp) < thisFrc / 2) {
+				gsp = 0.0;
+				state = State::ROLLING;
+				looking = 0;
+			}
+			else {
+				gsp -= thisFrc * signum(gsp) / 2.0;
+			}
+
+			// Going too slow should cause us to stop rolling
+			if (abs(gsp) <= 0.5) {
+				state = State::WALKING;
+				looking = 0;
+			}
+
+			// If the jump key gets pressed then initiate a rolljump
+			if (input.GetKeyPress(InputComponent::JUMP) && !controlLock && !ceilingBlocked) {
+				onGround = false;
+				platform = false;
+				state = State::ROLLJUMPING;
+				collideMode = GROUND;
+				jmp = 6.5;
+				velocity.x -= jmp * sin(hexToDeg(angle) * M_PI / 180.0);
+				velocity.y -= jmp * cos(hexToDeg(angle) * M_PI / 180.0);
+				angle = 0.0;
+			}
+
+			break;
+		case State::ROLLJUMPING:
+
+			break;
+		case State::LOOKING_UP:
+
+			// If no longer pressing up, return to normal
+			if (!input.GetKeyState(InputComponent::UP)) {
+				state = State::IDLE;
+				looking = 0;
+				break;
+			}
+
+			break;
+		}
+
+		if (standingOnSomething) {
+			if (platform) {
+				velocity.y = std::min(0.0, velocity.y);
+			}
+
+			jmp = 0;
+		}
+		else {
 			double thisAccel = ((time - last_time) / (1000.0 / 60.0)) * accel;
 			double thisDecel = ((time - last_time) / (1000.0 / 60.0)) * decel;
 			double thisFrc = pow(frc, (time - last_time) / (1000.0 / 60.0));
-			if (input.GetKeyState(InputComponent::LEFT) && !rolling) {
-				velocity.x -= thisAccel;
-			}
-			if (input.GetKeyState(InputComponent::RIGHT) && !rolling) {
-				velocity.x += thisAccel;
-			}
-			if (velocity.y < 0 && velocity.y > -4 && abs(velocity.x) >= 0.125) {
-				velocity.x *= thisFrc;
-			}
-			if (!input.GetKeyState(InputComponent::JUMP) && jumping && velocity.y < -4.0 && !corkscrew) {
-				velocity.y = -4.0;
-			}
-			if (input.GetKeyState(InputComponent::JUMP) && !rolling && !corkscrew) {
-				if (!spinDebounce && jumping) {
-					flying = 8000.0;
-					gravity = 0.03125;
-					spinDebounce = true;
-				}
-			}
-			else {
-				spinDebounce = false;
-			}
+			updateInAir(input, thisAccel, thisDecel, thisFrc);
 		}
 
-		if (onGround || platform) {
-			jmp = 0;
+		if (damageCountdown > 0) {
+			gsp = 0.0;
+			damageCountdown = std::max(0, damageCountdown - int(deltaTime));
 		}
 			
 			
@@ -472,7 +456,7 @@ void Player::UpdateP(Camera& cam) {
 		else if (corkscrew) {
 			currentAnim = 11;
 		}
-		else if (!(onGround || platform) && jumping || rolling) {
+		else if (!standingOnSomething && jumping || (state == State::ROLLING || state == State::ROLLJUMPING)) {
 			currentAnim = 5 + 4 * animations.size();
 			animations[5]->SetDelay(128);
 		}
@@ -500,7 +484,7 @@ void Player::UpdateP(Camera& cam) {
 				centerOffset.x = -10;
 			}
 		}
-		else if (!(onGround || platform) && jumping || rolling) {
+		else if (!standingOnSomething && jumping || (state == State::ROLLING || state == State::ROLLJUMPING)) {
 			centerOffset = { -14, -14 };
 		}
 		else if (gsp == 0 || looking == 1) {
@@ -510,7 +494,8 @@ void Player::UpdateP(Camera& cam) {
 			else {
 				centerOffset = { -27, -11 };
 			}
-		} else if (gsp < 0) {
+		}
+		else if (gsp < 0) {
 			centerOffset = { -20, -11 };
 			horizFlip = true;
 		}
@@ -566,15 +551,14 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	onGroundPrev = onGround || platform;
 	int cx(position.x);
 	int cy(position.y);
-	int blockX((cx - 9) / (TILE_WIDTH * GROUND_WIDTH)), blockY((cy + 36) / (TILE_WIDTH * GROUND_WIDTH));
 	int height1(-1), height2(-1), height3(-1), height4(-1), wallHeightLeft(-1), wallHeightRight(-1);
 	double ang1, ang2, ang3, ang4;
 	int yMin(cy);
 	int yMax(cy + 36);
 	double sensorDir(-1);
 	int h;
-	int y_radius(20 - 6 * rolling);
-	int x_radius(9 - (rolling << 1));
+	int y_radius(20 - 6 * (state == State::ROLLING));
+	int x_radius(9 - 2 * (state == State::ROLLING));
 
 	collisionRect = SDL_Rect{ -1 * x_radius, centerOffset.y, 2 * x_radius, 30 };
 
@@ -716,6 +700,7 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 		}
 	}
 	else {
+
 		if (velocity.y > 0) {
 			height1 -= position.y + y_radius;
 			height2 -= position.y + y_radius;
@@ -892,17 +877,26 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 			wall = nullptr;
 		}
 	}
+
+	if (onGround || platform) {
+		if (velocity.x == 0) {
+			state = State::IDLE;
+		}
+		else {
+			state = State::WALKING;
+		}
+	}
 	
 	return output;
 }
 
 const std::vector < double > angles = { 0.0, 128.0, 192.0, 64.0 };
 
-int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& tiles, double& ang, bool* isTopOnly) {
+int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > >& tiles, double& ang, bool* isTopOnly) {
 	int xEnd, xStart, yEnd, yStart;
 	int c = position.x;
 	int d = position.y;
-	int xRadius = 9 - (rolling << 1);
+	int xRadius = 9 - ((state == State::ROLLING || state == State::ROLLJUMPING) << 1);
 	enum class direction { UP, DOWN, LEFT, RIGHT };
 	direction iterOp; //0 = y--, 1 = y++, 2 = x--, 3 = x++
 	bool side = false;
@@ -1022,7 +1016,7 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 	ang = 0.0;
 
 	while (true) {
-		Ground& block = tiles[blockX][blockY];
+		const Ground& block = tiles[blockX][blockY];
 
 		pathC = path & block.getMulti();
 
@@ -1034,7 +1028,7 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 
 		int tileHeight = (block.empty()) ? 0 : Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, pathC, xStart, xEnd, yStart, yEnd, flip);
 
-		if (!block.empty() && (block.getFlag(tileX + GROUND_SIZE * pathC + GROUND_WIDTH * tileY) & int(Ground::Flags::TOP_SOLID))) {
+		if (!block.empty() && (block.getFlag(tileX + GROUND_SIZE * pathC + GROUND_WIDTH * tileY) & static_cast<int>(Ground::Flags::TOP_SOLID))) {
 			if (isTopOnly) {
 				*isTopOnly = true;
 			}
@@ -1144,7 +1138,7 @@ int Player::checkSensor(char sensor, std::vector < std::vector < Ground > >& til
 	}
 }
 
-int Player::getHeight(std::vector < std::vector < Ground > >& ground, SDL_Point block, SDL_Point tile, bool side, bool pathC, int xStart, int xEnd, int yStart, int yEnd, bool& flip) {
+int Player::getHeight(const std::vector < std::vector < Ground > >& ground, SDL_Point block, SDL_Point tile, bool side, bool pathC, int xStart, int xEnd, int yStart, int yEnd, bool& flip) {
 	int h;
 	flip = false;
 	if (side) {
@@ -1205,7 +1199,7 @@ void Player::Render(SDL_Rect& cam, double screenRatio) {
 	displayAngle = angle;
 	displayAngle += 256;
 	displayAngle %= 256;
-	int rot = rolling ? 0 : 45 * (displayAngle / 32.0); //For all rotations
+	int rot = ((state == State::ROLLING || state == State::ROLLJUMPING) ? 0 : 45 * (displayAngle / 32.0)); //For all rotations
 	//const int numRotations = 10;
 	//int rot = (360 / numRotations) * ((displayAngle + 128 / numRotations) / (256 / numRotations));
 	SDL_Point center{ -1 * centerOffset.x, -1 * centerOffset.y };
@@ -1288,5 +1282,86 @@ void Player::setActCleared(bool b)
 }
 
 bool Player::canDamage() {
-	return (!corkscrew && jumping) || (rolling);
+	return (!corkscrew && jumping) || (state == State::ROLLING || state == State::ROLLJUMPING);
+}
+
+void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc) {
+	if (abs(gsp) < 2.0 && collideMode != GROUND && !controlLock) {
+		if (collideMode == CEILING) {
+			collideMode = GROUND;
+			angle = 0.0;
+			onGround = false;
+		}
+		controlLock = 400;
+	}
+	if (input.GetKeyState(InputComponent::LEFT) && !controlLock) {
+		if (gsp <= 0) {
+			gsp -= thisAccel;
+		}
+		else {
+			if (abs(gsp - thisDecel) != gsp - thisDecel) {
+				gsp = 0;
+			}
+			else {
+				gsp -= thisDecel;
+			}
+		}
+	}
+	else if (input.GetKeyState(InputComponent::RIGHT) && !controlLock) {
+		if (gsp >= 0) {
+			gsp += thisAccel;
+		}
+		else {
+			if (abs(gsp + thisDecel) != gsp + thisDecel) {
+				gsp = 0;
+			}
+			else {
+				gsp += thisDecel;
+			}
+		}
+	}
+	else {
+		if (abs(gsp) < thisFrc) {
+			gsp = 0;
+		}
+		else {
+			gsp -= thisFrc * signum(gsp);
+		}
+	}
+}
+
+void Player::updateIfWalkOrIdle(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc) {
+	// Perform normal actions
+	walkLeftAndRight(input, thisAccel, thisDecel, thisFrc);
+
+	// Do slope calculations
+	if (gsp != 0) {
+		double thisSlp((time - last_time) / (1000.0 / 60.0) * slp);
+		gsp -= thisSlp * sin(hexToDeg(angle) * M_PI / 180.0);
+	}
+
+	// Initiate a jump
+	if (input.GetKeyPress(InputComponent::JUMP) && (onGround || platform)) {
+		onGround = false;
+		platform = false;
+		jumping = true;
+		state = State::JUMPING;
+		collideMode = GROUND;
+		jmp = 6.5;
+		velocity.x -= jmp * sin(hexToDeg(angle) * M_PI / 180.0);
+		velocity.y -= jmp * cos(hexToDeg(angle) * M_PI / 180.0);
+		angle = 0.0;
+	};
+}
+
+void Player::updateInAir(const InputComponent & input, double thisAccel, double thisDecel, double thisFrc) {
+	if (input.GetKeyState(InputComponent::LEFT) && state != State::ROLLJUMPING) {
+		velocity.x -= thisAccel;
+	}
+	if (input.GetKeyState(InputComponent::RIGHT) && state != State::ROLLJUMPING) {
+		velocity.x += thisAccel;
+	}
+	if (velocity.y < 0 && velocity.y > -4 && abs(velocity.x) >= 0.125) {
+		velocity.x *= thisFrc;
+	}
 }
