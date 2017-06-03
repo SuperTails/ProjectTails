@@ -196,7 +196,7 @@ void Act::RenderObjects(Player& player) {
 		solidLayer++;
 	}
 	if (player.getOnGround()) {
-		player.Render(pos, ratio);
+		player.render(pos, ratio);
 	}
 	solidLayer = solidTileRender.begin();
 	while (solidLayer != solidTileRender.end()) {
@@ -206,7 +206,7 @@ void Act::RenderObjects(Player& player) {
 		solidLayer++;
 	}
 	if (!player.getOnGround()) {
-		player.Render(pos, ratio);
+		player.render(pos, ratio);
 	}
 }
 
@@ -235,7 +235,7 @@ void Act::UpdateCollisions(Player* player) {
 				destroyed = true;
 				break;
 			case RING:
-				if (player->AddRing()) {
+				if (player->addRing()) {
 					std::cout << "Collision type was with ring\n";
 					std::cout << "Entity's number is " << (*i)->num << "\n";
 					(*i)->Destroy(ratio);
@@ -291,7 +291,7 @@ void Act::UpdateCollisions(Player* player) {
 				player->setJumping(false);
 				player->setRolling(false);
 				player->setControlLock(48);
-				player->setFlying(-1.0);
+				player->setFlightTime(0.0);
 				(*i)->setCustom(1, 100.0);
 				break;
 			case PLATFORM:
@@ -311,7 +311,7 @@ void Act::UpdateCollisions(Player* player) {
 				break;
 			case MONITOR:
 				if (player->canDamage()) {
-					player->AddRing(10);
+					player->addRing(10);
 					player->setVelocity({ player->getVelocity().x, player->getVelocity().y * -0.9 });
 					(*i)->Destroy(ratio);
 					destroyed = true;

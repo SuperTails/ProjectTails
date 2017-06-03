@@ -12,7 +12,7 @@ Player::Player() :
 	controlLock(0),
 	spindash(-1),
 	looking(0),
-	flying(-1),
+	flightTime(0.0),
 	corkscrew(false),
 	ceilingBlocked(false),
 	displayAngle(0.0),
@@ -20,12 +20,38 @@ Player::Player() :
 	wall(nullptr),
 	actCleared(false),
 	state(State::IDLE),
+	rings(0),
 	centerOffset{ -25, -11 }
 {
+	using namespace player_constants::animation_paths;
+	const std::vector < AnimStruct > PLAYER_ANIMATIONS = {
+		{ TORNADO_PATH, 50, 4 },		//0
+		{ IDLE_PATH, 133, 4 },
+		{ WALK_PATH, 133, 7 },
+		{ RUN_PATH,  133, 4 },
+		{ ROLL_BODY_PATH, 64, 6 },	//4
+		{ ROLL_TAILS_PATH, 128, 3 },
+		{ CROUCH_PATH, 133, 5 },
+		{ SPINDASH_PATH, 30, 5 },
+		{ FLY_PATH, 50, 2 },		//8
+		{ FLY_TIRED_PATH, 60, 4 },
+		{ LOOK_UP_PATH, 133, 5 },
+		{ CORKSCREW_PATH, 50, 11 },
+		{ HURT_PATH, 32, 2 },		//12
+		{ ACT_CLEAR_PATH, 150, 3 }
+	};
+	
+	for (const AnimStruct& i : PLAYER_ANIMATIONS) {
+		animations.emplace_back(new Animation(i));
+	}
+
+	position = PRHS_Rect{ 20, 0, 120, 64, 0 };
+	collisionRect = SDL_Rect{ 0,19,120,30 };
+
 	loaded = true;
 }
 
-void Player::SetActType(int aType) {
+void Player::setActType(int aType) {
 	actType = aType;
 	if (actType == 1) {
 		currentAnim = 0;
@@ -83,7 +109,7 @@ std::vector<std::unique_ptr<PhysicsEntity>>::iterator Player::hitEnemy(std::vect
 	if (!canDamage()) {
 		velocity.y = -4;
 		velocity.x = 2 * signum(position.x - enemyCenter.x);
-		flying = -1;
+		flightTime = 0.0;
 		gravity = 0.21875;
 		onGround = false;
 		jumping = false;
@@ -107,14 +133,23 @@ std::vector<std::unique_ptr<PhysicsEntity>>::iterator Player::hitEnemy(std::vect
 	}
 }
 
-void Player::UpdateP(Camera& cam) {
+void Player::update(Camera& cam) {
+	using namespace player_constants;
+	using namespace physics;
+
 	InputComponent& input = globalObjects::input;
 	last_time = time;
 	time = SDL_GetTicks();
-	if (!(time - last_time)) {
+
+	Uint32 deltaTime = time - last_time;
+
+	if (deltaTime == 0) {
 		return;
 	}
-	if (onGround || platform) {
+
+	bool standingOnSomething = onGround || platform;
+
+	if (standingOnSomething) {
 		if ((!onGroundPrev && onGround) || (!prevOnPlatform && platform)) {
 			if (int(angle) < 0x0F || int(angle) > 0xF0) {
 				gsp = velocity.x;
@@ -159,36 +194,46 @@ void Player::UpdateP(Camera& cam) {
 		break;
 	//Normal act
 	case 2:
+
+		if ((onGround || platform) && !onGroundPrev) {
+			if (velocity.x == 0) {
+				state = State::IDLE;
+			}
+			else {
+				state = State::WALKING;
+			}
+		}
+
+		// Prevent walking past the stage border
 		if (position.x <= 10) {
 			position.x = 10;
 			gsp = std::max(0.0, gsp);
 			velocity.x = std::max(0.0, velocity.x);
 		}
 
-		bool standingOnSomething = onGround || platform;
+		decel = DEFAULT_DECCELERATION;
+		slp = DEFAULT_SLOPE;
+		top = DEFAULT_TOP_SPEED;
 
-		Uint32 deltaTime = time - last_time;
-
-		decel = 0.5;
-		slp = 0.125;
-		top = 6;
-
+		// Reset gravity unless flying
 		if (state != State::FLYING) {
-			gravity = 0.21875;
+			gravity = DEFAULT_GRAVITY;
 		}
 
+		// Set miscellaneous variables
 		if (standingOnSomething) {
-			flying = -1;
-			accel = 0.046875;
-			frc = accel;
+			flightTime = 0.0;
+			accel = DEFAULT_ACCELERATION;
+			frc = DEFAULT_FRICTION;
 			jmp = 0;
 			corkscrew = false;
 		}
 		else {
-			accel = 0.09375;
-			decel = accel;
-			frc = 0.96875;
+			accel = AIR_ACCELERATION;
+			decel = AIR_DECCELERATION;
+			frc   = AIR_FRICTION;
 		}
+
 
 		const double FRAME_TIME_MS = 1000.0 / 60.0;
 
@@ -201,7 +246,9 @@ void Player::UpdateP(Camera& cam) {
 		double thisDecay = 256.0 / thisFrameCount;
 		double thisAdd = 2.0 * thisFrameCount;
 
-		controlLock = std::max(0, controlLock - int(time - last_time));
+		double anim_steps = std::max(8.0 - abs(gsp), 1.0);
+
+		controlLock = std::max(0, controlLock - int(deltaTime));
 
 		if (state != State::CROUCHING && state != State::LOOKING_UP) {
 			looking = 0;
@@ -214,6 +261,7 @@ void Player::UpdateP(Camera& cam) {
 			if (input.GetKeyState(InputComponent::DOWN)) {
 				looking = -1;
 				state = State::CROUCHING;
+				position.y += ROLL_VERTICAL_OFFSET;
 				break;
 			}
 			// If pressing up, look up
@@ -225,6 +273,20 @@ void Player::UpdateP(Camera& cam) {
 
 			updateIfWalkOrIdle(input, thisAccel, thisDecel, thisFrc);
 
+			if (gsp != 0) {
+				state = State::WALKING;
+				break;
+			}
+
+			currentAnim = 1;
+
+			if (horizFlip) {
+				centerOffset = { -9, -11 };
+			}
+			else {
+				centerOffset = { -27, -11 };
+			}
+
 			break;
 		case State::WALKING:
 
@@ -232,6 +294,8 @@ void Player::UpdateP(Camera& cam) {
 			if (input.GetKeyState(InputComponent::DOWN)) {
 				if (abs(gsp) < 0.5) {
 					state = State::CROUCHING;
+					position.y += ROLL_VERTICAL_OFFSET;
+					gsp = 0.0;
 					break;
 				}
 				else {
@@ -242,12 +306,29 @@ void Player::UpdateP(Camera& cam) {
 
 			updateIfWalkOrIdle(input, thisAccel, thisDecel, thisFrc);
 
+			if (gsp == 0) {
+				state = State::IDLE;
+				break;
+			}
+
+			currentAnim = 2 + (gsp >= 0.9 * top);
+			animations[currentAnim]->SetDelay(anim_steps * 1000.0 / 60.0);
+
+			if (gsp < 0) {
+				centerOffset = { -20, -11 };
+				horizFlip = true;
+			}
+			else if (gsp > 0) {
+				centerOffset = { -29, -11 };
+				horizFlip = false;
+			}
+
 			break;
 		case State::JUMPING:
 
 			// Start flying
 			if (input.GetKeyPress(InputComponent::JUMP) && !corkscrew) {
-				flying = 8000.0;
+				flightTime = 8000.0;
 				gravity = 0.03125;
 				state = State::FLYING;
 				break;
@@ -256,31 +337,41 @@ void Player::UpdateP(Camera& cam) {
 			else if (!input.GetKeyState(InputComponent::JUMP) && jumping && velocity.y < -4.0 && !corkscrew) {
 				velocity.y = -4.0;
 			}
+
+			currentAnim = 5 + 4 * animations.size();
+			animations[5]->SetDelay(128);
+
+			centerOffset = { -14, -14 };
 			
 			break;
 		case State::FLYING:
 
-			accel = 0.09375;
-			frc = 0.96875;
-			if (velocity.y < -1) {
-				gravity = 0.03125;
-			}
+			accel = AIR_ACCELERATION;
+			frc = AIR_FRICTION;
 
 			thisAccel = thisFrameCount * accel;
 			thisFrc = pow(frc, thisFrameCount);
+
+			if (velocity.y < -1) {
+				gravity = FLIGHT_GRAVITY;
+			}
 			
 			// If there is flight time remaining, check for the jump button being pressed
-			if (flying > 0.0) {
+			if (flightTime > 0.0) {
 				if (input.GetKeyPress(InputComponent::JUMP)) {
 					if (velocity.y >= -1) {
 						gravity = -0.125;
 					}
 				}
-				flying = std::max(0.0, flying - deltaTime);
+				flightTime = std::max(0.0, flightTime - deltaTime);
 			}
 
 			// Change flip only if velocity crosses zero, not just touches it
 			horizFlip = (horizFlip ? velocity.x <= 0 : velocity.x < 0);
+
+			currentAnim = 8 + (flightTime == 0.0);
+
+			centerOffset.y = -12;
 
 			break;
 		case State::CROUCHING:
@@ -288,13 +379,23 @@ void Player::UpdateP(Camera& cam) {
 			// If no longer pressing down, return to normal
 			if (!input.GetKeyState(InputComponent::DOWN)) {
 				state = State::IDLE;
+				position.y -= ROLL_VERTICAL_OFFSET;
 				looking = 0;
 				break;
 			}
 			// If jump is pressed, start a spindash
 			else if (input.GetKeyPress(InputComponent::JUMP)) {
 				state = State::SPINDASH;
+				position.y -= ROLL_VERTICAL_OFFSET;
 				spindash = thisAdd;
+				break;
+			}
+
+			currentAnim = 6;
+
+			centerOffset = { -26, -9 };
+			if (horizFlip) {
+				centerOffset.x = -10;
 			}
 
 			break;
@@ -303,6 +404,7 @@ void Player::UpdateP(Camera& cam) {
 			// If no longer pressing down, start rolling
 			if (!input.GetKeyState(InputComponent::DOWN)) {
 				state = State::ROLLING;
+				position.y += ROLL_VERTICAL_OFFSET;
 				gsp = 8.0 + floor(spindash) / 2;
 				gsp *= (horizFlip * -2 + 1);
 				spindash = -1.0;
@@ -316,6 +418,11 @@ void Player::UpdateP(Camera& cam) {
 
 			// Make sure spindash decays
 			spindash -= double((floor(spindash) * 8) / thisDecay);
+
+			currentAnim = 5 + 7 * animations.size();
+			animations[5]->SetDelay(60);
+
+			centerOffset = { -47, -4 };
 
 			break;
 		case State::ROLLING:
@@ -365,7 +472,8 @@ void Player::UpdateP(Camera& cam) {
 			// If friction would cause a sign change, stop
 			if (abs(gsp) < thisFrc / 2) {
 				gsp = 0.0;
-				state = State::ROLLING;
+				state = State::IDLE;
+				position.y -= ROLL_VERTICAL_OFFSET;
 				looking = 0;
 			}
 			else {
@@ -373,13 +481,15 @@ void Player::UpdateP(Camera& cam) {
 			}
 
 			// Going too slow should cause us to stop rolling
-			if (abs(gsp) <= 0.5) {
-				state = State::WALKING;
+			if (abs(gsp) < 0.5 && onGround) {
+				position.y -= ROLL_VERTICAL_OFFSET;
+				state = (gsp == 0 ? State::IDLE : State::WALKING);
 				looking = 0;
+				break;
 			}
 
 			// If the jump key gets pressed then initiate a rolljump
-			if (input.GetKeyPress(InputComponent::JUMP) && !controlLock && !ceilingBlocked) {
+			if (input.GetKeyPress(InputComponent::JUMP) && !controlLock && !ceilingBlocked && onGround) {
 				onGround = false;
 				platform = false;
 				state = State::ROLLJUMPING;
@@ -390,8 +500,18 @@ void Player::UpdateP(Camera& cam) {
 				angle = 0.0;
 			}
 
+			currentAnim = 5 + 4 * animations.size();
+			animations[5]->SetDelay(128);
+
+			centerOffset = { -14, -14 };
+
 			break;
 		case State::ROLLJUMPING:
+
+			currentAnim = 5 + 4 * animations.size();
+			animations[5]->SetDelay(128);
+
+			centerOffset = { -14, -14 };
 
 			break;
 		case State::LOOKING_UP:
@@ -403,9 +523,19 @@ void Player::UpdateP(Camera& cam) {
 				break;
 			}
 
+			currentAnim = 10;
+
+			if (horizFlip) {
+				centerOffset = { -9, -11 };
+			}
+			else {
+				centerOffset = { -27, -11 };
+			}
+
 			break;
 		}
 
+		// Reset jump and prevent falling through platforms
 		if (standingOnSomething) {
 			if (platform) {
 				velocity.y = std::min(0.0, velocity.y);
@@ -413,6 +543,7 @@ void Player::UpdateP(Camera& cam) {
 
 			jmp = 0;
 		}
+		// Update in air
 		else {
 			double thisAccel = ((time - last_time) / (1000.0 / 60.0)) * accel;
 			double thisDecel = ((time - last_time) / (1000.0 / 60.0)) * decel;
@@ -420,15 +551,13 @@ void Player::UpdateP(Camera& cam) {
 			updateInAir(input, thisAccel, thisDecel, thisFrc);
 		}
 
+		// Stop the player if they are damaged
 		if (damageCountdown > 0) {
 			gsp = 0.0;
 			damageCountdown = std::max(0, damageCountdown - int(deltaTime));
 		}
-			
-			
-		//Animations
-		double anim_steps = std::max(8 - abs(gsp), 1.0);
-		//Change animation based on speed
+		
+		// Overriding default animations
 		if (actCleared) {
 			currentAnim = 13;
 			gsp = 0.0;
@@ -437,88 +566,23 @@ void Player::UpdateP(Camera& cam) {
 		else if (damageCountdown) {
 			currentAnim = 12;
 		}
-		else if (flying > 0.0) {
-			currentAnim = 8;
-		}
-		else if (flying == 0.0) {
-			currentAnim = 9;
-		}
-		else if (spindash != -1) {
-			currentAnim = 5 + 7 * animations.size();
-			animations[5]->SetDelay(60);
-		}
-		else if (looking == -1) {
-			currentAnim = 6;
-		}
-		else if (looking == 1) {
-			currentAnim = 10;
-		}
 		else if (corkscrew) {
 			currentAnim = 11;
 		}
-		else if (!standingOnSomething && jumping || (state == State::ROLLING || state == State::ROLLJUMPING)) {
-			currentAnim = 5 + 4 * animations.size();
-			animations[5]->SetDelay(128);
-		}
-		else if (gsp == 0) {
-			currentAnim = 1;
-		}
-		else if (abs(gsp) < top * 0.9) {
-			currentAnim = 2;
-			animations[currentAnim]->SetDelay(anim_steps * 1000.0 / 60.0);
-		}
-		else {
-			currentAnim = 3;
-			animations[currentAnim]->SetDelay(anim_steps * 1000.0 / 60.0);
-		}
-		
-		if (flying >= 0.0) {
-			centerOffset.y = -12;
-		}
-		if (spindash != -1) {
-			centerOffset = { -47, -4 };
-		}
-		else if (looking == -1) {
-			centerOffset = { -26, -2 };
-			if (horizFlip) {
-				centerOffset.x = -10;
-			}
-		}
-		else if (!standingOnSomething && jumping || (state == State::ROLLING || state == State::ROLLJUMPING)) {
-			centerOffset = { -14, -14 };
-		}
-		else if (gsp == 0 || looking == 1) {
-			if (horizFlip) {
-				centerOffset = { -9, -11 };
-			}
-			else {
-				centerOffset = { -27, -11 };
-			}
-		}
-		else if (gsp < 0) {
-			centerOffset = { -20, -11 };
-			horizFlip = true;
-		}
-		else if (gsp > 0) {
-			centerOffset = { -29, -11 };
-			horizFlip = false;
-		}
 
+		// Reset act-clear animation
 		if (currentAnim == 13 && (animations[currentAnim]->GetLooped() || animations[currentAnim]->getFrame() == 2)) {
 			animations[13]->SetFrame(2);
 			animations[13]->SetDelay(-1);
 		}
-			
-		//End normal act
-	}
-	
 
-	if (abs(gsp) > top) {
-		gsp = top * signum(gsp);
-	}
+		if (abs(gsp) > top) {
+			gsp = top * signum(gsp);
+		}
 
-	if (abs(velocity.y) > 16.0) {
-		velocity.y = 16.0 * signum(velocity.y);
+		if (abs(velocity.y) > 16.0) {
+			velocity.y = 16.0 * signum(velocity.y);
+		}
 	}
 
 	//2 seconds
@@ -529,7 +593,7 @@ void Player::UpdateP(Camera& cam) {
 		else {
 			invis = false;
 		}
-		damageCountdown = (int)std::max((double)(damageCountdown - (int)(time - last_time)), 0.0);
+		damageCountdown = std::max(damageCountdown - int(deltaTime), 0);
 	}
 	else {
 		invis = false;
@@ -538,7 +602,7 @@ void Player::UpdateP(Camera& cam) {
 	this->Update(false);
 }
 
-bool Player::AddRing(int num) {
+bool Player::addRing(int num) {
 	if (damageCountdown < 100) {
 		rings += num;
 		return true;
@@ -547,7 +611,7 @@ bool Player::AddRing(int num) {
 }
 
 //Returns height of A, height of B, and angle
-std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles) {
+std::string Player::collideGround(const std::vector < std::vector < Ground > >& tiles) {
 	onGroundPrev = onGround || platform;
 	int cx(position.x);
 	int cy(position.y);
@@ -557,8 +621,8 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 	int yMax(cy + 36);
 	double sensorDir(-1);
 	int h;
-	int y_radius(20 - 6 * (state == State::ROLLING));
-	int x_radius(9 - 2 * (state == State::ROLLING));
+	int y_radius(20 - 6 * isOffsetState(state));
+	int x_radius(9 - 2 * (state == State::ROLLING || state == State::ROLLJUMPING));
 
 	collisionRect = SDL_Rect{ -1 * x_radius, centerOffset.y, 2 * x_radius, 30 };
 
@@ -877,15 +941,6 @@ std::string Player::CollideGround(std::vector < std::vector < Ground > >& tiles)
 			wall = nullptr;
 		}
 	}
-
-	if (onGround || platform) {
-		if (velocity.x == 0) {
-			state = State::IDLE;
-		}
-		else {
-			state = State::WALKING;
-		}
-	}
 	
 	return output;
 }
@@ -896,7 +951,7 @@ int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > 
 	int xEnd, xStart, yEnd, yStart;
 	int c = position.x;
 	int d = position.y;
-	int xRadius = 9 - ((state == State::ROLLING || state == State::ROLLJUMPING) << 1);
+	int xRadius = 9 - (2 * (state == State::ROLLING || state == State::ROLLJUMPING));
 	enum class direction { UP, DOWN, LEFT, RIGHT };
 	direction iterOp; //0 = y--, 1 = y++, 2 = x--, 3 = x++
 	bool side = false;
@@ -1118,8 +1173,8 @@ int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > 
 			--blockY;
 		}
 
-		int startTileX = (xStart - blockX * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
-		int startTileY = (yStart - blockY * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
+		int startTileX = (xStart - blockX * GROUND_PIXEL_WIDTH) / TILE_WIDTH;
+		int startTileY = (yStart - blockY * GROUND_PIXEL_WIDTH) / TILE_WIDTH;
 
 		if (signum(tileX - startTileX) * tileX < signum(tileX - startTileX) * startTileX) {
 			return -1;
@@ -1185,7 +1240,7 @@ std::string Player::modeToString(Mode m) {
 	}
 }
 
-void Player::Render(SDL_Rect& cam, double screenRatio) {
+void Player::render(SDL_Rect& cam, double screenRatio) {
 	if (invis)
 		return;
 	typedef Animation::effectData effectData;
@@ -1364,4 +1419,8 @@ void Player::updateInAir(const InputComponent & input, double thisAccel, double 
 	if (velocity.y < 0 && velocity.y > -4 && abs(velocity.x) >= 0.125) {
 		velocity.x *= thisFrc;
 	}
+}
+
+bool Player::isOffsetState(const State& state) {
+	return (state == State::ROLLING || state == State::CROUCHING || state == State::ROLLJUMPING);
 }

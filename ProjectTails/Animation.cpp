@@ -226,7 +226,7 @@ void Animation::Render(const SDL_Rect* dest, const int& rot, SDL_Point* center, 
 		center->x *= ratio;
 		center->y *= ratio;
 	}
-	SDL_Rect screenDest = { (int)((thisDest.x) * ratio), (int)((thisDest.y) * ratio),(int)(thisFrame.w * ratio),(int)(thisFrame.h *ratio)/*,dest->w, dest->h*/};
+	SDL_Rect screenDest = { int(thisDest.x * ratio), int(thisDest.y * ratio), int(thisFrame.w * ratio), int(thisFrame.h * ratio) };
 	SDL_RenderCopyEx(globalObjects::renderer, tex, &thisFrame, &screenDest, (effect & ROTATION) ? 0.0 : double(rot), center, thisFlip);
 	if (tempTex != nullptr) {
 		std::swap(tempTex, tex);

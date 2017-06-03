@@ -67,59 +67,10 @@ int main( int argc, char* argv[] ) {
 	globalObjects::loadProgress.emplace_back("Loading", 0.0);
 	globalObjects::updateLoading(0.0);
 
-	//Asset paths
-	string TORNADO_PATH = ASSET"Tornado.png";
-	string MUSIC_PATH = ASSET"WorldToExplore.wav";
-	string SKY_PATH = ASSET"Sky.png";
-	string TAILS_IDLE_PATH = ASSET"Tails_Idle.png";
-	string RING_PATH = ASSET"Ring.png";
-	string RING_SPARKLE_PATH = ASSET"RingSparkle.png";
-	string FONT_PATH = ASSET"FontGUI.png";
-	string EXPLOSION_PATH = ASSET"Explosion.png";
-	string ROCKET_PATH = ASSET"Rocket.png";
-	string ENTITY_DATA_PATH = ASSET"EntityData.txt";
-	
 
-	string ACT1_DATA_PATH = ASSET"Act1";
-	string ACT2_DATA_PATH = ASSET"Act2";
-
-	std::vector < std::string > actPaths = { ACT1_DATA_PATH, ACT2_DATA_PATH };
-	
-
-	string LIVES_PATH = ASSET"Lives.png";
-	string IDLE_PATH = ASSET"Tails_Idle.png";
-	string WALK_PATH = ASSET"Tails_Walk.png";
-	string RUN_PATH = ASSET"Tails_Run.png";
-	string ROLL_BODY_PATH = ASSET"Tails_Roll_Body.png";
-	string ROLL_TAILS_PATH = ASSET"Tails_Roll_Tails.png";
-	string CROUCH_PATH = ASSET"Tails_Crouch.png";
-	string LOOK_UP_PATH = ASSET"Tails_Look_Up.png";
-	string SPINDASH_PATH = ASSET"Tails_Spindash.png";
-	string FLY_PATH = ASSET"Tails_Fly.png";
-	string FLY_TIRED_PATH = ASSET"Tails_Fly_Tired.png";
-	string CORKSCREW_PATH = ASSET"Tails_Corkscrew.png";
-	string HURT_PATH = ASSET"Tails_Hurt.png";
-	string ACT_CLEAR_PATH = ASSET"Tails_Act_Clear.png";
+	std::vector < std::string > actPaths = { constants::ACT1_DATA_PATH, constants::ACT2_DATA_PATH };
 
 	Player Tails = Player();
-
-	Tails.updatePosition({ 20, 0, 120, 64, 0 }, PRHS_UPDATE_ABSOLUTE);
-	Tails.AddAnim({ TORNADO_PATH, 50, 4 });		//0
-	Tails.AddAnim({ IDLE_PATH, 133, 4 });
-	Tails.AddAnim({ WALK_PATH, 133, 7 });
-	Tails.AddAnim({ RUN_PATH,  133, 4 });
-	Tails.AddAnim({ ROLL_BODY_PATH, 64, 6 });	//4
-	Tails.AddAnim({ ROLL_TAILS_PATH, 128, 3 });
-	Tails.AddAnim({ CROUCH_PATH, 133, 5 });
-	Tails.AddAnim({ SPINDASH_PATH, 30, 5 });
-	Tails.AddAnim({ FLY_PATH, 50, 2 });			//8
-	Tails.AddAnim({ FLY_TIRED_PATH, 60, 4 });
-	Tails.AddAnim({ LOOK_UP_PATH, 133, 5 });
-	Tails.AddAnim({ CORKSCREW_PATH, 50, 11 });
-	Tails.AddAnim({ HURT_PATH, 32, 2 });		//12
-	Tails.AddAnim({ ACT_CLEAR_PATH, 150, 3 });
-	Tails.setCollisionRect({ 0,19,120,30 });
-	//REMOVE LATER	
 
 	SDL_Rect CAMERA_SIZE = { (-32), (-8), int(WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO + 64), int(WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 16) };
 	Camera cam = Camera(&CAMERA_SIZE);
@@ -131,7 +82,7 @@ int main( int argc, char* argv[] ) {
 	std::unordered_map < std::string, PhysProp* > entityKeys;
 	std::vector < std::string > entityTypes;
 	
-	DataReader::LoadEntityData(ENTITY_DATA_PATH, EntityData, entityKeys, entityTypes);
+	DataReader::LoadEntityData(constants::ENTITY_DATA_PATH, EntityData, entityKeys, entityTypes);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
 	LevelEditor::entityList = &entityKeys;
@@ -178,7 +129,7 @@ int main( int argc, char* argv[] ) {
 	DataReader::LoadBackground(ASSET"EmeraldHillZone\\Background", background, 2);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
-	DataReader::LoadActData(ACT1_DATA_PATH, actNum, actName, entities, winRect, actType, &ground, &arrayData, &groundIndices, &levelSize);
+	DataReader::LoadActData(constants::ACT1_DATA_PATH, actNum, actName, entities, winRect, actType, &ground, &arrayData, &groundIndices, &levelSize);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
 	SDL_SetRenderDrawColor(globalObjects::renderer, 0, 0, 0, 0);
@@ -208,30 +159,28 @@ int main( int argc, char* argv[] ) {
 	acts.emplace_back(actNum, actName, entities, winRect, actType, SCREEN_RATIO, levelSize, background, std::move(ground));
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
-	Tails.SetActType(acts.front().getType());
+	Tails.setActType(acts.front().getType());
 
 	LoadAct(&(acts.front()), &cam, globalObjects::renderer, EntityData);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
-
-	Tails.SetRings(0);
 
 	int frames = 0;
 	int last_frames = 0;
 	Uint32 start = SDL_GetTicks();
 
-	Text rings_text = Text(FONT_PATH);
-	Text rings_count_text = Text(FONT_PATH);
-	Text debug_text = Text(FONT_PATH);
-	Text debug_text2 = Text(FONT_PATH);
+	Text rings_text = Text(constants::FONT_PATH);
+	Text rings_count_text = Text(constants::FONT_PATH);
+	Text debug_text = Text(constants::FONT_PATH);
+	Text debug_text2 = Text(constants::FONT_PATH);
 
 	rings_text.StringToText("RINGS:");
-	rings_count_text.StringToText(to_string(Tails.GetRings()));
+	rings_count_text.StringToText(to_string(Tails.getRings()));
 	debug_text.StringToText("");
 	debug_text2.StringToText("");
 
 	//Load Surfaces
-	SDL_Surface* Sky = IMG_Load(SKY_PATH.c_str());
-	SDL_Surface* Lives = IMG_Load(LIVES_PATH.c_str());
+	SDL_Surface* Sky = IMG_Load(constants::SKY_PATH.c_str());
+	SDL_Surface* Lives = IMG_Load(constants::LIVES_PATH.c_str());
 	 
 	//Text
 	SDL_Texture* rings_text_texture = SDL_CreateTextureFromSurface(window.getRenderer(), rings_text.getText());
@@ -302,13 +251,13 @@ int main( int argc, char* argv[] ) {
 			acts.front().UpdateEntities(Tails);
 			acts.front().UpdateCollisions(&Tails);
 
-			rings_count_text.StringToText(to_string(Tails.GetRings()));
+			rings_count_text.StringToText(to_string(Tails.getRings()));
 			rings_count_texture = SDL_CreateTextureFromSurface(window.getRenderer(), rings_count_text.getText());
 			debug_text_texture2 = SDL_CreateTextureFromSurface(window.getRenderer(), debug_text2.getText());
 
 
-			debug_text2.StringToText(Tails.CollideGround(acts.front().getGround()));
-			Tails.UpdateP(cam);
+			debug_text2.StringToText(Tails.collideGround(acts.front().getGround()));
+			Tails.update(cam);
 			cam.updatePos(Tails.getPosition(), Tails.lookDirection());
 
 			window.render(Sky_Texture, { 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE, 0 });
