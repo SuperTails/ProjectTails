@@ -78,5 +78,4 @@ private:
 	int* tileFlags;
 	bool multiPath;
 	bool flip;
-	bool renderBehindPlayer;
 };

@@ -22,7 +22,6 @@ Ground::Ground(const Ground& other) :
 	tileIndices(nullptr),
 	tileFlags(nullptr),
 	flip(other.flip),
-	renderBehindPlayer(other.renderBehindPlayer),
 	PhysicsEntity(other)
 {
 	if (other.tileIndices != nullptr) {
@@ -49,8 +48,7 @@ Ground::Ground() :
 	multiPath(false),
 	tileIndices(nullptr),
 	tileFlags(nullptr),
-	flip(false),
-	renderBehindPlayer(false)
+	flip(false)
 {
 	position = { -1, -1, -1, -1, -1 };
 }
@@ -146,8 +144,7 @@ Ground::~Ground()
 
 void Ground::Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position, int layer, bool flip) const {
 	SDL_Rect pos = (position != nullptr) ? *position : GetRelativePos(camPos);
-	if (layer < animations.size() || (renderBehindPlayer && layer != 0)) {
-		layer &= !renderBehindPlayer;
+	if (layer < animations.size()) {
 		animations[layer]->Render(&pos, 0, NULL, 1.0 / ratio, SDL_RendererFlip(flip));
 	}
 }
@@ -231,5 +228,4 @@ void swap(Ground& lhs, Ground& rhs) {
 	swap(lhs.tileFlags, rhs.tileFlags);
 	swap(lhs.multiPath, rhs.multiPath);
 	swap(lhs.flip, rhs.flip);
-	swap(lhs.renderBehindPlayer, rhs.renderBehindPlayer);
 }
