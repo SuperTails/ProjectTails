@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "LevelEditor.h"
 
-const bool LevelEditor::levelEditing(false);
+const bool LevelEditor::levelEditing(true);
 
 std::string LevelEditor::levelPath("");
 

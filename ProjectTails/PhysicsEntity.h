@@ -41,6 +41,8 @@ struct PhysStruct {
 	PhysStruct(SDL_Rect p, PhysProp pr, int n, std::vector < char > f) : pos(p), prop(pr), num(n), loaded(false), flags(f) {};
 };
 
+class Player;
+
 class PhysicsEntity : public PRHS_Entity
 {
 public:
@@ -55,8 +57,7 @@ public:
 	PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize = { 16, 16 });
 	virtual ~PhysicsEntity() = default;
 
-	//Returns true if this entity needs to be destroyed
-	bool Update(bool updateTime = true, PhysicsEntity* player = nullptr, entityListPtr entityList = nullptr, entityListIter* iter = nullptr);
+	void Update(bool updateTime = true, Player* player = nullptr, entityListPtr entityList = nullptr, std::size_t thisIndex = -1, std::vector < bool >* toDestroy = nullptr, entityListPtr toAdd = nullptr);
 
 	std::unique_ptr < Animation >& GetAnim(int index);
 	std::unique_ptr < Animation >& GetAnim();
@@ -84,7 +85,7 @@ public:
 
 	void setGravity(double g);
 
-	void custom(PhysicsEntity* player, std::vector < double > args = std::vector < double >(), entityListPtr entityList = nullptr, entityListIter* iter = nullptr);
+	void custom(Player* player, entityListPtr entityList = nullptr, std::size_t thisIndex = -1, std::vector < bool >* toDestroy = nullptr, entityListPtr toAdd = nullptr);
 
 	void setCustom(int index, double value);
 

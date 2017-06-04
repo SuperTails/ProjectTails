@@ -101,9 +101,8 @@ void Act::UpdateEntities(Player& player) {
 	Player::entityPtrType& playerWall = player.wallPtr();
 	SDL_Point platformPos = playerPlatform ? PhysicsEntity::xyPoint((*playerPlatform)->getPosition()) : SDL_Point{ -1, -1 };
 	SDL_Rect wallPos = playerWall ? (*playerWall)->getPosition() : SDL_Rect{ -1, -1, -1, -1 };
-	entityListIterator j = entities.begin();
- 	while(j != entities.end()){
-		bool shouldDestroy = (*j)->Update(true, &player, &entities, &j);
+	/*while(j != entities.end()){
+		bool shouldDestroy = (*j)->Update(true, &player, &entities, std::distance(entities.begin(), j), );
 		if (shouldDestroy) {
 			std::cout << "Destroying entity with number " << (*j)->num << " at position " << (*j)->getPosition().x << " " << (*j)->getPosition().y << "\n";
 			if ((*j)->num != -1) {
@@ -139,28 +138,84 @@ void Act::UpdateEntities(Player& player) {
 			i->loaded = true;
 			loaded_entities++;
 		}
+	}*/
+
+	// Load new entities
+	for (entityLoadIterator i = phys_paths.begin(); i != phys_paths.end(); i++) {
+		if (SDL_HasIntersection(&(i->pos), &(cam->getCollisionRect())) && i->loaded == false && i->num != -1) {
+			std::cout << "Loading entity with number " << i->num << " at position " << i->pos.x << " " << i->pos.y << "\n";
+			entities.emplace_back(new PhysicsEntity(*i));
+			entities.back()->SetTime(SDL_GetTicks());
+			entities.back()->loaded = true;
+			entities.back()->num = std::distance(phys_paths.begin(), i);
+			i->loaded = true;
+			loaded_entities++;
+		}
 	}
-	entities.shrink_to_fit();
+
+	entityListIterator i = entities.begin();
+	// Unload offscreen entities
+	while (i != entities.end()) {
+		if (!SDL_HasIntersection(&(*i)->getPosition(), &(cam->getCollisionRect())) && (*i)->loaded && (playerPlatform == nullptr || *i != *playerPlatform)) {
+			if ((*i)->num != -1) {
+				phys_paths[(*i)->num].pos = (*i)->getPosition();
+				phys_paths[(*i)->num].loaded = false;
+				i = entities.erase(i);
+				continue;
+			}
+		}
+		++i;
+	}
+
+	i = entities.begin();
+	std::vector < bool > toDestroy(entities.size(), false);
+	std::vector < std::unique_ptr < PhysicsEntity > > toAdd;
+	while (i != entities.end()) {
+
+		(*i)->loaded = true;
+		(*i)->Update(true, &player, &entities, std::distance(entities.begin(), i), &toDestroy, &toAdd);
+
+		++i;
+	}
+
+	// Unload entities marked to be destroyed
+	i = entities.begin();
+	std::vector<bool>::iterator j = toDestroy.begin();
+	while (j != toDestroy.end()) {
+		if (*j) {
+			j = toDestroy.erase(j);
+			i = entities.erase(i);
+			continue;
+		}
+		++i;
+		++j;
+	}
+
+	// Add entities created by other entities
+	i = toAdd.begin();
+	while (i != toAdd.end()) {
+		entities.emplace_back(new PhysicsEntity(std::move(**i)));
+	}
 
 	if (playerPlatform) {
-		j = entities.begin();
-		while (j != entities.end()) {
-			if (PhysicsEntity::xyPoint((*j)->getPosition()) == platformPos) {
-				playerPlatform = &(*j);
+		i = entities.begin();
+		while (i != entities.end()) {
+			if (PhysicsEntity::xyPoint((*i)->getPosition()) == platformPos) {
+				playerPlatform = &(*i);
 				break;
 			}
-			++j;
+			++i;
 		}
-		assert(j != entities.end());
+		assert(i != entities.end());
 	}
 	if (playerWall) {
-		j = entities.begin();
-		while (j != entities.end()) {
-			if ((*j)->getPosition() == wallPos) {
-				playerWall = &(*j);
+		i = entities.begin();
+		while (i != entities.end()) {
+			if ((*i)->getPosition() == wallPos) {
+				playerWall = &(*i);
 				break;
 			}
-			++j;
+			++i;
 		}
 	}
 }

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "PhysicsEntity.h"
+#include "Player.h"
 
 std::vector < std::unique_ptr < PhysicsEntity > >* PhysicsEntity::actEntityList = nullptr;
 
@@ -94,7 +95,7 @@ PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) :
 		animations.emplace_back(new Animation(tileSize));
 };
  
-bool PhysicsEntity::Update(bool updateTime, PhysicsEntity* player, entityListPtr entityList, entityListIter* iter) {
+void PhysicsEntity::Update(bool updateTime, Player* player, entityListPtr entityList, std::size_t thisIndex, std::vector < bool >* toDestroy, entityListPtr toAdd) {
 	if (updateTime) {
 		last_time = time;
 		time = SDL_GetTicks();
@@ -114,7 +115,7 @@ bool PhysicsEntity::Update(bool updateTime, PhysicsEntity* player, entityListPtr
 
 	velocity.y += gravity * (time - last_time) / (1000.0 / 60.0);
 	
-	this->custom(player, std::vector < double >(), entityList, iter);
+	this->custom(player, entityList, thisIndex, toDestroy, toAdd);
 
 	if (!animations.empty()) {
 		int temp = currentAnim;
@@ -122,11 +123,10 @@ bool PhysicsEntity::Update(bool updateTime, PhysicsEntity* player, entityListPtr
 			animations[temp % animations.size()]->Update();
 			temp /= animations.size();
 		} while (temp != 0);
-		if (animations[currentAnim % animations.size()]->GetLooped() && destroyAfterLoop) {
-			return true;
+		if (animations[currentAnim % animations.size()]->GetLooped() && destroyAfterLoop && toDestroy != nullptr) {
+			(*toDestroy)[thisIndex] = true;
 		}
 	}
-	return false;
 }
 
 PhysicsEntity::entityPtrType& PhysicsEntity::platformPtr() {
@@ -169,12 +169,9 @@ std::unique_ptr < Animation >& PhysicsEntity::GetAnim() {
 	return animations[currentAnim];
 }
 
-void PhysicsEntity::custom(PhysicsEntity* player, std::vector < double > args, entityListPtr entityList, entityListIter* iter) {
+void PhysicsEntity::custom(Player* player, entityListPtr entityList, std::size_t thisIndex, std::vector < bool >* toRemove, entityListPtr toAdd) {
 	const std::string& key = prop.key;
 	double frameCount = (time - last_time) / (1000.0 / 60.0);
-	int distance = -1;
-	if(entityList)
-		distance = std::distance(entityList->begin(), *iter);
 	switch(eType){
 	case RING:
 		if (velocity.x != 0.0 || velocity.y != 0.0) {
@@ -205,22 +202,20 @@ void PhysicsEntity::custom(PhysicsEntity* player, std::vector < double > args, e
 			*/
 			if (currentAnim == 0 || customVars[0] == 0.0) {
 				velocity.x = -2.0;
-currentAnim = 0;
-if (player && player->getPosition().x != position.x && abs(double(position.y - player->getPosition().y) / (player->getPosition().x - position.x) - 1) <= 0.1) {
-	currentAnim = 1;
-	customVars[0] = 120.0;
-	velocity.x = 0.0;
-	customVars[1] = 0.0;
-}
-
+				currentAnim = 0;
+				if (player && player->getPosition().x != position.x && abs(double(position.y - player->getPosition().y) / (player->getPosition().x - position.x) - 1) <= 0.1) {
+					currentAnim = 1;
+					customVars[0] = 120.0;
+					velocity.x = 0.0;
+					customVars[1] = 0.0;
+				}
 			}
 			else {
 				customVars[0] = std::max(0.0, customVars[0] - (time - last_time) / (1000.0 / 60.0));
 				if (customVars[0] < 60.0 && !customVars[1]) {
 					customVars[1] = 1.0;
 					PhysStruct temp(SDL_Rect{ position.x + 30, position.y + 25, position.w, position.h }, *physProps->find(std::string("BEEPROJECTILE"))->second, -1, std::vector<char>());
-					entityList->emplace(*iter, new PhysicsEntity(temp));
-					*iter = entityList->begin() + distance;
+					toAdd->emplace_back(new PhysicsEntity(temp));
 				}
 				velocity.x = 0;
 			}
