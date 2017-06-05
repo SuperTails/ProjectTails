@@ -195,7 +195,7 @@ void Player::update(Camera& cam) {
 	//Normal act
 	case 2:
 
-		if ((onGround || platform) && !onGroundPrev) {
+		if ((onGround && !onGroundPrev) || (platform && !prevOnPlatform)) {
 			if (velocity.x == 0) {
 				state = State::IDLE;
 			}
@@ -612,7 +612,7 @@ bool Player::addRing(int num) {
 
 //Returns height of A, height of B, and angle
 std::string Player::collideGround(const std::vector < std::vector < Ground > >& tiles) {
-	onGroundPrev = onGround || platform;
+	onGroundPrev = onGround;
 	int cx(position.x);
 	int cy(position.y);
 	int height1(-1), height2(-1), height3(-1), height4(-1), wallHeightLeft(-1), wallHeightRight(-1);
@@ -675,6 +675,8 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 	std::string output(std::to_string(position.x));
 	output += " ";
 	output += std::to_string(position.y);
+
+	prevOnPlatform = false;
 
 	if (platform) {
 		prevOnPlatform = true;

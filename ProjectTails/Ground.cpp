@@ -157,41 +157,17 @@ CollisionTile& Ground::getTile(int tileX, int tileY) const {
 }
 
 int Ground::getFlag(int ind) const {
-	if (!flip)
-		return tileFlags[ind] ^ flip;
-					 /*       Y remains unchanged      */    /*      adding flipped X component     */    /*   offset for second path     */
-	return tileFlags[((ind % GROUND_SIZE) / GROUND_WIDTH) + ((GROUND_WIDTH - 1) - (ind % GROUND_WIDTH)) + GROUND_SIZE * (ind / GROUND_SIZE)] ^ flip;
+	int tileX = ((ind > GROUND_SIZE) ? (GROUND_SIZE + ind % GROUND_WIDTH) : (ind % GROUND_WIDTH));
+	int tileY = (ind % GROUND_SIZE) / GROUND_WIDTH;
+
+	return getFlag(tileX, tileY);
 }
 
-bool Ground::getHeight(int x, int yMax, int yMin, int& height) const {
-	int tileX = floor((x - position.x) / 16.0);
-	int tileY = floor((yMax - position.y) / 16.0);
-	int h;
-	height = 0;
-	bool incremented = false;
-	if (tileIndices[0] == -1) {
-		height = yMin + 20;
-		return false;
-	}
-	while (true) {
-		if (tileList[tileIndices[tileY * 16 + tileX]].getCollide()) {
-			if (tileFlags[tileY * 16 + tileX] & SDL_FLIP_HORIZONTAL) {
-				h = getTile(tileX, tileY).getHeight(15 - ((x - position.x) % 16));
-			}
-			else {
-				h = getTile(tileX, tileY).getHeight((x - position.x) % 16);
-			}
-			if (h < 16) {
-				height = (tileY + 1) * 16 - h + position.y;
-				return true;
-			}
-		}
-		tileY--;
-		if ((tileY + 1) * 16 < yMin) {
-			height = yMin + 20;
-			return false;
-		}
-	}
+int Ground::getFlag(int tileX, int tileY) const {
+	if (!flip)
+		return tileFlags[tileY * GROUND_WIDTH + tileX];
+	/*      add Y      */   /*            adding flipped X           */   /*    offset for second path     */
+	return tileFlags[tileY * GROUND_WIDTH + ((GROUND_WIDTH - 1) - (tileX % GROUND_SIZE)) + GROUND_SIZE * (tileX / GROUND_SIZE)] ^ SDL_FLIP_HORIZONTAL;
 }
 
 Ground& Ground::operator= (Ground arg) {
@@ -204,7 +180,7 @@ Ground& Ground::operator= (Ground arg) {
 
 double Ground::getTileAngle(int tileX, int tileY) const {
 	CollisionTile& tile = getTile(tileX, tileY);
-	switch (getFlag(tileY * GROUND_WIDTH + tileX)) {
+	switch (getFlag(tileX, tileY)) {
 	case SDL_FLIP_NONE:
 		return tile.getAngle();
 	case SDL_FLIP_HORIZONTAL:

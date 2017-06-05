@@ -47,13 +47,13 @@ public:
 	void Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position = nullptr, int layer = 0, bool flip = false) const;
 	int* getIndices() { return tileIndices; };
 	void setPoint(SDL_Point p) { position = { 256 * p.x, 256 * p.y, 256, 256 }; };
-	bool getHeight(int x, int yMax, int yMin, int& height) const;
 	bool getMulti() const { return multiPath; };
 
 	CollisionTile& getTile(int ind) const { return tileList[tileIndices[ind]]; };
 	CollisionTile& getTile(int tileX, int tileY) const;
 	double getTileAngle(int tileX, int tileY) const;
 	int getFlag(int ind) const;
+	int getFlag(int tileX, int tileY) const;
 	bool empty() const { return (tileIndices == nullptr); };
 
 	void setIndice(int ind, int value) { tileIndices[ind] = value; };
