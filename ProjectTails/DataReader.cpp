@@ -402,7 +402,8 @@ void DataReader::LoadCollisionsFromImage(std::string path, matrix < int >& heigh
 					Uint32 color = Animation::getPixel(DataFile, tileX + x, tileY + y);
 					if (color & cmask) {
 						assert((color & gmask) / dmask >= 0);
-						angles[tileX / 16 + tileY * 2] = (color & gmask) / dmask;
+						int tempAngle = (color & gmask) / dmask;
+						angles[tileX / 16 + tileY * 2] = ((tempAngle == 255) ? 0.0 : tempAngle);
 						heights[tileX / 16 + tileY * 2][x] = 16 - y;
 					}
 					else {

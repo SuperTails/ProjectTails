@@ -35,13 +35,13 @@ struct PhysStructInit {
 struct PhysStruct {
 	SDL_Rect pos;
 	PhysProp prop;
-	int num;
-	bool loaded;
+	bool shouldSave;
 	std::vector < char > flags;
-	PhysStruct(SDL_Rect p, PhysProp pr, int n, std::vector < char > f) : pos(p), prop(pr), num(n), loaded(false), flags(f) {};
+	PhysStruct(SDL_Rect p, PhysProp pr, bool s, std::vector < char > f) : pos(p), prop(pr), shouldSave(s), flags(f) {};
 };
 
 class Player;
+struct EntityManager;
 
 class PhysicsEntity : public PRHS_Entity
 {
@@ -57,7 +57,7 @@ public:
 	PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize = { 16, 16 });
 	virtual ~PhysicsEntity() = default;
 
-	void Update(bool updateTime = true, Player* player = nullptr, entityListPtr entityList = nullptr, std::size_t thisIndex = -1, std::vector < bool >* toDestroy = nullptr, entityListPtr toAdd = nullptr);
+	void update(bool updateTime = true, Player* player = nullptr, EntityManager* manager = nullptr);
 
 	std::unique_ptr < Animation >& GetAnim(int index);
 	std::unique_ptr < Animation >& GetAnim();
@@ -65,11 +65,11 @@ public:
 
 	void Render(SDL_Rect& camPos, double ratio, bool absolute = false);
 
-	SDL_Renderer* getRenderer() { return renderer; };
-	void SetTime(Uint32 t) { time = t; };
-	EntType GetType() { return eType; };
+	SDL_Renderer* getRenderer() const { return renderer; };
+	void setTime(Uint32 t) { time = t; };
+	EntType getType() const { return eType; };
 
-	void Destroy(double ratio);
+	void destroy();
 
 	SDL_Rect GetRelativePos(const SDL_Rect& p) const;
 
@@ -85,13 +85,15 @@ public:
 
 	void setGravity(double g);
 
-	void custom(Player* player, entityListPtr entityList = nullptr, std::size_t thisIndex = -1, std::vector < bool >* toDestroy = nullptr, entityListPtr toAdd = nullptr);
+	void custom(Player* player, EntityManager* manager);
 
 	void setCustom(int index, double value);
 
 	char getCustom(int index) { return static_cast<char>(customVars[index]); };
 
 	void customInit();
+
+	std::vector < char > getFlags() { return flags; };
 
 	doublePoint getVelocity() { return velocity; };
 
@@ -113,11 +115,9 @@ public:
 
 	static SDL_Rect getRelativePos(const SDL_Rect& objPos, const SDL_Rect& camPos);
 
-	static void setEntityList(std::vector < std::unique_ptr < PhysicsEntity > >* actEntities) { actEntityList = actEntities; };
-
 	bool loaded;
 	doublePoint velocity;
-	int num;
+	bool shouldSave;
 	bool canCollide;
 
 	static SDL_Point xyPoint(SDL_Rect rect) { return SDL_Point{ rect.x, rect.y }; };
@@ -125,7 +125,6 @@ public:
 	static std::unordered_map < std::string, PhysProp* >* physProps;
 
 private:
-	static std::vector < std::unique_ptr < PhysicsEntity > >* actEntityList;
 	std::vector < AnimStruct > anim_data;
 	entityPtrType self;
 	PhysProp prop;
@@ -136,10 +135,46 @@ protected:
 	std::vector < std::unique_ptr < Animation > > animations;
 	SDL_Rect collisionRect;
 	std::vector < double > customVars;
+	std::vector < char > flags;
 	Uint32 time;
 	Uint32 last_time;
 	int currentAnim;
 	bool invis;
 	double gravity;
 	doublePoint posError;
+};
+
+struct EntityManager {
+	EntityManager() = delete;
+	EntityManager(const EntityManager&) = delete;
+	EntityManager(EntityManager&&) = delete;
+	EntityManager(std::vector < std::unique_ptr < PhysicsEntity > >& entities, std::vector < bool >& destroy, std::vector < std::unique_ptr < PhysicsEntity > >& add) :
+		entityList(entities),
+		toDestroy(destroy),
+		toAdd(add)
+	{};
+
+	void MarkAsDestroyed(const PhysicsEntity* entity) {
+		if (entityList.empty()) {
+			throw "Attempt to mark invalid entity.";
+		}
+
+		const PhysicsEntity* firstEntity = &(*entityList.front());
+
+		std::size_t distance = std::distance(firstEntity, entity);
+
+		if (distance >= entityList.size()) {
+			throw "Attempt to mark invalid entity.";
+		}
+
+		toDestroy[distance] = true;
+	}
+
+	void AddEntity(std::unique_ptr < PhysicsEntity >&& entity) {
+		toAdd.emplace_back(std::move(entity));
+	}
+private:
+	std::vector < std::unique_ptr < PhysicsEntity > >& entityList;
+	std::vector < bool >& toDestroy;
+	std::vector < std::unique_ptr < PhysicsEntity > >& toAdd;
 };

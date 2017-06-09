@@ -42,18 +42,16 @@ public:
 	*/
 	Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip = false);
 	Ground(const Ground&);
-	Ground(Ground&& other);
+	Ground(Ground&& other) noexcept;
 	
 	void Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position = nullptr, int layer = 0, bool flip = false) const;
 	int* getIndices() { return tileIndices; };
 	void setPoint(SDL_Point p) { position = { 256 * p.x, 256 * p.y, 256, 256 }; };
 	bool getMulti() const { return multiPath; };
 
-	CollisionTile& getTile(int ind) const { return tileList[tileIndices[ind]]; };
-	CollisionTile& getTile(int tileX, int tileY) const;
-	double getTileAngle(int tileX, int tileY) const;
-	int getFlag(int ind) const;
-	int getFlag(int tileX, int tileY) const;
+	CollisionTile& getTile(int tileX, int tileY, bool path) const;
+	double getTileAngle(int tileX, int tileY, bool path) const;
+	int getFlag(int tileX, int tileY, bool path) const;
 	bool empty() const { return (tileIndices == nullptr); };
 
 	void setIndice(int ind, int value) { tileIndices[ind] = value; };
@@ -67,7 +65,7 @@ public:
 
 	Ground& operator= (Ground arg);
 
-	friend void swap(Ground& lhs, Ground& rhs);
+	friend void swap(Ground& lhs, Ground& rhs) noexcept;
 
 	~Ground();
 private:

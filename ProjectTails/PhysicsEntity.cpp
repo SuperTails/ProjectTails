@@ -2,8 +2,6 @@
 #include "PhysicsEntity.h"
 #include "Player.h"
 
-std::vector < std::unique_ptr < PhysicsEntity > >* PhysicsEntity::actEntityList = nullptr;
-
 std::unordered_map < std::string, PhysProp* >* PhysicsEntity::physProps = nullptr;
 
 PhysicsEntity::PhysicsEntity()
@@ -28,7 +26,7 @@ PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
 	prop(arg.prop),
 	velocity(arg.prop.vel),
 	loaded(arg.loaded),
-	num(arg.num),
+	shouldSave(arg.shouldSave),
 	time(SDL_GetTicks()),
 	last_time(time),
 	currentAnim(arg.currentAnim),
@@ -39,6 +37,7 @@ PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
 	destroyAfterLoop(arg.destroyAfterLoop),
 	gravity(arg.gravity),
 	customVars(arg.customVars),
+	flags(arg.flags),
 	self(nullptr)
 {
 	for (int i = 0; i < arg.animations.size(); i++) {
@@ -54,7 +53,7 @@ PhysicsEntity::PhysicsEntity(PhysStruct p) :
 	prop(p.prop),
 	velocity(p.prop.vel),
 	loaded(false),
-	num(p.num),
+	shouldSave(true),
 	time(SDL_GetTicks()),
 	last_time(time),
 	currentAnim(0),
@@ -64,6 +63,7 @@ PhysicsEntity::PhysicsEntity(PhysStruct p) :
 	destroyAfterLoop(false),
 	gravity(p.prop.gravity),
 	self(nullptr),
+	flags(p.flags),
 	posError{ 0.0, 0.0 }
 {
 	for (int i = 0; i < anim_data.size(); i++) {
@@ -95,7 +95,7 @@ PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) :
 		animations.emplace_back(new Animation(tileSize));
 };
  
-void PhysicsEntity::Update(bool updateTime, Player* player, entityListPtr entityList, std::size_t thisIndex, std::vector < bool >* toDestroy, entityListPtr toAdd) {
+void PhysicsEntity::update(bool updateTime, Player* player, EntityManager* manager) {
 	if (updateTime) {
 		last_time = time;
 		time = SDL_GetTicks();
@@ -115,7 +115,7 @@ void PhysicsEntity::Update(bool updateTime, Player* player, entityListPtr entity
 
 	velocity.y += gravity * (time - last_time) / (1000.0 / 60.0);
 	
-	this->custom(player, entityList, thisIndex, toDestroy, toAdd);
+	this->custom(player, manager);
 
 	if (!animations.empty()) {
 		int temp = currentAnim;
@@ -123,8 +123,8 @@ void PhysicsEntity::Update(bool updateTime, Player* player, entityListPtr entity
 			animations[temp % animations.size()]->Update();
 			temp /= animations.size();
 		} while (temp != 0);
-		if (animations[currentAnim % animations.size()]->GetLooped() && destroyAfterLoop && toDestroy != nullptr) {
-			(*toDestroy)[thisIndex] = true;
+		if (animations[currentAnim % animations.size()]->GetLooped() && destroyAfterLoop && manager != nullptr) {
+			manager->MarkAsDestroyed(this);
 		}
 	}
 }
@@ -141,7 +141,7 @@ SDL_Rect PhysicsEntity::GetRelativePos(const SDL_Rect& p) const {
 	return { (position.x - p.x), (position.y - p.y), (position.w), (position.h) };
 }
 
-void PhysicsEntity::Destroy(double ratio) {
+void PhysicsEntity::destroy() {
 	velocity.x = 0;
 	velocity.y = 0;
 	canCollide = false;
@@ -169,7 +169,7 @@ std::unique_ptr < Animation >& PhysicsEntity::GetAnim() {
 	return animations[currentAnim];
 }
 
-void PhysicsEntity::custom(Player* player, entityListPtr entityList, std::size_t thisIndex, std::vector < bool >* toRemove, entityListPtr toAdd) {
+void PhysicsEntity::custom(Player* player, EntityManager* manager) {
 	const std::string& key = prop.key;
 	double frameCount = (time - last_time) / (1000.0 / 60.0);
 	switch(eType){
@@ -215,7 +215,7 @@ void PhysicsEntity::custom(Player* player, entityListPtr entityList, std::size_t
 				if (customVars[0] < 60.0 && !customVars[1]) {
 					customVars[1] = 1.0;
 					PhysStruct temp(SDL_Rect{ position.x + 30, position.y + 25, position.w, position.h }, *physProps->find(std::string("BEEPROJECTILE"))->second, -1, std::vector<char>());
-					toAdd->emplace_back(new PhysicsEntity(temp));
+					manager->AddEntity(std::unique_ptr < PhysicsEntity >(new PhysicsEntity(temp)));
 				}
 				velocity.x = 0;
 			}
@@ -409,6 +409,14 @@ void PhysicsEntity::Render(SDL_Rect& camPos, double ratio, bool absolute) {
 			animations[currentAnim]->Render(&relativePos, rot, NULL, 1.0 / ratio);
 		}
 	}
+
+	/*SDL_Rect rect = getRelativePos(getCollisionRect(), camPos);
+	rect.x /= globalObjects::ratio;
+	rect.y /= globalObjects::ratio;
+	rect.w /= globalObjects::ratio;
+	rect.h /= globalObjects::ratio;
+
+	SDL_RenderDrawRect(globalObjects::renderer, &rect);*/
 }
 
 SDL_Rect PhysicsEntity::getRelativePos(const SDL_Rect& objPos, const SDL_Rect& camPos) {
@@ -448,20 +456,21 @@ void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept {
 
 	swap(lhs.loaded, rhs.loaded);
 	swap(lhs.velocity, rhs.velocity);
-	swap(lhs.num, rhs.num);
+	swap(lhs.shouldSave, rhs.shouldSave);
 	swap(lhs.canCollide, rhs.canCollide);
 	swap(lhs.anim_data, rhs.anim_data);
 	swap(lhs.self, rhs.self);
 	swap(lhs.prop, rhs.prop);
 	swap(lhs.eType, rhs.eType);
 	swap(lhs.destroyAfterLoop, rhs.destroyAfterLoop);
-	lhs.animations.swap(rhs.animations);
 	swap(lhs.collisionRect, rhs.collisionRect);
-	lhs.customVars.swap(rhs.customVars);
 	swap(lhs.time, rhs.time);
 	swap(lhs.last_time, rhs.last_time);
 	swap(lhs.currentAnim, rhs.currentAnim);
 	swap(lhs.invis, rhs.invis);
 	swap(lhs.gravity, rhs.gravity);
 	swap(lhs.posError, rhs.posError);
+	lhs.animations.swap(rhs.animations);
+	lhs.customVars.swap(rhs.customVars);
+	lhs.flags.swap(rhs.flags);
 }

@@ -36,7 +36,7 @@ public:
 	void RenderObjects(Player& player);
 
 
-	void UpdateCollisions(Player* player);
+	void UpdateCollisions(Player& player, std::vector<bool>& toDestroy, std::vector< std::unique_ptr< PhysicsEntity > >& toAdd);
 	void UpdateEntities(Player& player);
 
 	int numEntities() { return entities.size(); };

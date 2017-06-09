@@ -72,15 +72,17 @@ Act::Act(const int& num, const std::string& name1, const std::vector < PhysStruc
 void Act::Init() {
 	std::cout << "Initializing act " << number << "!\n";
 	std::cout << "Loading entities...\n";
-	for (std::vector<PhysStruct>::iterator i(phys_paths.begin()); i != phys_paths.end(); i++) {
+	std::vector<PhysStruct>::iterator i = phys_paths.begin(); 
+	while (i != phys_paths.end()) {
 		if (SDL_HasIntersection(&(i->pos), &(cam->getCollisionRect()))) {
-			std::cout << "Loading entity with number " << i->num << " at position " << i->pos.x << " " << i->pos.y << "\n";
+			std::cout << "Loading entity at position " << i->pos.x << " " << i->pos.y << "\n";
 			loaded_entities++;
 			entities.emplace_back(new PhysicsEntity(*i));
-			i->loaded = true;
+			i = phys_paths.erase(i);
+			continue;
 		}
+		++i;
 	}
-	PhysicsEntity::setEntityList(&entities);
 	std::cout << "Entity loading done!\n";
 	std::cout << "Done initializing act!\n";
 }
@@ -97,69 +99,30 @@ void Act::UpdateEntities(Player& player) {
 	last_time = time;
 	time = SDL_GetTicks();
 	Animation::setTimeDifference(time - last_time);
-	Player::entityPtrType& playerPlatform = player.platformPtr();
-	Player::entityPtrType& playerWall = player.wallPtr();
-	SDL_Point platformPos = playerPlatform ? PhysicsEntity::xyPoint((*playerPlatform)->getPosition()) : SDL_Point{ -1, -1 };
-	SDL_Rect wallPos = playerWall ? (*playerWall)->getPosition() : SDL_Rect{ -1, -1, -1, -1 };
-	/*while(j != entities.end()){
-		bool shouldDestroy = (*j)->Update(true, &player, &entities, std::distance(entities.begin(), j), );
-		if (shouldDestroy) {
-			std::cout << "Destroying entity with number " << (*j)->num << " at position " << (*j)->getPosition().x << " " << (*j)->getPosition().y << "\n";
-			if ((*j)->num != -1) {
-				phys_paths[(*j)->num].loaded = false;
-				phys_paths[(*j)->num].num = -1;
-			}
-			j = entities.erase(j);
+
+	// Load new entities
+	entityLoadIterator load = phys_paths.begin();
+	while (load != phys_paths.end()) {
+		if (SDL_HasIntersection(&(load->pos), &(cam->getCollisionRect()))) {
+			std::cout << "Loading entity at position " << load->pos.x << " " << load->pos.y << "\n";
+			entities.emplace_back(new PhysicsEntity(*load));
+			entities.back()->setTime(SDL_GetTicks());
+			entities.back()->loaded = true;
+			entities.back()->shouldSave = true;
+			load = phys_paths.erase(load);
+			loaded_entities++;
 			continue;
 		}
 		
-		(*j)->loaded = true;
-		if (!SDL_HasIntersection(&((*j)->getPosition()), &(cam->getCollisionRect())) && (*j)->loaded && (playerPlatform == nullptr || *j != *playerPlatform)) {
-			std::cout << "Unloading entity with number " << (*j)->num << " at position " << (*j)->getPosition().x << " " << (*j)->getPosition().y << "\n";
-			if ((*j)->num != -1) {
-				phys_paths[(*j)->num].pos = (*j)->getPosition();
-				phys_paths[(*j)->num].loaded = false;
-			}
-			loaded_entities--;
-			j = entities.erase(j);
-		}
-		else {
-			j++;
-		}
-	}
-	//Load new entities
-	for (entityLoadIterator i = phys_paths.begin(); i < phys_paths.end(); i++) {
-		if (SDL_HasIntersection(&(i->pos), &(cam->getCollisionRect())) && i->loaded == false && i->num != -1) {
-			std::cout << "Loading entity with number " << i->num << " at position " << i->pos.x << " " << i->pos.y << "\n";
-			entities.emplace_back(new PhysicsEntity(*i));
-			entities.back()->SetTime(SDL_GetTicks());
-			entities.back()->loaded = true;
-			entities.back()->num = std::distance(phys_paths.begin(), i);
-			i->loaded = true;
-			loaded_entities++;
-		}
-	}*/
-
-	// Load new entities
-	for (entityLoadIterator i = phys_paths.begin(); i != phys_paths.end(); i++) {
-		if (SDL_HasIntersection(&(i->pos), &(cam->getCollisionRect())) && i->loaded == false && i->num != -1) {
-			std::cout << "Loading entity with number " << i->num << " at position " << i->pos.x << " " << i->pos.y << "\n";
-			entities.emplace_back(new PhysicsEntity(*i));
-			entities.back()->SetTime(SDL_GetTicks());
-			entities.back()->loaded = true;
-			entities.back()->num = std::distance(phys_paths.begin(), i);
-			i->loaded = true;
-			loaded_entities++;
-		}
+		++load;
 	}
 
 	entityListIterator i = entities.begin();
 	// Unload offscreen entities
 	while (i != entities.end()) {
-		if (!SDL_HasIntersection(&(*i)->getPosition(), &(cam->getCollisionRect())) && (*i)->loaded && (playerPlatform == nullptr || *i != *playerPlatform)) {
-			if ((*i)->num != -1) {
-				phys_paths[(*i)->num].pos = (*i)->getPosition();
-				phys_paths[(*i)->num].loaded = false;
+		if (!SDL_HasIntersection(&(*i)->getPosition(), &(cam->getCollisionRect())) && (*i)->loaded) {
+			if ((*i)->shouldSave) {
+				phys_paths.emplace_back((*i)->getPosition(), (*i)->GetProp(), true, (*i)->getFlags());
 				i = entities.erase(i);
 				continue;
 			}
@@ -168,15 +131,22 @@ void Act::UpdateEntities(Player& player) {
 	}
 
 	i = entities.begin();
+
+	// Update entities
 	std::vector < bool > toDestroy(entities.size(), false);
 	std::vector < std::unique_ptr < PhysicsEntity > > toAdd;
+	EntityManager manager(entities, toDestroy, toAdd);
 	while (i != entities.end()) {
 
 		(*i)->loaded = true;
-		(*i)->Update(true, &player, &entities, std::distance(entities.begin(), i), &toDestroy, &toAdd);
+		(*i)->update(true, &player, &manager);
 
 		++i;
 	}
+
+	UpdateCollisions(player, toDestroy, toAdd);
+
+	player.update(solidTiles, manager);
 
 	// Unload entities marked to be destroyed
 	i = entities.begin();
@@ -194,28 +164,31 @@ void Act::UpdateEntities(Player& player) {
 	// Add entities created by other entities
 	i = toAdd.begin();
 	while (i != toAdd.end()) {
-		entities.emplace_back(new PhysicsEntity(std::move(**i)));
+		entities.push_back(std::move(*i));
 	}
+}
 
-	if (playerPlatform) {
-		i = entities.begin();
-		while (i != entities.end()) {
-			if (PhysicsEntity::xyPoint((*i)->getPosition()) == platformPos) {
-				playerPlatform = &(*i);
-				break;
-			}
-			++i;
+void Act::UpdateCollisions(Player& player, std::vector < bool >& toDestroy, std::vector < std::unique_ptr < PhysicsEntity > >& toAdd) {
+	bool destroyed = false;
+	bool hurt = false;
+	entityListIterator i = entities.begin();
+	SDL_Point center{ -1, -1 };
+	while (i != entities.end()) {
+		destroyed = false;
+		EntType collideType;
+		SDL_Rect playerCollide = player.getCollisionRect();
+		SDL_Rect objCollide = (*i)->getCollisionRect();
+		if (SDL_HasIntersection(&playerCollide, &objCollide) && (*i)->canCollide) {
+			debounce = false;
+			collideType = (*i)->getType();
+
+			player.addCollision(&(*i));
 		}
-		assert(i != entities.end());
-	}
-	if (playerWall) {
-		i = entities.begin();
-		while (i != entities.end()) {
-			if ((*i)->getPosition() == wallPos) {
-				playerWall = &(*i);
-				break;
-			}
-			++i;
+		else if ((*i)->getType() == PATHSWITCH) {
+			(*i)->setCustom(1, static_cast <double> (false));
+		}
+		if (!destroyed) {
+			i++;
 		}
 	}
 }
@@ -226,9 +199,6 @@ Act::~Act()
 
 void Act::SetRenderer(SDL_Renderer* r) {
 	renderer = r;
-	/*for (int i = 0; i < animation_paths.size(); i++) {
-		animations[i].SetRenderer(r);
-	}*/
 }
 
 void Act::SetCamera(Camera* c) {
@@ -262,135 +232,6 @@ void Act::RenderObjects(Player& player) {
 	}
 	if (!player.getOnGround()) {
 		player.render(pos, ratio);
-	}
-}
-
-void Act::UpdateCollisions(Player* player) {
-	bool destroyed = false;
-	bool hurt = false;
-	entityListIterator i = entities.begin();
-	SDL_Point center{ -1, -1 };
-	while  ( i != entities.end() ) {
-		destroyed = false;
-		EntType collideType;
-		SDL_Rect playerCollide = player->getCollisionRect();
-		SDL_Rect objCollide = (*i)->getCollisionRect();
-		if (SDL_HasIntersection(&playerCollide, &objCollide) && (*i)->canCollide) {
-			debounce = false;
-			collideType = (*i)->GetType();
-			switch ((*i)->GetType()) {
-			case ENEMY:
-				hurt = true;
-				std::cout << "Collision type was with enemy\n";
-				std::cout << "Entity's number is " << (*i)->num << "\n";
-				center.x = (*i)->getPosition().x + (*i)->getCollisionRect().x + (*i)->getCollisionRect().w / 2;
-				center.y = (*i)->getPosition().y + (*i)->getCollisionRect().y + (*i)->getCollisionRect().h / 2;
-				(*i)->Destroy(ratio);
-				i = player->hitEnemy(entities, i, phys_paths, props, globalObjects::window, center);
-				destroyed = true;
-				break;
-			case RING:
-				if (player->addRing()) {
-					std::cout << "Collision type was with ring\n";
-					std::cout << "Entity's number is " << (*i)->num << "\n";
-					(*i)->Destroy(ratio);
-					destroyed = true;
-				}
-				break;
-			case PATHSWITCH:
-				if (!(*i)->getCustom(1)) {
-					std::cout << "Collision type was with pathswitch\n";
-					std::cout << "Entity's number is " << (*i)->num << "\n";
-					switch ((*i)->getCustom(0)) {
-					case 'i':
-						player->switchPath();
-						break;
-					case 's':
-						player->setPath(1);
-						break;
-					case 'u':
-						player->setPath(0);
-						break;
-					default:
-						throw "Pathswitch has no set flag!";
-					}
-					destroyed = false;
-					(*i)->setCustom(1, static_cast <double>(true));
-					debounce = true;
-				}
-				break;
-			case SPRING:
-				std::cout << "Collision type was with spring\n";
-				SDL_Point dir;
-				switch (static_cast <char>((*i)->getCustom(0))) {
-				case 'u':
-					player->velocity.y = -10;
-					player->setOnGround(false);
-					player->setCorkscrew(true);
-					break;
-				case 'd':
-					player->velocity.y = 10;
-					player->setOnGround(false);
-					break;
-				case 'l':
-					player->velocity.x = -10;
-					player->setGsp(-6.0);
-					break;
-				case 'r':
-					player->velocity.x = 10;
-					player->setGsp(6.0);
-					break;
-				default:
-					throw "Spring has no direction flag!";
-				}
-				player->setJumping(false);
-				player->setRolling(false);
-				player->setControlLock(48);
-				player->setFlightTime(0.0);
-				(*i)->setCustom(1, 100.0);
-				break;
-			case PLATFORM:
-				player->prevOnPlatform = player->platformPtr() != nullptr;
-				dir = player->calcRectDirection(objCollide);
-				if (dir.y <= 0 && dir.y >= -20 - objCollide.h / 2 && dir.x >= -objCollide.w / 2 && dir.x <= objCollide.w / 2 && ((playerCollide.y + playerCollide.h) > objCollide.y)) {
-					player->hitPlatform(static_cast<std::unique_ptr<PhysicsEntity>*>(&(*i)));
-				}
-				break;
-			case SPIKES:
-				dir = player->calcRectDirection((*i)->getPosition());
-
-				if (dir.y < 0 && dir.x >= -(*i)->getCollisionRect().w / 2 && dir.x <= (*i)->getCollisionRect().w / 2)
-					i = player->Damage(entities, phys_paths, props, i, (*i)->getPosition().x, globalObjects::window);
-				else
-					player->hitWall(&(*i));
-				break;
-			case MONITOR:
-				if (player->canDamage()) {
-					player->addRing(10);
-					player->setVelocity({ player->getVelocity().x, player->getVelocity().y * -0.9 });
-					(*i)->Destroy(ratio);
-					destroyed = true;
-				}
-				break;
-			case GOALPOST:
-				if (!(*i)->getCustom(1)) {
-					(*i)->setCustom(0, 300.0);
-					SoundHandler::actFinish();
-				}
-				break;
-			default:
-				throw "Invalid collision type.";
-			}
-			if (collideType == PATHSWITCH) {
-				(*i)->setCustom(1, static_cast<double>(true));
-			}
-		}
-		else if ((*i)->GetType() == PATHSWITCH) {
-			(*i)->setCustom(1, static_cast <double> (false));
-		}
-		if (!destroyed) {
-			i++;
-		}
 	}
 }
 

@@ -249,15 +249,11 @@ int main( int argc, char* argv[] ) {
 		if (currentAct >= 0) {
 
 			acts.front().UpdateEntities(Tails);
-			acts.front().UpdateCollisions(&Tails);
 
 			rings_count_text.StringToText(to_string(Tails.getRings()));
 			rings_count_texture = SDL_CreateTextureFromSurface(window.getRenderer(), rings_count_text.getText());
 			debug_text_texture2 = SDL_CreateTextureFromSurface(window.getRenderer(), debug_text2.getText());
 
-
-			debug_text2.StringToText(Tails.collideGround(acts.front().getGround()));
-			Tails.update(cam);
 			cam.updatePos(Tails.getPosition(), Tails.lookDirection());
 
 			window.render(Sky_Texture, { 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE, 0 });
@@ -268,7 +264,7 @@ int main( int argc, char* argv[] ) {
 			window.render(rings_count_texture, { 25 + rings_text.getText()->w + 3, 25, rings_count_text.getText()->w, rings_count_text.getText()->h, 0 });
 			window.render(Lives_Texture, { 2 * 8, WINDOW_VERTICAL_SIZE - 2 * 24, 2 * Lives->w, 2 * Lives->h, 0 });
 
-			window.render(debug_text_texture2, { 25, 75, debug_text2.getText()->w, debug_text2.getText()->h, 0 });
+			//window.render(debug_text_texture2, { 25, 75, debug_text2.getText()->w, debug_text2.getText()->h, 0 });
 
 			SDL_DestroyTexture(rings_count_texture);
 			SDL_DestroyTexture(debug_text_texture2);
@@ -292,7 +288,6 @@ int main( int argc, char* argv[] ) {
 				LoadAct(&acts.front(), &cam, globalObjects::renderer, EntityData);
 				SoundHandler::setMusic("..\\..\\asset\\TheAdventureContinues", true);
 			}
-			
 		}
 
 		frames++;

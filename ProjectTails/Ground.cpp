@@ -35,7 +35,7 @@ Ground::Ground(const Ground& other) :
 	}
 };
 
-Ground::Ground(Ground&& other) :
+Ground::Ground(Ground&& other) noexcept :
 	Ground()
 {
 	swap(*this, other);
@@ -149,25 +149,22 @@ void Ground::Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect*
 	}
 }
 
-CollisionTile& Ground::getTile(int tileX, int tileY) const {
+CollisionTile& Ground::getTile(int tileX, int tileY, bool path) const {
+	path &= multiPath;
+
 	if(!flip)
-		return tileList[tileIndices[tileY * GROUND_WIDTH + tileX]];
-								/*      add Y      */   /*            adding flipped X           */   /*    offset for second path     */
-	return tileList[tileIndices[tileY * GROUND_WIDTH + ((GROUND_WIDTH - 1) - (tileX % GROUND_SIZE)) + GROUND_SIZE * (tileX / GROUND_SIZE)]];
+		return tileList[tileIndices[tileX + tileY * GROUND_WIDTH + path * GROUND_SIZE]];
+	
+	return tileList[tileIndices[tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX) + GROUND_SIZE * path]];
 }
 
-int Ground::getFlag(int ind) const {
-	int tileX = ((ind > GROUND_SIZE) ? (GROUND_SIZE + ind % GROUND_WIDTH) : (ind % GROUND_WIDTH));
-	int tileY = (ind % GROUND_SIZE) / GROUND_WIDTH;
+int Ground::getFlag(int tileX, int tileY, bool path) const {
+	path &= multiPath;
 
-	return getFlag(tileX, tileY);
-}
-
-int Ground::getFlag(int tileX, int tileY) const {
 	if (!flip)
-		return tileFlags[tileY * GROUND_WIDTH + tileX];
-	/*      add Y      */   /*            adding flipped X           */   /*    offset for second path     */
-	return tileFlags[tileY * GROUND_WIDTH + ((GROUND_WIDTH - 1) - (tileX % GROUND_SIZE)) + GROUND_SIZE * (tileX / GROUND_SIZE)] ^ SDL_FLIP_HORIZONTAL;
+		return tileFlags[tileX + tileY * GROUND_WIDTH + path * GROUND_SIZE];
+
+	return tileFlags[tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX) + GROUND_SIZE * path] ^ SDL_FLIP_HORIZONTAL;
 }
 
 Ground& Ground::operator= (Ground arg) {
@@ -178,9 +175,10 @@ Ground& Ground::operator= (Ground arg) {
 	return *this;
 }
 
-double Ground::getTileAngle(int tileX, int tileY) const {
-	CollisionTile& tile = getTile(tileX, tileY);
-	switch (getFlag(tileX, tileY)) {
+double Ground::getTileAngle(int tileX, int tileY, bool path) const {
+	CollisionTile& tile = getTile(tileX, tileY, path);
+	int flag = getFlag(tileX, tileY, path) & (SDL_FLIP_NONE | SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+	switch (flag) {
 	case SDL_FLIP_NONE:
 		return tile.getAngle();
 	case SDL_FLIP_HORIZONTAL:
@@ -190,12 +188,13 @@ double Ground::getTileAngle(int tileX, int tileY) const {
 	case (SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL):
 		return (0x080 + tile.getAngle()) % 0x100;
 	default:
+		std::cerr << "Invalid flag: " << flag << "\n";
 		throw "Invalid flag";
 		return -1;
 	}
 };
 
-void swap(Ground& lhs, Ground& rhs) {
+void swap(Ground& lhs, Ground& rhs) noexcept {
 	using std::swap;
 
 	swap(static_cast<PhysicsEntity&>(lhs), static_cast<PhysicsEntity&>(rhs));

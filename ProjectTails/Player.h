@@ -1,6 +1,8 @@
 #pragma once
 #include <cmath>
 #include <algorithm>
+#include <queue>
+#include <array>
 #include "PhysicsEntity.h"
 #include "InputComponent.h"
 #include "Ground.h"
@@ -49,16 +51,16 @@ namespace player_constants {
 class Player : public PhysicsEntity
 {
 public:
+	typedef PhysicsEntity::entityPtrType entityPtrType;
+
 	enum class State : char { IDLE, WALKING, JUMPING, FLYING, CROUCHING, SPINDASH, ROLLING, ROLLJUMPING, LOOKING_UP };
 
 	Player();
 
-	typedef PhysicsEntity::entityPtrType entityPtrType;
-
 	int  getRings() { return rings; };
-	void switchPath() { path = !path; };
+	void switchPath();
 	
-	void update(Camera&);
+	void update(std::vector < std::vector < Ground > >& tiles, EntityManager& manager);
 	void render(SDL_Rect& cam, double screenRatio);
 	bool grounded() { return onGround; };
 	bool isRolling() { return state == State::ROLLING; };
@@ -74,43 +76,41 @@ public:
 	void setActCleared(bool b);
 
 	void setOnGround(bool g) { onGround = g; };
-	bool getOnGround() { return onGround || platform; };
+	bool getOnGround() { return onGround; };
 
 	void setGsp(double g) { gsp = g; };
 	double getGsp() { return gsp; };
 
 	Mode getMode() { return collideMode; };
 
-	double getAngle() { return hexToDeg(angle); };
+	double getAngle();
 
 	SDL_RendererFlip getFlip() { return SDL_RendererFlip(horizFlip); };
 
 	int getDamageCountdown() { return damageCountdown; };
 
 	SDL_Rect getCollisionRect();
-
-	void hitPlatform(const entityPtrType entity);
-	void hitWall(const entityPtrType entity);
 	
 	bool canDamage();
-	entityPtrType& platformPtr() { return platform; };
-	entityPtrType& wallPtr() { return wall; };
 	int lookDirection() { return looking; };
 	
-	std::string collideGround(const std::vector < std::vector < Ground > >& tiles);
+	void addCollision(entityPtrType entity);
+
+	std::string collideGround(const std::vector < std::vector < Ground > >& tiles, std::vector < PhysicsEntity >& platforms);
+
 	int checkSensor(char sensor, const std::vector < std::vector < Ground > >& tiles, double& ang, bool* isTopOnly = nullptr);
 	
 	bool addRing(int num = 1);
 	
 
-	std::vector<std::unique_ptr<PhysicsEntity>>::iterator hitEnemy(std::vector < std::unique_ptr < PhysicsEntity > >& entities, std::vector<std::unique_ptr<PhysicsEntity>>::iterator currentEntity, std::vector < PhysStruct >& phys_paths, std::vector < PhysProp >& props, SDL_Window* window, SDL_Point enemyCenter);
-	std::vector<std::unique_ptr<PhysicsEntity>>::iterator Damage(std::vector < std::unique_ptr < PhysicsEntity > >& entities, std::vector < PhysStruct >& phys_paths, std::vector < PhysProp >& props, std::vector<std::unique_ptr<PhysicsEntity>>::iterator& iter, int enemyX, SDL_Window* window);
-
-	bool prevOnPlatform;
+	void hitEnemy(EntityManager& manager, SDL_Point enemyCenter);
+	void takeDamage(EntityManager& manager, int enemyX);
 
 	static std::string modeToString(Mode m);
 
 private:
+	std::queue < entityPtrType > collisionQueue;
+
 	int rings;
 	int damageCountdown;
 	int actType;
@@ -123,9 +123,7 @@ private:
 	bool corkscrew;
 	bool ceilingBlocked;
 	bool actCleared;
-	
-	entityPtrType platform;
-	entityPtrType wall;
+	int switchDebounce;
 
 	double accel;
 	double decel;
@@ -141,10 +139,6 @@ private:
 
 	SDL_Point centerOffset;
 
-	static double inline hexToDeg(double hex) { return (256 - hex) * 1.40625; };
-	static int inline signum(int a) { return (0 < a) - (a < 0); };
-	static int inline signum(double a) { return (0.0 < a) - (a < 0.0); };
-
 	double inline getAngleSupp(double hex) { return 128 - hex; };
 
 	bool horizFlip;
@@ -157,14 +151,21 @@ private:
 
 	State state;
 
+	void handleCollisions(std::vector < std::vector < Ground > >& tiles, EntityManager& manager);
+
 	void walkLeftAndRight(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc);
 
 	void updateIfWalkOrIdle(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc);
 
 	void updateInAir(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc);
 
-	static bool isOffsetState(const State& state);
-
 	static int getHeight(const std::vector < std::vector < Ground > >& ground, SDL_Point block, SDL_Point tile, bool side, bool pathC, int xStart, int xEnd, int yStart, int yEnd, bool& flip);
 };
 
+double hexToDeg(double hex);
+
+int signum(int a);
+
+int signum(double a);
+
+bool isOffsetState(const Player::State& state);

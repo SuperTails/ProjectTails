@@ -16,8 +16,6 @@ Player::Player() :
 	corkscrew(false),
 	ceilingBlocked(false),
 	displayAngle(0.0),
-	platform(nullptr),
-	wall(nullptr),
 	actCleared(false),
 	state(State::IDLE),
 	rings(0),
@@ -68,23 +66,26 @@ void Player::setActType(int aType) {
 	}
 }
 
-std::vector<std::unique_ptr<PhysicsEntity>>::iterator Player::Damage(std::vector < std::unique_ptr < PhysicsEntity > >& entities, std::vector < PhysStruct >& phys_paths, std::vector < PhysProp >& props, std::vector<std::unique_ptr<PhysicsEntity>>::iterator& iter, int enemyX, SDL_Window* window) {
+double Player::getAngle() {
+	return hexToDeg(angle);
+}
+
+void Player::takeDamage(EntityManager& manager, int enemyX) {
 	double toRad = M_PI / 180;
 	double angle = 101.25;
 	bool n = false;
 	int speed = 4;
-	__int64 dist = std::distance(entities.begin(), iter);
 	if (damageCountdown == 0) {
 		for (int i = 0; (i < rings) && (i < 32); i++) {
-			PhysStruct p = { {position.x, position.y, 256, 256}, props[1], (int)(phys_paths.size() - 1), std::vector < char >() };
-			entities.emplace_back(new PhysicsEntity(p));
-			doublePoint vel = { -1 * sin(angle * toRad) * speed, cos(angle * toRad) * speed };
-			entities.back()->setVelocity(vel);
-			entities.back()->setGravity(.09375);
-			entities.back()->setCustom(0, 4267.0);
-			entities.back()->num = -1;
+			PhysStruct p { SDL_Rect{position.x, position.y, 256, 256}, *(PhysicsEntity::physProps->find("RING")->second), false, std::vector < char >() };
+			std::unique_ptr < PhysicsEntity > temp(new PhysicsEntity(p));
+			doublePoint vel { -1 * sin(angle * toRad) * speed, cos(angle * toRad) * speed };
+			temp->setVelocity(vel);
+			temp->setGravity(0.09375);
+			temp->setCustom(0, 4267.0);
+			temp->shouldSave = false;
 			if (n) {
-				entities.back()->setVelocity({ vel.x * -1, vel.y });
+				temp->setVelocity({ vel.x * -1, vel.y });
 				angle += 22.5;
 			}
 			n = !n;
@@ -92,6 +93,8 @@ std::vector<std::unique_ptr<PhysicsEntity>>::iterator Player::Damage(std::vector
 				speed = 2;
 				angle = 101.25;
 			}
+
+			manager.AddEntity(std::move(temp));
 		}
 		int tempRings = rings;
 		rings = 0;
@@ -100,24 +103,11 @@ std::vector<std::unique_ptr<PhysicsEntity>>::iterator Player::Damage(std::vector
 		velocity.x = 2 * signum(position.x - enemyX);
 		velocity.x = (velocity.x == 0) ? 1.0 : velocity.x;
 		currentAnim = 12;
-		return entities.begin() + dist;
 	}
-	return iter;
 }
 
-std::vector<std::unique_ptr<PhysicsEntity>>::iterator Player::hitEnemy(std::vector < std::unique_ptr < PhysicsEntity > >& entities, std::vector<std::unique_ptr<PhysicsEntity>>::iterator currentEntity, std::vector < PhysStruct >& phys_paths, std::vector < PhysProp >& props, SDL_Window* window, SDL_Point enemyCenter) {
-	if (!canDamage()) {
-		velocity.y = -4;
-		velocity.x = 2 * signum(position.x - enemyCenter.x);
-		flightTime = 0.0;
-		gravity = 0.21875;
-		onGround = false;
-		jumping = false;
-		velocity.x = velocity.x ? velocity.x : 2;
-		currentAnim = 12;
-		return Damage(entities, phys_paths, props, currentEntity, enemyCenter.x, window);
-	}
-	else {
+void Player::hitEnemy(EntityManager& manager, SDL_Point enemyCenter) {
+	if (canDamage()) {
 		if (position.y > enemyCenter.y || velocity.y < 0) {
 			velocity.y -= signum(velocity.y);
 		}
@@ -129,11 +119,21 @@ std::vector<std::unique_ptr<PhysicsEntity>>::iterator Player::hitEnemy(std::vect
 				velocity.y = std::max(-1.0 * velocity.y, -1.0);
 			}
 		}
-		return currentEntity;
+	}
+	else {
+		velocity.y = -4;
+		velocity.x = 2 * signum(position.x - enemyCenter.x);
+		flightTime = 0.0;
+		gravity = 0.21875;
+		onGround = false;
+		jumping = false;
+		velocity.x = velocity.x ? velocity.x : 2;
+		currentAnim = 12;
+		takeDamage(manager, enemyCenter.x);
 	}
 }
 
-void Player::update(Camera& cam) {
+void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager& manager) {
 	using namespace player_constants;
 	using namespace physics;
 
@@ -147,19 +147,14 @@ void Player::update(Camera& cam) {
 		return;
 	}
 
-	bool standingOnSomething = onGround || platform;
-
-	if (standingOnSomething) {
-		if ((!onGroundPrev && onGround) || (!prevOnPlatform && platform)) {
+	if (onGround) {
+		if (!onGroundPrev && onGround) {
 			if (int(angle) < 0x0F || int(angle) > 0xF0) {
 				gsp = velocity.x;
 			}
 		}
 		velocity.x = gsp * cos(hexToDeg(angle) * M_PI / 180.0);
 		velocity.y = -1 * gsp * sin(hexToDeg(angle) * M_PI / 180.0);
-		if (angle == 255.0) {
-			angle = 0.0;
-		}
 	}
 	
 
@@ -195,7 +190,7 @@ void Player::update(Camera& cam) {
 	//Normal act
 	case 2:
 
-		if ((onGround && !onGroundPrev) || (platform && !prevOnPlatform)) {
+		if (!onGroundPrev && onGround) {
 			if (velocity.x == 0) {
 				state = State::IDLE;
 			}
@@ -221,7 +216,7 @@ void Player::update(Camera& cam) {
 		}
 
 		// Set miscellaneous variables
-		if (standingOnSomething) {
+		if (onGround) {
 			flightTime = 0.0;
 			accel = DEFAULT_ACCELERATION;
 			frc = DEFAULT_FRICTION;
@@ -311,7 +306,7 @@ void Player::update(Camera& cam) {
 				break;
 			}
 
-			currentAnim = 2 + (gsp >= 0.9 * top);
+			currentAnim = 2 + (abs(gsp) >= 0.9 * top);
 			animations[currentAnim]->SetDelay(anim_steps * 1000.0 / 60.0);
 
 			if (gsp < 0) {
@@ -433,7 +428,7 @@ void Player::update(Camera& cam) {
 
 			// Check for moving too slowly on a wall or ceiling
 			if (abs(gsp) < 2.0 && collideMode != GROUND) {
-				if (collideMode == CEILING || (angle >= 0x40 && angle <= 0xC0)) {
+				if (angle >= 0x40 && angle <= 0xC0) {
 					collideMode = GROUND;
 					angle = 0.0;
 					onGround = false;
@@ -470,14 +465,16 @@ void Player::update(Camera& cam) {
 			gsp -= sin(hexToDeg(angle) * M_PI / 180.0) * slp * thisFrameCount;
 			
 			// If friction would cause a sign change, stop
-			if (abs(gsp) < thisFrc / 2) {
-				gsp = 0.0;
-				state = State::IDLE;
-				position.y -= ROLL_VERTICAL_OFFSET;
-				looking = 0;
-			}
-			else {
-				gsp -= thisFrc * signum(gsp) / 2.0;
+			if (onGround) {
+				if (abs(gsp) < thisFrc / 2) {
+					gsp = 0.0;
+					state = State::IDLE;
+					position.y -= ROLL_VERTICAL_OFFSET;
+					looking = 0;
+				}
+				else {
+					gsp -= thisFrc * signum(gsp) / 2.0;
+				}
 			}
 
 			// Going too slow should cause us to stop rolling
@@ -491,7 +488,6 @@ void Player::update(Camera& cam) {
 			// If the jump key gets pressed then initiate a rolljump
 			if (input.GetKeyPress(InputComponent::JUMP) && !controlLock && !ceilingBlocked && onGround) {
 				onGround = false;
-				platform = false;
 				state = State::ROLLJUMPING;
 				collideMode = GROUND;
 				jmp = 6.5;
@@ -535,13 +531,9 @@ void Player::update(Camera& cam) {
 			break;
 		}
 
-		// Reset jump and prevent falling through platforms
-		if (standingOnSomething) {
-			if (platform) {
-				velocity.y = std::min(0.0, velocity.y);
-			}
-
-			jmp = 0;
+		// Reset jump
+		if (onGround) {
+			jmp = 0.0;
 		}
 		// Update in air
 		else {
@@ -599,7 +591,21 @@ void Player::update(Camera& cam) {
 		invis = false;
 	}
 
-	this->Update(false);
+	if (velocity.y > -1e-10 && velocity.y < 1e-10) {
+		velocity.y = 0.0;
+	}
+
+	if (switchDebounce != 0) {
+		--switchDebounce;
+	}
+
+	handleCollisions(tiles, manager);
+
+	PhysicsEntity::update(false);
+
+	if (onGround) {
+		velocity.y -= gravity;
+	}
 }
 
 bool Player::addRing(int num) {
@@ -610,8 +616,146 @@ bool Player::addRing(int num) {
 	return false;
 }
 
+void Player::addCollision(Player::entityPtrType entity) {
+	collisionQueue.push(entity);
+}
+
+void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, EntityManager& manager) {
+	bool hurt = false;
+	int damageCenter = -1;
+	std::vector < PhysicsEntity > platforms;
+	int yRadius(20 - 6 * isOffsetState(state));
+	int xRadius(9 - 2 * (state == State::ROLLING || state == State::ROLLJUMPING));
+
+	collisionRect = SDL_Rect{ -xRadius, centerOffset.y, 2 * xRadius, yRadius - centerOffset.y };
+
+	while (!collisionQueue.empty()) {
+		PhysicsEntity& entity = **collisionQueue.front();
+		
+		EntType entityType = entity.getType();
+
+		SDL_Rect entityCollision = entity.getCollisionRect();
+
+		SDL_Point entityCenter;
+
+		SDL_Point dir;
+
+		switch (entityType) {
+		case ENEMY:
+			std::cout << "Collision type was with enemy\n";
+
+			entityCenter.x = entityCollision.x + entityCollision.w / 2;
+			entityCenter.y = entityCollision.y + entityCollision.h / 2;
+
+			entity.destroy();
+			if (!canDamage()) {
+				hurt = true;
+				damageCenter = entityCenter.x;
+			}
+			else {
+				hitEnemy(manager, entityCenter);
+			}
+			break;
+		case RING:
+			if (addRing()) {
+				std::cout << "Collision type was with ring\n";
+				entity.destroy();
+			}
+			break;
+		case WEAPON:
+
+			break;
+		case PATHSWITCH:
+			switch (entity.getCustom(0)) {
+			case 'i':
+				switchPath();
+				break;
+			case 's':
+				setPath(1);
+				break;
+			case 'u':
+				setPath(0);
+				break;
+			default:
+				throw "Pathswitch has no set flag!";
+			}
+			break;
+		case SPRING:
+			std::cout << "Collision type was with spring\n";
+			switch (static_cast <char>(entity.getCustom(0))) {
+			case 'u':
+				velocity.y = -10;
+				setOnGround(false);
+				setCorkscrew(true);
+				state = State::WALKING;
+				break;
+			case 'd':
+				velocity.y = 10;
+				setOnGround(false);
+				state = State::WALKING;
+				break;
+			case 'l':
+				velocity.x = -10;
+				setGsp(-6.0);
+				state = State::WALKING;
+				break;
+			case 'r':
+				velocity.x = 10;
+				setGsp(6.0);
+				state = State::WALKING;
+				break;
+			default:
+				throw "Spring has no direction flag!";
+			}
+			setJumping(false);
+			setRolling(false);
+			setControlLock(48);
+			setFlightTime(0.0);
+			entity.setCustom(1, 100.0);
+			break;
+		case PLATFORM:
+			dir = calcRectDirection(entityCollision);
+			//if (dir.y <= 0 && dir.y >= -20 - entityCollision.h / 2 && dir.x >= -entityCollision.w / 2 && dir.x <= entityCollision.w / 2 && ((getCollisionRect().y + getCollisionRect().h) > entityCollision.y)) {
+				platforms.push_back(entity);
+			//}
+			break;
+		case SPIKES:
+			dir = calcRectDirection(entityCollision);
+			if (dir.y < 0 && dir.x >= -entityCollision.w / 2 && dir.x <= entityCollision.w / 2) {
+				hurt = true;
+				damageCenter = entityCollision.x + entityCollision.w;
+			}
+			break;
+		case MONITOR:
+			if (canDamage()) {
+				addRing(10);
+				velocity.y *= 0.9;
+				entity.destroy();
+			}
+			break;
+		case GOALPOST:
+			if (entity.getCustom(1) == 0.0) {
+				entity.setCustom(0, 300.0);
+				//SoundHandler::actFinish();
+			}
+			break;
+		default:
+			throw "Invalid collision type.";
+			break;
+		}
+
+		collisionQueue.pop();
+	}
+
+	if (hurt) {
+		takeDamage(manager, damageCenter);
+	}
+
+	collideGround(tiles, platforms);
+}
+
 //Returns height of A, height of B, and angle
-std::string Player::collideGround(const std::vector < std::vector < Ground > >& tiles) {
+std::string Player::collideGround(const std::vector < std::vector < Ground > >& tiles, std::vector < PhysicsEntity >& platforms) {
 	onGroundPrev = onGround;
 	int cx(position.x);
 	int cy(position.y);
@@ -621,10 +765,8 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 	int yMax(cy + 36);
 	double sensorDir(-1);
 	int h;
-	int y_radius(20 - 6 * isOffsetState(state));
-	int x_radius(9 - 2 * (state == State::ROLLING || state == State::ROLLJUMPING));
-
-	collisionRect = SDL_Rect{ -1 * x_radius, centerOffset.y, 2 * x_radius, 30 };
+	int yRadius(20 - 6 * isOffsetState(state));
+	int xRadius(9 - 2 * (state == State::ROLLING || state == State::ROLLJUMPING));
 
 	bool onGround1, onGround2, onGround3, onGround4, wallCollideLeft, wallCollideRight;
 	bool topOnly[6];
@@ -638,12 +780,8 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 
 	if (globalObjects::input.GetKeyPress(InputComponent::X)) {
 		std::cout << "Panic\n";
-		logData = 2.0;
+		logData = 0.5;
 	}
-
-	/*position.x = 1346;
-	position.y = 227;
-	collideMode = CEILING;*/
 
 	//Check for left floor:
 	h = checkSensor('A', tiles, ang1, &topOnly[0]);
@@ -657,8 +795,8 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 
 	if (logData) {
 		logData -= (time - last_time) / 1000.0;
-		std::cout << "position: " << position.x % 256 << ", " << position.y % 256 << "\n";
-		std::cout << "heights: " << height1 % 256 << ", " << height2 % 256 << "\n";
+		std::cout << "position: " << position.x % GROUND_PIXEL_WIDTH << ", " << position.y % GROUND_PIXEL_WIDTH << "\n";
+		std::cout << "heights: " << height1 % GROUND_PIXEL_WIDTH << ", " << height2 % GROUND_PIXEL_WIDTH << "\n";
 		std::cout << "angles: " << int(ang1) << ", " << int(ang2) << "\n";
 		std::cout << "collide mode: " << modeToString(collideMode) << "\n\n";
 		if (logData < 0.0) {
@@ -676,16 +814,92 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 	output += " ";
 	output += std::to_string(position.y);
 
-	prevOnPlatform = false;
+	int platformHeight = -1;
+	bool platformOnGround = false;
 
-	if (platform) {
-		prevOnPlatform = true;
-		SDL_Rect objCollide = (*platform)->getCollisionRect();
-		SDL_Point dir = calcRectDirection(objCollide);
-		position.y -= dir.y + objCollide.h / 2;
-		if (dir.x < -objCollide.w / 2 || dir.x > objCollide.w / 2)
-			platform = nullptr;
-		return output;
+	// Check platform sensors
+	if (collideMode == GROUND && velocity.y >= 0.0) {
+		for (PhysicsEntity& entity : platforms) {
+			int entityRadius = entity.getCollisionRect().w / 2;
+			int entityCenter = entity.getCollisionRect().x + entityRadius;
+			int entityTop = entity.getCollisionRect().y + 1;
+
+			int rightDir = position.x + xRadius - entityCenter;
+			int leftDir = position.x - xRadius - entityCenter;
+
+			int sensorDistance = entityTop - position.y - yRadius;
+
+			// Continue if not close enough to the platform
+			if (sensorDistance < -3 || sensorDistance > 3) {
+				continue;
+			}
+
+			auto setHigherSensor = [&platformHeight,&platformOnGround,&sensorDistance]() {
+				if (platformHeight < sensorDistance && platformOnGround) {
+					// Do nothing
+				}
+				else {
+					std::swap(platformHeight, sensorDistance);
+					platformOnGround = true;
+				}
+			};
+
+			if (rightDir < -entityRadius || leftDir > entityRadius) {
+				// No collision
+				continue;
+			}
+			else {
+				setHigherSensor();
+			}
+		}
+	}
+
+	auto getCollisionHeight = [this,yRadius](int rawHeight, bool ground, bool top) {
+		rawHeight -= position.y + yRadius;
+		if (top && (velocity.y < 0.0 || rawHeight < -2|| rawHeight > 2)) {
+			return std::pair < int, bool >(-1, false);
+		}
+		else {
+			return std::pair < int, bool >(rawHeight, ground);
+		}
+	};
+
+	if (collideMode == GROUND && platformOnGround) {
+		std::pair < int, bool > sensor1 = getCollisionHeight(height1, onGround1, topOnly[0]);
+		std::pair < int, bool > sensor2 = getCollisionHeight(height2, onGround2, topOnly[1]);
+
+		double tempAngle = 0.0;
+
+		platformHeight += position.y + yRadius;
+
+		// Only valid sensor is the platform sensor
+		if (!(sensor1.second || sensor2.second)) {
+			height1 = platformHeight;
+			onGround1 = true;
+			topOnly[0] = true;
+
+			height2 = -1;
+			onGround2 = false;
+		}
+		else {
+			sensor1.first += position.y + yRadius;
+			sensor2.first += position.y + yRadius;
+
+			// Put higher ground sensor in sensor1
+			if ((sensor1.first < sensor2.first && sensor1.second) || !sensor2.second) {
+				tempAngle = ang1;
+			}
+			else {
+				tempAngle = ang2;
+				std::swap(sensor1, sensor2);
+			}
+
+			height1 = sensor1.first;
+			onGround1 = sensor1.second;
+
+			height2 = platformHeight;
+			onGround2 = platformOnGround;
+		}
 	}
 
 	if (onGround) {
@@ -693,8 +907,8 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 			switch (collideMode) {
 			case GROUND:
 				//Get dist of sensor
-				height1 -= position.y + y_radius;
-				height2 -= position.y + y_radius;
+				height1 -= position.y + yRadius;
+				height2 -= position.y + yRadius;
 
 				//Make sure d1 is closer
 				if ((height1 < height2 && onGround1) || !onGround2) {
@@ -707,7 +921,6 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 				}
 
 				if (topOnly[0] && (height1 < -2 || velocity.y < 0.0)) {
-					onGround1 = false;
 					onGround = false;
 					angle = 0;
 					collideMode = GROUND;
@@ -718,8 +931,8 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 				}
 				break;
 			case LEFT_WALL:
-				height1 -= position.x - y_radius;
-				height2 -= position.x - y_radius;
+				height1 -= position.x - yRadius;
+				height2 -= position.x - yRadius;
 				height1 *= -1;
 				height2 *= -1;
 				if ((height1 < height2 && onGround1) || !onGround2) {
@@ -732,8 +945,8 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 				position.x -= height1;
 				break;
 			case CEILING:
-				height1 -= position.y - y_radius;
-				height2 -= position.y - y_radius;
+				height1 -= position.y - yRadius;
+				height2 -= position.y - yRadius;
 				height1 *= -1;
 				height2 *= -1;
 				if ((height1 < height2 && onGround1) || !onGround2) {
@@ -746,8 +959,8 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 				position.y -= height1;
 				break;
 			case RIGHT_WALL:
-				height1 -= position.x + y_radius;
-				height2 -= position.x + y_radius;
+				height1 -= position.x + yRadius;
+				height2 -= position.x + yRadius;
 				if ((height1 < height2 && onGround1) || !onGround2) {
 					angle = ang1;
 				}
@@ -766,10 +979,9 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 		}
 	}
 	else {
-
-		if (velocity.y > 0) {
-			height1 -= position.y + y_radius;
-			height2 -= position.y + y_radius;
+		if (velocity.y >= 0.0) {
+			height1 -= position.y + yRadius;
+			height2 -= position.y + yRadius;
 			if ((height1 < height2 && onGround1) || !onGround2) {
 				angle = ang1;
 			}
@@ -778,7 +990,7 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 				std::swap(height1, height2);
 				std::swap(topOnly[0], topOnly[1]);
 			}
-			if (height1 <= 0 && (onGround1 || onGround2)) { 
+			if (height1 <= 2 && (onGround1 || onGround2)) {
 				if (!topOnly[0] || (height1 >= -2)) {
 					onGround = true;
 					jumping = false;
@@ -923,27 +1135,27 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 		break;
 	}
 
-	if (wall) {
-		SDL_Rect objCollide = (*wall)->getCollisionRect();
-		SDL_Point dir = PhysicsEntity::calcRectDirection(objCollide);
+	/*if (wall) {
+	SDL_Rect objCollide = (*wall)->getCollisionRect();
+	SDL_Point dir = PhysicsEntity::calcRectDirection(objCollide);
 
-		if ((dir.x > -1 * objCollide.w / 2 || dir.x < objCollide.w / 2) && !(dir.y < -1 * objCollide.h || dir.y > objCollide.y)) {
-			if (dir.x < 0) {
-				velocity.x = std::min(velocity.x, 0.0);
-				gsp = std::min(gsp, 0.0);
-				position.x += -1 * objCollide.w / 2 - dir.x;
-			}
-			else {
-				velocity.x = std::max(velocity.x, 0.0);
-				gsp = std::max(gsp, 0.0);
-				position.x += objCollide.w / 2 - dir.x;
-			}
-		}
-		else {
-			wall = nullptr;
-		}
+	if ((dir.x > -1 * objCollide.w / 2 || dir.x < objCollide.w / 2) && !(dir.y < -1 * objCollide.h || dir.y > objCollide.y)) {
+	if (dir.x < 0) {
+	velocity.x = std::min(velocity.x, 0.0);
+	gsp = std::min(gsp, 0.0);
+	position.x += -1 * objCollide.w / 2 - dir.x;
 	}
-	
+	else {
+	velocity.x = std::max(velocity.x, 0.0);
+	gsp = std::max(gsp, 0.0);
+	position.x += objCollide.w / 2 - dir.x;
+	}
+	}
+	else {
+	wall = nullptr;
+	}
+	}*/
+
 	return output;
 }
 
@@ -1045,47 +1257,60 @@ int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > 
 		break;
 	}
 
+	ang = 0.0;
 
 	if (xStart < 0 || yStart < 0) {
-		if (sensor == 'E')
-			return -1 * xStart;
 		return -1;
 	}
+
 	side = (int(iterOp) - 2) >= 0;
 	int blockX = xStart / (TILE_WIDTH * GROUND_WIDTH);
 	int blockY = yStart / (TILE_WIDTH * GROUND_WIDTH);
 	if (blockX >= tiles.size()) {
-		if (sensor == 'E')
-			return -1 * xStart;
-		return -1 * (yStart + 20);
+		return -1;
 	}
 	else if (blockY >= tiles[0].size()) {
-		if (sensor == 'E')
-			return -1 * xStart;
-		return -1 * (yStart + 20);
+		return -1;
 	}
 	int count = 0;
 	int tileX = (xStart - blockX * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
 	int tileY = (yStart - blockY * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
 	bool flip = false;
-	bool pathC = tiles[blockX][blockY].getMulti() & path; //Do not check the second path if there is no second path
-
-	ang = 0.0;
 
 	while (true) {
 		const Ground& block = tiles[blockX][blockY];
 
-		pathC = path & block.getMulti();
+		auto getTileAt = [&tiles, blockX, blockY](int tileX, int tileY) mutable -> std::pair < const Ground&, std::pair < int, int > > {
+			if (tileX == -1) {
+				tileX = GROUND_WIDTH - 1;
+				--blockX;
+			}
+			else if (tileX == GROUND_WIDTH) {
+				tileX = 0;
+				++blockX;
+			}
+			
+			if (tileY == -1) {
+				tileY = GROUND_WIDTH - 1;
+				--blockY;
+			}
+			else if (tileY == GROUND_WIDTH) {
+				tileY = 0;
+				++blockY;
+			}
+
+			return std::pair < const Ground&, std::pair < int, int > >(tiles[blockX][blockY], std::pair < int, int >(tileX, tileY));
+		};
 
 		CollisionTile dummy;
 
-		CollisionTile& tile = block.empty() ? dummy : block.getTile(tileX + GROUND_SIZE * pathC, tileY);
+		CollisionTile& tile = block.empty() ? dummy : block.getTile(tileX, tileY, path);
 
 		bool flip = false;
 
-		int tileHeight = (block.empty()) ? 0 : Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, pathC, xStart, xEnd, yStart, yEnd, flip);
+		int tileHeight = (block.empty()) ? 0 : Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, path, xStart, xEnd, yStart, yEnd, flip);
 
-		if (!block.empty() && (block.getFlag(tileX + GROUND_SIZE * pathC + GROUND_WIDTH * tileY) & static_cast<int>(Ground::Flags::TOP_SOLID))) {
+		if (!block.empty() && (block.getFlag(tileX, tileY, path) & static_cast<int>(Ground::Flags::TOP_SOLID))) {
 			if (isTopOnly) {
 				*isTopOnly = true;
 			}
@@ -1111,33 +1336,58 @@ int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > 
 			}
 		}
 
-		// If the height is 0 on the first tile,
-		// then there is no collision.
-		if (tileHeight == 0 && count == 0) {
-			return -1;
-		}
-
-		// If the height is 0 but there is a tile
-		// below the current one, return the top of
-		// the last found tile
 		if (tileHeight == 0) {
+			// If the height is 0 on the first tile,
+			// then there is no collision.
+			if (count == 0) {
+				return -1;
+			}
+
+			// If the height is 0 but there is a tile
+			// below the current one, return the top of
+			// the last found tile
+			int prevTileX;
+			int prevTileY;
+
+			switch (iterOp) {
+			case direction::UP:
+				prevTileX = tileX;
+				prevTileY = tileY + 1;
+				break;
+			case direction::DOWN:
+				prevTileX = tileX;
+				prevTileY = tileY - 1;
+				break;
+			case direction::LEFT:
+				prevTileX = tileX + 1;
+				prevTileY = tileY;
+				break;
+			case direction::RIGHT:
+				prevTileX = tileX - 1;
+				prevTileY = tileY;
+				break;
+			}
+
+			std::pair < const Ground&, std::pair < int, int > > position = getTileAt(prevTileX, prevTileY);
+
+			ang = position.first.getTileAngle(position.second.first, position.second.second, path);
+
 			/*   Return position of top of last found tile, x or y depends on the type of check     */
-			ang = angles[int(iterOp)];
 			if (iterOp == direction::UP || iterOp == direction::LEFT) {
-				return ((side ? tileX : tileY) + 1) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY);
+				return ((side ? tileX : tileY) + 1) * TILE_WIDTH + GROUND_PIXEL_WIDTH * (side ? blockX : blockY);
 			}
 			else {
-				return ((side ? tileX : tileY) + 0) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY);
+				return ((side ? tileX : tileY) + 0) * TILE_WIDTH + GROUND_PIXEL_WIDTH * (side ? blockX : blockY);
 			}
 		}
 
 		if (tileHeight < 16) {
-			ang = block.getTileAngle(tileX + GROUND_SIZE * pathC, tileY);
+			ang = block.getTileAngle(tileX, tileY, path);
 			if (iterOp == direction::UP || iterOp == direction::LEFT) {
-				return ((side ? tileX : tileY) + 1) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY) - tileHeight;
+				return ((side ? tileX : tileY) + 1) * TILE_WIDTH + GROUND_PIXEL_WIDTH * (side ? blockX : blockY) - tileHeight;
 			}
 			else {
-				return ((side ? tileX : tileY) + 0) * TILE_WIDTH + TILE_WIDTH * GROUND_WIDTH * (side ? blockX : blockY) + tileHeight;
+				return ((side ? tileX : tileY) + 0) * TILE_WIDTH + GROUND_PIXEL_WIDTH * (side ? blockX : blockY) + tileHeight;
 			}
 		}
 
@@ -1195,35 +1445,39 @@ int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > 
 	}
 }
 
-int Player::getHeight(const std::vector < std::vector < Ground > >& ground, SDL_Point block, SDL_Point tile, bool side, bool pathC, int xStart, int xEnd, int yStart, int yEnd, bool& flip) {
-	int h;
+int Player::getHeight(const std::vector < std::vector < Ground > >& ground, SDL_Point blockPosition, SDL_Point tile, bool side, bool path, int xStart, int xEnd, int yStart, int yEnd, bool& flip) {
 	flip = false;
+
+	int h;
+	const Ground& block = ground[blockPosition.x][blockPosition.y];
+
 	if (side) {
-		if (ground[block.x][block.y].getFlag(tile.x + tile.y * GROUND_WIDTH + GROUND_SIZE * pathC) & SDL_FLIP_VERTICAL) {
-			//Tile is flipped, so set the current height to the flipped heightMap
-			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight(TILE_WIDTH - 1 - ((yStart - block.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
+		if (block.getFlag(tile.x, tile.y, path) & SDL_FLIP_VERTICAL) {
+			// Tile is flipped, so set the current height to the flipped heightMap
+			h = block.getTile(tile.x, tile.y, path).getHeight(TILE_WIDTH - 1 - ((yStart - blockPosition.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
 		}
 		else {
-			//Tile is not flipped, set the current height normally.
-			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight((yStart - block.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
+			// Tile is not flipped, set the current height normally.
+			h = block.getTile(tile.x, tile.y, path).getHeight((yStart - blockPosition.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
 		}
-		if (ground[block.x][block.y].getFlag(tile.x + tile.y * GROUND_WIDTH + GROUND_SIZE * pathC) & SDL_FLIP_HORIZONTAL) {
+		if (block.getFlag(tile.x, tile.y, path) & SDL_FLIP_HORIZONTAL) {
 			flip = true;
 		}
 	}
 	else {
-		if (ground[block.x][block.y].getFlag(tile.x + GROUND_SIZE * pathC + tile.y * GROUND_WIDTH) & SDL_FLIP_HORIZONTAL) {
-			//Tile is flipped, so set the current height to the flipped heightMap
-			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight(TILE_WIDTH - 1 - ((xStart - block.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
+		if (block.getFlag(tile.x, tile.y, path) & SDL_FLIP_HORIZONTAL) {
+			// Tile is flipped, so set the current height to the flipped heightMap
+			h = block.getTile(tile.x, tile.y, path).getHeight(TILE_WIDTH - 1 - ((xStart - blockPosition.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
 		}
 		else {
-			//Tile is not flipped, set the current height normally.
-			h = ground[block.x][block.y].getTile(tile.x + GROUND_SIZE * pathC, tile.y).getHeight((xStart - block.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
+			// Tile is not flipped, set the current height normally.
+			h = block.getTile(tile.x, tile.y, path).getHeight((xStart - blockPosition.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
 		}
-		if (ground[block.x][block.y].getFlag(tile.x + tile.y * GROUND_WIDTH + GROUND_SIZE * pathC) & SDL_FLIP_VERTICAL) {
+		if (block.getFlag(tile.x, tile.y, path) & SDL_FLIP_VERTICAL) {
 			flip = true;
 		}
 	}
+
 	return h;
 }
 
@@ -1309,24 +1563,16 @@ void Player::render(SDL_Rect& cam, double screenRatio) {
 SDL_Rect Player::getCollisionRect() {
 	switch (collideMode) {
 	case GROUND:
-		return SDL_Rect{ position.x - (collisionRect.w / 2), position.y + centerOffset.y, collisionRect.w, collisionRect.h };
+		return SDL_Rect{ position.x + collisionRect.x, position.y + collisionRect.y, collisionRect.w, collisionRect.h };
 	case LEFT_WALL:
-		return SDL_Rect{ position.x + centerOffset.y - collisionRect.h, position.y - (collisionRect.w / 2), collisionRect.h, collisionRect.w };
+		return SDL_Rect{ position.x - collisionRect.y - collisionRect.h, position.y + collisionRect.x, collisionRect.h, collisionRect.w };
 	case CEILING:
-		return SDL_Rect{ position.x - (collisionRect.w / 2), position.y - centerOffset.y - collisionRect.h, collisionRect.w, collisionRect.h };
+		return SDL_Rect{ position.x + collisionRect.x, position.y - collisionRect.y - collisionRect.h, collisionRect.w, collisionRect.h };
 	case RIGHT_WALL:
-		return SDL_Rect{ position.x + centerOffset.x, position.y + centerOffset.y, collisionRect.h, collisionRect.w };
+		return SDL_Rect{ position.x + collisionRect.y, position.y - collisionRect.x - collisionRect.w, collisionRect.h, collisionRect.w };
 	default:
 		return SDL_Rect{ -1, -1, -1, -1 };
 	}
-}
-
-void Player::hitPlatform(const Player::entityPtrType entity) {
-	platform = entity;
-}
-
-void Player::hitWall(const Player::entityPtrType entity) {
-	wall = entity;
 }
 
 void Player::setActCleared(bool b)
@@ -1344,7 +1590,7 @@ bool Player::canDamage() {
 
 void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc) {
 	if (abs(gsp) < 2.0 && collideMode != GROUND && !controlLock) {
-		if (collideMode == CEILING) {
+		if (angle >= 64 && angle <= 192) {
 			collideMode = GROUND;
 			angle = 0.0;
 			onGround = false;
@@ -1392,15 +1638,14 @@ void Player::updateIfWalkOrIdle(const InputComponent& input, double thisAccel, d
 	walkLeftAndRight(input, thisAccel, thisDecel, thisFrc);
 
 	// Do slope calculations
-	if (gsp != 0) {
+	if (gsp != 0 || (angle >= 16 && angle <= 240)) {
 		double thisSlp((time - last_time) / (1000.0 / 60.0) * slp);
 		gsp -= thisSlp * sin(hexToDeg(angle) * M_PI / 180.0);
 	}
 
 	// Initiate a jump
-	if (input.GetKeyPress(InputComponent::JUMP) && (onGround || platform)) {
+	if (input.GetKeyPress(InputComponent::JUMP) && onGround) {
 		onGround = false;
-		platform = false;
 		jumping = true;
 		state = State::JUMPING;
 		collideMode = GROUND;
@@ -1423,6 +1668,23 @@ void Player::updateInAir(const InputComponent & input, double thisAccel, double 
 	}
 }
 
-bool Player::isOffsetState(const State& state) {
-	return (state == State::ROLLING || state == State::CROUCHING || state == State::ROLLJUMPING);
+void Player::switchPath() {
+	path = path ^ (!switchDebounce);
+	switchDebounce = 2;
 }
+
+double hexToDeg(double hex) {
+	return (256 - hex) * 1.40625;
+};
+
+int signum(int a) {
+	return (0 < a) - (a < 0);
+};
+
+int signum(double a) {
+	return (0.0 < a) - (a < 0.0);
+};
+
+bool isOffsetState(const Player::State& state) {
+	return (state == Player::State::ROLLING || state == Player::State::CROUCHING || state == Player::State::ROLLJUMPING);
+};
