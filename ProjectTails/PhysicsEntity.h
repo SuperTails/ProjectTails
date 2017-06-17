@@ -40,6 +40,18 @@ struct PhysStruct {
 	PhysStruct(SDL_Rect p, PhysProp pr, bool s, std::vector < char > f) : pos(p), prop(pr), shouldSave(s), flags(f) {};
 };
 
+namespace entity_property_data {
+	namespace keys {
+		const char* BEE_BADNIK = "BEEBADNIK";
+	}
+	namespace indices {
+		enum class BeeBadnik { FRAMES_UNTIL_MOVE, HAS_FIRED };
+		enum class CrabBadnik { FRAMES_UNTIL_WALK, FRAMES_UNTIL_STOP, WALK_DIRECTION };
+		enum class Bridge { WIDTH, PLAYER_POSITION, };
+		enum class Goalpost { FRAMES_UNTIL_STOP, FINISHED_SPINNING };
+	}
+}
+
 class Player;
 struct EntityManager;
 

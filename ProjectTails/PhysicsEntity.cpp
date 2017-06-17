@@ -169,6 +169,9 @@ std::unique_ptr < Animation >& PhysicsEntity::GetAnim() {
 }
 
 void PhysicsEntity::custom(Player* player, EntityManager* manager) {
+	using namespace entity_property_data::keys;
+	using namespace entity_property_data::indices;
+	
 	const std::string& key = prop.key;
 	double frameCount = (time - last_time) / (1000.0 / 60.0);
 	switch(eType){
@@ -194,25 +197,28 @@ void PhysicsEntity::custom(Player* player, EntityManager* manager) {
 		}
 		break;
 	case ENEMY:
-		if (key == "BEEBADNIK") {
+		if (key == BEE_BADNIK) {
 			/* vars:
-			0 = time until moving again
+			0 = frames until moving again
 			1 = already fired
 			*/
+			double& framesUntilMove = customVars[std::size_t(BeeBadnik::FRAMES_UNTIL_MOVE)];
+			double& alreadyFired = customVars[std::size_t(BeeBadnik::HAS_FIRED)];
+
 			if (currentAnim == 0 || customVars[0] == 0.0) {
 				velocity.x = -2.0;
 				currentAnim = 0;
 				if (player && player->getPosition().x != position.x && abs(double(position.y - player->getPosition().y) / (player->getPosition().x - position.x) - 1) <= 0.1) {
 					currentAnim = 1;
-					customVars[0] = 120.0;
+					framesUntilMove = 120.0;
 					velocity.x = 0.0;
-					customVars[1] = 0.0;
+					alreadyFired = 0.0;
 				}
 			}
 			else {
-				customVars[0] = std::max(0.0, customVars[0] - (time - last_time) / (1000.0 / 60.0));
-				if (customVars[0] < 60.0 && !customVars[1]) {
-					customVars[1] = 1.0;
+				framesUntilMove = std::max(0.0, framesUntilMove - (time - last_time) / (1000.0 / 60.0));
+				if (framesUntilMove < 60.0 && !alreadyFired) {
+					alreadyFired = 1.0;
 					PhysStruct temp(SDL_Rect{ position.x + 30, position.y + 25, position.w, position.h }, *physProps->find(std::string("BEEPROJECTILE"))->second, -1, std::vector<char>());
 					manager->AddEntity(std::unique_ptr < PhysicsEntity >(new PhysicsEntity(temp)));
 				}
@@ -225,22 +231,27 @@ void PhysicsEntity::custom(Player* player, EntityManager* manager) {
 			1 = frames until stop, default 30.0
 			2 = sign of direction
 			*/
-			if (customVars[0] > 0.0) {
+			double& framesUntilWalk = customVars[std::size_t(CrabBadnik::FRAMES_UNTIL_WALK)];
+			double& framesUntilStop = customVars[std::size_t(CrabBadnik::FRAMES_UNTIL_STOP)];
+			double& directionSign = customVars[std::size_t(CrabBadnik::WALK_DIRECTION)];
+
+			if (framesUntilWalk > 0.0) {
 				currentAnim = 0;
-				customVars[0] -= frameCount;
-				if (customVars[0] <= 0.0) {
+				framesUntilWalk -= frameCount;
+
+				if (framesUntilWalk <= 0.0) {
 					position.y += 7;
-					customVars[0] = 0.0;
+					framesUntilWalk = 0.0;
 				}
 			}
-			else if (customVars[1] > 0.0) {
+			else if (framesUntilStop > 0.0) {
 				currentAnim = 1;
-				posError.x += customVars[2] * frameCount;
-				customVars[1] -= frameCount;
-				if (customVars[1] <= 0) {
-					customVars[0] = 180.0;
-					customVars[1] = 30.0;
-					customVars[2] *= -1;
+				posError.x += directionSign * frameCount;
+				framesUntilStop -= frameCount;
+				if (framesUntilStop <= 0) {
+					framesUntilWalk = 180.0;
+					framesUntilStop = 30.0;
+					directionSign *= -1;
 					position.y -= 7;
 				}
 			}
@@ -248,42 +259,71 @@ void PhysicsEntity::custom(Player* player, EntityManager* manager) {
 		break;
 	case PLATFORM:
 		if (key == "BRIDGE") {
+			double& bridgeWidth = customVars[std::size_t(Bridge::WIDTH)];
+			double& playerPosition = customVars[std::size_t(Bridge::PLAYER_POSITION)];
+
 			entityPtrType platform = player->platformPtr();
 			collisionRect.x = 0;
 			collisionRect.y = 0;
-			collisionRect.w = customVars[0] * 16;
+			collisionRect.w = bridgeWidth * 16;
 			collisionRect.h = 16;
 			if (platform) {
 				//Smooth on/off timer
 				customVars.back() = std::min(1.0, customVars.back() + ((time - last_time) / (1000.0 / 60.0)) / 30);
 
 				//Player index
-				customVars[1] = (player->getPosition().x - getPosition().x) / 16.0;
-				collisionRect.x = std::max(customVars[1] * 16, 0.0);
-				collisionRect.x = std::min(collisionRect.x, int(customVars[0] - 1) * 16);
+				playerPosition = (player->getPosition().x - getPosition().x) / 16.0;
+				collisionRect.x = std::max(playerPosition * 16, 0.0);
+				collisionRect.x = std::min(collisionRect.x, int(bridgeWidth - 1) * 16);
 				collisionRect.w = 16;
-				std::vector < int > maxDepression(customVars[0], 2);
-				for (int i = 0; i < maxDepression.size(); i++) {
+
+				auto getMaxDepression = [size = static_cast<std::size_t>(bridgeWidth)](std::size_t index) {
+					if (index < size / 2) {
+						return 2 * (index + 1);
+					}
+					else if (index > size / 2) {
+						return 2 * (size - index);
+					}
+					else {
+						return size;
+					}
+				};
+
+				/*for (int i = 0; i < maxDepression.size(); i++) {
 					if (i < maxDepression.size() / 2)
 						maxDepression[i] = 2 * (i + 1);
 					else if (i > maxDepression.size() / 2)
 						maxDepression[i] = 2 * (maxDepression.size() - i);
 					else
 						maxDepression[i] = maxDepression.size();
+				}*/
+
+				std::size_t playerIndex = std::min(playerPosition, bridgeWidth - 1.0);
+				int thisMax;
+
+				if (playerIndex < int(bridgeWidth) / 2) {
+					thisMax = 2 * (playerIndex + 1);
 				}
-				int thisMax = maxDepression[(int)std::min(customVars[1], double(customVars[0] - 1))];
-				for (int i = 0; i < std::min(customVars[1] + 1, double(customVars[0] - 1)); i++) {
-					customVars[i + 2] = customVars.back() * thisMax * sin(M_PI / 2 * (1 + i) / (1 + customVars[1]));
+				else if (playerIndex > int(bridgeWidth) / 2) {
+					thisMax = 2 * (int(bridgeWidth) - playerIndex);
 				}
-				for (int i = customVars[1] + 1; i < customVars[0]; i++) {
-					customVars[i + 2] = customVars.back() * thisMax * sin(M_PI / 2 * (customVars[0] - i) / (customVars[0] - customVars[1]));
+				else {
+					thisMax = bridgeWidth;
 				}
-				if (customVars[1] + 2 < customVars.size())
-					collisionRect.y = customVars[customVars[1] + 2];
+
+				int thisMax = getMaxDepression(std::size_t(std::min(playerPosition, bridgeWidth - 1.0)));
+				for (int i = 0; i < std::min(playerPosition + 1, bridgeWidth - 1.0); i++) {
+					customVars[i + 2] = customVars.back() * thisMax * sin(M_PI / 2 * (1 + i) / (1 + playerPosition));
+				}
+				for (int i = playerPosition + 1; i < bridgeWidth; i++) {
+					customVars[i + 2] = customVars.back() * thisMax * sin(M_PI / 2 * (bridgeWidth - i) / (bridgeWidth - playerPosition));
+				}
+				if (playerPosition < customVars.size() - 2)
+					collisionRect.y = customVars[playerPosition + 2];
 			}
 			else {
 				customVars.back() = std::max(0.0, customVars.back() - ((time - last_time) / (1000.0 / 60.0)) / 120);
-				customVars[1] = -1.0;
+				playerPosition = -1.0;
 				for (int i = 2; i < customVars.size(); i++) {
 					customVars[i] = customVars[i] * sqrt(customVars.back());
 				}
@@ -291,17 +331,21 @@ void PhysicsEntity::custom(Player* player, EntityManager* manager) {
 		}
 		break;
 	case GOALPOST:
-		if (customVars[0] > 0.0) {
-			customVars[0] -= frameCount;
+	{
+		double& framesUntilStop = customVars[std::size_t(Goalpost::FRAMES_UNTIL_STOP)];
+		double& finishedSpinning = customVars[std::size_t(Goalpost::FINISHED_SPINNING)];
+		if (framesUntilStop > 0.0) {
+			framesUntilStop -= frameCount;
 			animations[0]->SetDelay(240.0 - customVars[0] / 1.5);
-			customVars[1] = 1.0;
+			finishedSpinning = 1.0;
 		}
 		else {
 			animations[0]->SetDelay(-1);
-			if (customVars[1] && animations[0]->getFrame() != 4) {
+			if (finishedSpinning && animations[0]->getFrame() != 4) {
 				animations[0]->SetDelay(240.0);
 			}
 		}
+	}
 		break;
 	default:
 		break;

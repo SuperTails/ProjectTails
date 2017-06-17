@@ -241,7 +241,7 @@ int main( int argc, char* argv[] ) {
 
 		if (!(frames % 500)) {
 			cout << "Average FPS: " << 1000.0 * 500.0 / (time - last_time1) << "\n";
-			avg_fps = 500.0 * 1000.0 / (time - last_time1);
+			avg_fps = 500.0 * 1000.0 / (time - last_time1); 
 			last_time1 = time;
 			time = SDL_GetTicks();
 		}
