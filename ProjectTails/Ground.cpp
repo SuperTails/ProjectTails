@@ -40,7 +40,7 @@ Ground::Ground(Ground&& other) noexcept :
 {
 	swap(*this, other);
 #if _DEBUG
-	std::cout << "Ground move constructor was called.";
+	std::cout << "Ground move constructor was called.\n";
 #endif
 };
 

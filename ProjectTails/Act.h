@@ -27,37 +27,36 @@ public:
 	Act(Act&& other);
 
 
-	void SetRenderer(SDL_Renderer* r);
-	void SetCamera(Camera* c);
+	void setRenderer(SDL_Renderer* r);
+	void setCamera(Camera* c);
+
 	
-	SDL_Rect GetWinArea() { return win; };
+	SDL_Rect getWinArea() { return win; };
 
 
-	void RenderObjects(Player& player);
+	void renderObjects(Player& player);
 
 
-	void UpdateCollisions(Player& player, std::vector<bool>& toDestroy, std::vector< std::unique_ptr< PhysicsEntity > >& toAdd);
-	void UpdateEntities(Player& player);
+	void updateCollisions(Player& player, std::vector<bool>& toDestroy, std::vector< std::unique_ptr< PhysicsEntity > >& toAdd);
+	void updateEntities(Player& player);
 
 	int numEntities() { return entities.size(); };
 
-	std::string GetName() { return name + "Zone"; };
-	int GetNumber() { return number; };
+	std::string getName() { return name + "Zone"; };
+	int getNumber() { return number; };
 
 	std::vector < std::vector < Ground > >& getGround() { return solidTiles; };
 
 
-	std::unique_ptr < PhysicsEntity >& GetEntity(int index) { return entities[index]; };
-	std::vector < std::unique_ptr < PhysicsEntity > >& GetEntityArray() { return entities; };
+	std::unique_ptr < PhysicsEntity >& getEntity(int index) { return entities[index]; };
+	std::vector < std::unique_ptr < PhysicsEntity > >& getEntityArray() { return entities; };
 
 	void resetTime() { last_time = time = SDL_GetTicks(); };
 
 	static void setProps(std::vector < PhysProp >& p) { props = p; };
 	static void setKeys(std::unordered_map < std::string, PhysProp* >& p) { entityKeys = p; };
 
-	void Init();
-
-	void Unload();
+	void initialize();
 
 	~Act();
 
@@ -98,6 +97,7 @@ private:
 	SDL_Rect win;
 	ActType aType;
 	int frame;
+
 	static std::vector < PhysProp > props;
 	static std::unordered_map < std::string, PhysProp* > entityKeys;
 };

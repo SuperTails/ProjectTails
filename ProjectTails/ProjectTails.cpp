@@ -32,9 +32,9 @@ const double stepLength = 1000.0 / 60.0;
 const double LOAD_STEPS = 7.0;
 
 void LoadAct(Act* a, Camera* c, SDL_Renderer* r, std::vector < PhysProp > p) {
-	a->SetCamera(c);
-	a->SetRenderer(r);
-	a->Init();
+	a->setCamera(c);
+	a->setRenderer(r);
+	a->initialize();
 	a->setProps(p);
 }
 
@@ -248,7 +248,7 @@ int main( int argc, char* argv[] ) {
 
 		if (currentAct >= 0) {
 
-			acts.front().UpdateEntities(Tails);
+			acts.front().updateEntities(Tails);
 
 			rings_count_text.StringToText(to_string(Tails.getRings()));
 			rings_count_texture = SDL_CreateTextureFromSurface(window.getRenderer(), rings_count_text.getText());
@@ -258,7 +258,7 @@ int main( int argc, char* argv[] ) {
 
 			window.render(Sky_Texture, { 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE, 0 });
 
-			acts.front().RenderObjects(Tails);
+			acts.front().renderObjects(Tails);
 
 			window.render(rings_text_texture, { 25, 25, rings_text.getText()->w, rings_text.getText()->h, 0 });
 			window.render(rings_count_texture, { 25 + rings_text.getText()->w + 3, 25, rings_count_text.getText()->w, rings_count_text.getText()->h, 0 });
@@ -292,7 +292,7 @@ int main( int argc, char* argv[] ) {
 
 		frames++;
 
-		if (currentAct >= 0 && SDL_HasIntersection(&Tails.getPosition(), &acts.front().GetWinArea()) || (!Mix_PlayingMusic() && SoundHandler::musicState == 3)) {
+		if (currentAct >= 0 && SDL_HasIntersection(&Tails.getPosition(), &acts.front().getWinArea()) || (!Mix_PlayingMusic() && SoundHandler::musicState == 3)) {
 			std::cout << "Level " << currentAct << " complete!";
 			SoundHandler::musicState = 0;
 			effectManager::fadeTo(false, 120.0);

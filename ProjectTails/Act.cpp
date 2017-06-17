@@ -69,7 +69,7 @@ Act::Act(const int& num, const std::string& name1, const std::vector < PhysStruc
 	
 }
 
-void Act::Init() {
+void Act::initialize() {
 	std::cout << "Initializing act " << number << "!\n";
 	std::cout << "Loading entities...\n";
 	std::vector<PhysStruct>::iterator i = phys_paths.begin(); 
@@ -87,15 +87,8 @@ void Act::Init() {
 	std::cout << "Done initializing act!\n";
 }
 
-void Act::Unload() {
-	solidTiles.clear();
-	background.clear();
-	phys_paths.clear();
-	entities.clear();
-}
-
 //Unload offscreen entities and update onscreen ones
-void Act::UpdateEntities(Player& player) {
+void Act::updateEntities(Player& player) {
 	last_time = time;
 	time = SDL_GetTicks();
 	Animation::setTimeDifference(time - last_time);
@@ -144,7 +137,7 @@ void Act::UpdateEntities(Player& player) {
 		++i;
 	}
 
-	UpdateCollisions(player, toDestroy, toAdd);
+	updateCollisions(player, toDestroy, toAdd);
 
 	player.update(solidTiles, manager);
 
@@ -168,7 +161,7 @@ void Act::UpdateEntities(Player& player) {
 	}
 }
 
-void Act::UpdateCollisions(Player& player, std::vector < bool >& toDestroy, std::vector < std::unique_ptr < PhysicsEntity > >& toAdd) {
+void Act::updateCollisions(Player& player, std::vector < bool >& toDestroy, std::vector < std::unique_ptr < PhysicsEntity > >& toAdd) {
 	bool destroyed = false;
 	bool hurt = false;
 	entityListIterator i = entities.begin();
@@ -197,15 +190,15 @@ Act::~Act()
 {
 }
 
-void Act::SetRenderer(SDL_Renderer* r) {
+void Act::setRenderer(SDL_Renderer* r) {
 	renderer = r;
 }
 
-void Act::SetCamera(Camera* c) {
+void Act::setCamera(Camera* c) {
 	cam = c;
 }
 
-void Act::RenderObjects(Player& player) {
+void Act::renderObjects(Player& player) {
 	globalObjects::renderBackground(background, cam->getPosition().x - cam->GetOffset().x, ratio);
 	entityListIterator i = entities.begin();
 	SDL_Rect pos = cam->getPosition();
@@ -237,7 +230,7 @@ void Act::RenderObjects(Player& player) {
 
 void Act::loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, int& current, std::vector < Ground::groundArrayData >& arrayData, std::vector<std::vector<Animation>>& background) {
 	if (!acts.empty()){
-		acts.front().Unload();
+		acts.front().unload();
 	}
 	current++;
 	int actNum;
