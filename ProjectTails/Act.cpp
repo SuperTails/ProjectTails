@@ -200,13 +200,10 @@ void Act::setCamera(Camera* c) {
 }
 
 void Act::renderObjects(Player& player) {
-	globalObjects::renderBackground(background, cam->getPosition().x - cam->GetOffset().x, ratio);
-	entityListIterator i = entities.begin();
 	SDL_Rect pos = cam->getPosition();
-	while (i != entities.end()) {
-		(*i)->Render(pos, ratio);
-		i++;
-	}
+
+	globalObjects::renderBackground(background, pos.x - cam->GetOffset().x, ratio);
+
 	solidRenderListIterator solidLayer = solidTileRender.begin();
 	while (solidLayer != solidTileRender.end()) {
 		if (SDL_HasIntersection(&(*solidLayer)->getPosition(), &cam->getCollisionRect())) {
@@ -214,9 +211,11 @@ void Act::renderObjects(Player& player) {
 		}
 		solidLayer++;
 	}
+
 	if (player.getOnGround()) {
 		player.render(pos, ratio);
 	}
+
 	solidLayer = solidTileRender.begin();
 	while (solidLayer != solidTileRender.end()) {
 		if (SDL_HasIntersection(&(*solidLayer)->getPosition(), &cam->getCollisionRect())) {
@@ -224,8 +223,13 @@ void Act::renderObjects(Player& player) {
 		}
 		solidLayer++;
 	}
+
 	if (!player.getOnGround()) {
 		player.render(pos, ratio);
+	}
+
+	for (auto i = entities.begin(); i != entities.end(); ++i) {
+		(*i)->Render(pos, ratio);
 	}
 }
 
