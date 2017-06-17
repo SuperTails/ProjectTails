@@ -229,9 +229,6 @@ void Act::renderObjects(Player& player) {
 }
 
 void Act::loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, int& current, std::vector < Ground::groundArrayData >& arrayData, std::vector<std::vector<Animation>>& background) {
-	if (!acts.empty()){
-		acts.front().unload();
-	}
 	current++;
 	int actNum;
 	std::string actName;
