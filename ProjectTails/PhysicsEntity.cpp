@@ -103,7 +103,6 @@ void PhysicsEntity::update(bool updateTime, Player* player, EntityManager* manag
 
 	previousPosition = position;
 
-
 	posError.x += (time - last_time) * velocity.x / (1000.0 / 60.0);
 	posError.y += (time - last_time) * velocity.y / (1000.0 / 60.0);
 

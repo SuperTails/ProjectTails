@@ -429,7 +429,8 @@ void DataReader::LoadBackground(std::string path, std::vector < std::vector < An
 		for (int layer = 0; layer < 8; layer++) {
 			std::string fullCurrentPath = currentPath + std::to_string(layer) + ".png";
 			current = IMG_Load(fullCurrentPath.c_str());
-			background[layer].push_back(Animation(current, 12.0 * 1000.0 / 60.0, 1));
+			background[layer].emplace_back(current, 12.0 * 1000.0 / 60.0, 1);
+			SDL_FreeSurface(current);
 			if (layer == 0) {
 				std::vector < std::vector < effectType > > types(4, std::vector<effectType>(1, effectType::PALETTE_SWAP));
 				std::vector < std::vector < effectData > > data(4, std::vector<effectData>(1));

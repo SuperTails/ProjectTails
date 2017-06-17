@@ -149,8 +149,15 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 
 	if (onGround) {
 		if (!onGroundPrev && onGround) {
-			if (int(angle) < 0x0F || int(angle) > 0xF0) {
-				gsp = velocity.x;
+			if (velocity.x == 0 && velocity.y == 0) {
+				gsp = 0.0;
+			}
+			else {
+				// Get direction of the velocity
+				double velocityAngle = atan2(-velocity.y, velocity.x);
+				
+				// Compute the dot product between the velocity and the ground
+				gsp = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2)) * cos(velocityAngle - hexToDeg(angle) * M_PI / 180.0);
 			}
 		}
 		velocity.x = gsp * cos(hexToDeg(angle) * M_PI / 180.0);
@@ -772,6 +779,8 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 	bool topOnly[6];
 	std::memset(topOnly, 0, 6);
 
+	const int topOnlyMaxOvershoot = 2 + std::max(0, position.y - previousPosition.y);
+
 	Mode last_mode = collideMode;
 	//Calculate which mode to be in based on angle
 	collideMode = Mode((static_cast<int>(angle + 0x20) & 0xFF) >> 6);
@@ -830,7 +839,7 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 			int sensorDistance = entityTop - position.y - yRadius;
 
 			// Continue if not close enough to the platform
-			if (sensorDistance < -3 || sensorDistance > 3) {
+			if (sensorDistance < -topOnlyMaxOvershoot || sensorDistance > topOnlyMaxOvershoot) {
 				continue;
 			}
 
@@ -854,9 +863,9 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 		}
 	}
 
-	auto getCollisionHeight = [this,yRadius](int rawHeight, bool ground, bool top) {
+	auto getCollisionHeight = [this,yRadius,topOnlyMaxOvershoot](int rawHeight, bool ground, bool top) {
 		rawHeight -= position.y + yRadius;
-		if (top && (velocity.y < 0.0 || rawHeight < -2|| rawHeight > 2)) {
+		if (top && (velocity.y < 0.0 || rawHeight < -topOnlyMaxOvershoot || rawHeight > topOnlyMaxOvershoot)) {
 			return std::pair < int, bool >(-1, false);
 		}
 		else {
@@ -920,7 +929,7 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 					std::swap(topOnly[0], topOnly[1]);
 				}
 
-				if (topOnly[0] && (height1 < -2 || velocity.y < 0.0)) {
+				if (topOnly[0] && (height1 < -topOnlyMaxOvershoot || velocity.y < 0.0)) {
 					onGround = false;
 					angle = 0;
 					collideMode = GROUND;
@@ -928,6 +937,9 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 				else {
 					//Stick to ground by subtracting distance
 					position.y += height1;
+					if (topOnly[0]) {
+						velocity.y = std::min(velocity.y, 0.0);
+					}
 				}
 				break;
 			case LEFT_WALL:
@@ -991,7 +1003,7 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 				std::swap(topOnly[0], topOnly[1]);
 			}
 			if (height1 <= 2 && (onGround1 || onGround2)) {
-				if (!topOnly[0] || (height1 >= -2)) {
+				if (!topOnly[0] || (height1 >= -topOnlyMaxOvershoot)) {
 					onGround = true;
 					jumping = false;
 					position.y += height1;
@@ -1280,31 +1292,33 @@ int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > 
 	while (true) {
 		const Ground& block = tiles[blockX][blockY];
 
-		auto getTileAt = [&tiles, blockX, blockY](int tileX, int tileY) mutable -> std::pair < const Ground&, std::pair < int, int > > {
+		auto getTileAt = [&tiles, blockX, blockY](int tileX, int tileY) -> std::pair < const Ground&, std::pair < int, int > > {
+			int offsetX = 0;
+			int offsetY = 0;
 			if (tileX == -1) {
 				tileX = GROUND_WIDTH - 1;
-				--blockX;
+				--offsetX;
 			}
 			else if (tileX == GROUND_WIDTH) {
 				tileX = 0;
-				++blockX;
+				++offsetX;
 			}
 			
 			if (tileY == -1) {
 				tileY = GROUND_WIDTH - 1;
-				--blockY;
+				--offsetY;
 			}
 			else if (tileY == GROUND_WIDTH) {
 				tileY = 0;
-				++blockY;
+				++offsetY;
 			}
 
-			return std::pair < const Ground&, std::pair < int, int > >(tiles[blockX][blockY], std::pair < int, int >(tileX, tileY));
+			return std::pair < const Ground&, std::pair < int, int > >(tiles[blockX + offsetX][blockY + offsetY], std::pair < int, int >(tileX, tileY));
 		};
 
 		CollisionTile dummy;
 
-		CollisionTile& tile = block.empty() ? dummy : block.getTile(tileX, tileY, path);
+		const CollisionTile& tile = block.empty() ? dummy : block.getTile(tileX, tileY, path);
 
 		bool flip = false;
 

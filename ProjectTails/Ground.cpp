@@ -149,7 +149,7 @@ void Ground::Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect*
 	}
 }
 
-CollisionTile& Ground::getTile(int tileX, int tileY, bool path) const {
+const CollisionTile& Ground::getTile(int tileX, int tileY, bool path) const {
 	path &= multiPath;
 
 	if(!flip)
@@ -176,7 +176,7 @@ Ground& Ground::operator= (Ground arg) {
 }
 
 double Ground::getTileAngle(int tileX, int tileY, bool path) const {
-	CollisionTile& tile = getTile(tileX, tileY, path);
+	const CollisionTile& tile = getTile(tileX, tileY, path);
 	int flag = getFlag(tileX, tileY, path) & (SDL_FLIP_NONE | SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
 	switch (flag) {
 	case SDL_FLIP_NONE:

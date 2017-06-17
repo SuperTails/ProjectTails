@@ -49,7 +49,7 @@ public:
 	void setPoint(SDL_Point p) { position = { 256 * p.x, 256 * p.y, 256, 256 }; };
 	bool getMulti() const { return multiPath; };
 
-	CollisionTile& getTile(int tileX, int tileY, bool path) const;
+	const CollisionTile& getTile(int tileX, int tileY, bool path) const;
 	double getTileAngle(int tileX, int tileY, bool path) const;
 	int getFlag(int tileX, int tileY, bool path) const;
 	bool empty() const { return (tileIndices == nullptr); };

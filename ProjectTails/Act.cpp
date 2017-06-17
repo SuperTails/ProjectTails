@@ -36,8 +36,9 @@ Act::Act(Act&& other) :
 {
 	for (int x = 0; x < solidTiles.size(); x++) {
 		for (int y = 0; y < solidTiles[x].size(); y++) {
-			if (solidTiles[x][y].getPosition().x != -1)
+			if (solidTiles[x][y].getPosition().x != -1) {
 				solidTileRender.push_back(&solidTiles[x][y]);
+			}
 		}
 	}
 	std::cout << "Act move constructor was called.\n";

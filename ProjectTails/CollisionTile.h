@@ -14,14 +14,14 @@ public:
 	void setIndex(int ind) { index = ind; };
 	void setCollide(bool collide) { canCollide = collide; };
 
-	int getSideHeight(int ind) { return heightMapSide[ind]; };
-	int getHeight(int ind, bool side = false) { return side ? heightMapSide[ind] : heightMap[ind]; };
-	int getAngle() { return angle; };
-	bool getCollide() { return canCollide; };
+	int getSideHeight(int ind) const { return heightMapSide[ind]; };
+	int getHeight(int ind, bool side = false) const { return side ? heightMapSide[ind] : heightMap[ind]; };
+	int getAngle() const { return angle; };
+	bool getCollide() const { return canCollide; };
 
 	void calculateSideMap();
 
-	int getIndex() { return index; };
+	int getIndex() const { return index; };
 
 	~CollisionTile();
 private:

@@ -18,24 +18,33 @@ std::vector < int > globalObjects::lastPalette{ 0, 1, 2, 3 };
 
 void globalObjects::renderBackground(std::vector < std::vector < Animation > >& background, const int& cameraCenterX, const double& ratio) {
 	double parallax = 1.05;
-	int width = background[0].size() * 256;
+
+	const int tileWidth = 256;
+	const int layerWidth = background[0].size() * tileWidth;
+
 	for (int layer = 0; layer < 8; layer++) {
 		int layerParallax = cameraCenterX * ((parallax - 1) * std::pow(layer, 1.5) / 4.0);
+
+		layerParallax %= 2 * layerWidth;
+
 		for (int tile = 0; tile < background[layer].size(); tile++) {
-			int newPos = 256 * tile - layerParallax;
+			int newPos = tileWidth * tile - layerParallax;
+
 			background[layer][tile].Update();
-			while (newPos < -256) {
-				newPos += 256 * background[layer].size();
+			
+			while (newPos < -tileWidth) {
+				newPos += layerWidth;
 			}
+
 			if (newPos < 0) {
-				SDL_Rect current{ newPos, WINDOW_VERTICAL_SIZE * ratio - 256, 256, 256 };
+				SDL_Rect current{ newPos, WINDOW_VERTICAL_SIZE * ratio - tileWidth, tileWidth, tileWidth };
 				background[layer][tile].Render(&current, 0, NULL, 1.0 / ratio);
+
+				newPos += layerWidth;
 			}
-			while (newPos < 0) {
-				newPos += 256 * background[layer].size();
-			}
+
 			if (newPos < WINDOW_HORIZONTAL_SIZE * ratio) {
-				SDL_Rect current{ newPos, WINDOW_VERTICAL_SIZE * ratio - 256, 256, 256 };
+				SDL_Rect current{ newPos, WINDOW_VERTICAL_SIZE * ratio - tileWidth, tileWidth, tileWidth };
 				background[layer][tile].Render(&current, 0, NULL, 1.0 / ratio, SDL_FLIP_NONE);
 			}
 		}

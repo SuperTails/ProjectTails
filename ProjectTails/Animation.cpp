@@ -9,21 +9,22 @@ Animation::Animation() {
 	tex = nullptr;
 }
 
-Animation::Animation(const Animation& arg) {
-	Delay = arg.Delay;
-	SpriteSheet = SDL_ConvertSurface(arg.SpriteSheet, arg.SpriteSheet->format, SDL_RLEACCEL);
-	if (SpriteSheet == NULL) {
+Animation::Animation(const Animation& arg) :
+	Delay(arg.Delay),
+	numFrames(arg.numFrames),
+	FrameWindows(arg.FrameWindows),
+	looped(arg.looped),
+	frame(arg.frame),
+	tile(arg.tile),
+	timeError(arg.timeError),
+	SpriteSheet(SDL_ConvertSurface(arg.SpriteSheet, arg.SpriteSheet->format, SDL_RLEACCEL))
+{
+	if (SpriteSheet == nullptr) {
 		std::cout << SDL_GetError() << "\n";
 		throw "Spritesheet could not be created";
 	}
-	numFrames = arg.numFrames;
-	FrameWindows = arg.FrameWindows;
-	looped = arg.looped;
-	frame = arg.frame;
-	tile = arg.tile;
-	timeError = arg.timeError;
 	tex = SDL_CreateTextureFromSurface(globalObjects::renderer, SpriteSheet);
-	if (tex == NULL) {
+	if (tex == nullptr) {
 		std::cout << SDL_GetError() << "\n";
 		throw "Texture could not be created";
 	}
@@ -67,14 +68,12 @@ Animation::Animation(SDL_Surface* Sprites, int delay, int frames, bool til) :
 	looped(false),
 	SpriteSheet(NULL)
 {
-	SDL_Surface* s = Sprites;
 	SDL_FreeSurface(SpriteSheet);
-	SpriteSheet = SDL_ConvertSurface(s, SDL_GetWindowSurface(globalObjects::window)->format, NULL);
-	if (SpriteSheet == NULL) {
+	SpriteSheet = SDL_ConvertSurface(Sprites, SDL_GetWindowSurface(globalObjects::window)->format, NULL);
+	if (SpriteSheet == nullptr) {
 		std::cout << SDL_GetError() << "\n";
 		throw "Spritesheet could not be created";
 	}
-	SDL_FreeSurface(s);
 	SDL_SetSurfaceRLE(SpriteSheet, SDL_TRUE);
 	SDL_SetColorKey(SpriteSheet, SDL_RLEACCEL, SDL_MapRGBA(SDL_GetWindowSurface(globalObjects::window)->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
 	SDL_SetSurfaceBlendMode(SpriteSheet, SDL_BLENDMODE_NONE);
@@ -85,7 +84,7 @@ Animation::Animation(SDL_Surface* Sprites, int delay, int frames, bool til) :
 		FrameWindows[i].h = (Sprites->h);
 	}
 	tex = SDL_CreateTextureFromSurface(globalObjects::renderer, SpriteSheet);
-	if (tex == NULL) {
+	if (tex == nullptr) {
 		std::cout << SDL_GetError() << "\n";
 		throw "Texture could not be created";
 	}
