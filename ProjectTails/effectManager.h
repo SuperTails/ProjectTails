@@ -3,6 +3,7 @@
 #include "Constants.h"
 #include "Miscellaneous.h"
 #include "Animation.h"
+#include <memory>
 class effectManager
 {
 public:
@@ -18,7 +19,7 @@ public:
 
 	static void updateFade();
 
-	static void renderEHZRain();
+	//static void renderEHZRain();
 
 	static bool currentlyFading();
 
@@ -27,7 +28,7 @@ public:
 	inline static void unloadEHZRain();
 
 private:
-	static Animation* rain;
+	static std::unique_ptr<Animation> rain;
 	static double fadeFrames;
 	static double startFrames;
 	static bool fadeWhite;

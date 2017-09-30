@@ -16,36 +16,20 @@
 namespace LevelEditor {
 	enum editMode { TILE, ENTITY };
 
-	struct groundData {
-		int index;
-		bool flip;
-		groundData() : index(-1), flip(false) {};
-		groundData(int ind, bool f) : index(ind), flip(f) {};
-	};
-
-	extern const bool levelEditing;
+	extern bool levelEditing;
 
 	extern std::string levelPath;
 
-	//Contains all blocks defined for act (one for each json file)
-	extern std::vector < Ground > groundList;
-
 	//Contains indices into groundList, organized by levelBlocks[x][y]
-	extern std::vector < std::vector < LevelEditor::groundData > > levelBlocks;
-
-	//Maps entity key (e.g. YELLOW_SPRING) to properties
-	extern std::unordered_map < std::string, PhysProp* >* entityList;
-
-	//List of all possible keys
-	extern std::vector < std::string >* entityTypes;
+	extern std::vector < std::vector < Ground > > levelBlocks;
 
 	//Maps entity key to image for rendering
 	extern std::unordered_map < std::string, Animation > entityView;
 
 	//Stores data about one entity object
-	extern std::vector < PhysStructInit > levelEntities;
+	extern std::vector < PhysStruct > levelEntities;
 
-	extern std::vector < PhysStructInit >::iterator currentEntity;
+	extern std::vector < PhysStruct >::iterator currentEntity;
 
 	extern bool mouseDebounce;
 
@@ -59,7 +43,7 @@ namespace LevelEditor {
 
 	extern double mouseWheelValue;
 
-	void init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, std::vector < Ground::groundArrayData >& arrayData);
+	void init(std::vector < Ground >& levelGround, SDL_Point levelSize);
 
 	void renderTiles();
 

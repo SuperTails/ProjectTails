@@ -6,12 +6,12 @@
 class Camera : public PhysicsEntity
 {
 public:
-	Camera(SDL_Rect* collision);
+	Camera(const SDL_Rect& collision);
 	~Camera();
 
 	void SetOffset(SDL_Point pos) { offset = pos; };
 	SDL_Point GetOffset() { return offset;  };
-	void updatePos(SDL_Rect playerPos, int lookDirection);
+	void updatePos(const Player& player);
 	SDL_Rect getPosition();
 	SDL_Rect getCollisionRect();
 

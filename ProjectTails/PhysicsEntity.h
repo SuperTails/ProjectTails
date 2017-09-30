@@ -1,56 +1,26 @@
 #pragma once
 #include "prhsGameLib.h"
+#include "EntityTypes.h"
+#include "Functions.h"
 #include <vector>
 #include <string>
-#include "Animation.h"
-#include <cmath>
 #include <memory>
-#include <algorithm>
-#include <unordered_set>
 #include <unordered_map>
+
+struct AnimStruct;
+class Animation;
+
 struct doublePoint {
 	double x;
 	double y;
 };
-enum EntType { PLAYER, ENEMY, RING, WEAPON, PATHSWITCH, SPRING, PLATFORM, SPIKES, MONITOR, GOALPOST };
-//Stores key, vel, anim, entity type, collisionRect, and gravity
-struct PhysProp {
-	std::string key;
-	std::vector < AnimStruct > anim;
-	doublePoint vel;
-	SDL_Rect collision;
-	double gravity;
-	EntType eType;
-};
-
-struct PhysStructInit {
-	SDL_Rect pos;
-	std::vector < char > flags;
-	std::string prop;
-	PhysStructInit() : pos{ -1, -1, -1, -1 }, flags(), prop() {};
-	PhysStructInit(const PhysStructInit& other) : pos(other.pos), flags(other.flags), prop(other.prop) {};
-	PhysStructInit(SDL_Rect& p, std::vector < char >& f, std::string& pr) : pos(p), flags(f), prop(pr) {};
-};
 
 struct PhysStruct {
-	SDL_Rect pos;
-	PhysProp prop;
-	bool shouldSave;
+	entity_property_data::EntityTypeId typeId;
 	std::vector < char > flags;
-	PhysStruct(SDL_Rect p, PhysProp pr, bool s, std::vector < char > f) : pos(p), prop(pr), shouldSave(s), flags(f) {};
+	SDL_Rect position;
+	bool temporary;
 };
-
-namespace entity_property_data {
-	namespace keys {
-		const char* BEE_BADNIK = "BEEBADNIK";
-	}
-	namespace indices {
-		enum class BeeBadnik { FRAMES_UNTIL_MOVE, HAS_FIRED };
-		enum class CrabBadnik { FRAMES_UNTIL_WALK, FRAMES_UNTIL_STOP, WALK_DIRECTION };
-		enum class Bridge { WIDTH, PLAYER_POSITION, };
-		enum class Goalpost { FRAMES_UNTIL_STOP, FINISHED_SPINNING };
-	}
-}
 
 class Player;
 struct EntityManager;
@@ -63,31 +33,30 @@ public:
 	typedef std::vector < std::unique_ptr < PhysicsEntity > >::iterator entityListIter;
 	
 	PhysicsEntity();
-	PhysicsEntity(PhysStruct);
+	PhysicsEntity(const PhysStruct& p);
 	PhysicsEntity(const PhysicsEntity& arg);
 	PhysicsEntity(PhysicsEntity&& other);
 	PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize = { 16, 16 });
 	virtual ~PhysicsEntity() = default;
 
-	void update(bool updateTime = true, Player* player = nullptr, EntityManager* manager = nullptr);
+	void update(Player* player = nullptr, EntityManager* manager = nullptr);
 
-	std::unique_ptr < Animation >& GetAnim(int index);
-	std::unique_ptr < Animation >& GetAnim();
+	std::unique_ptr < Animation >& getAnim(int index);
+	const std::unique_ptr < Animation >& getAnim(int index) const;
+	std::unique_ptr < Animation >& getAnim();
+	const std::unique_ptr < Animation >& getAnim() const;
+	std::size_t currentAnimIndex() const noexcept;
 	void AddAnim(AnimStruct);
 
-	void Render(SDL_Rect& camPos, double ratio, bool absolute = false);
-
-	SDL_Renderer* getRenderer() const { return renderer; };
-	void setTime(Uint32 t) { time = t; };
-	EntType getType() const { return eType; };
+	void Render(SDL_Rect& camPos, double ratio);
 
 	void destroy();
 
-	SDL_Rect GetRelativePos(const SDL_Rect& p) const;
+	SDL_Rect getRelativePos(const SDL_Rect& p) const;
 
-	PhysProp GetProp() { return prop; };
+	SDL_Rect getCollisionRect() const;
 
-	SDL_Rect getCollisionRect();
+	const std::string& getKey() const;
 
 	std::size_t numAnims() { return animations.size(); };
 
@@ -97,59 +66,80 @@ public:
 
 	void setGravity(double g);
 
-	void custom(Player* player, EntityManager* manager);
+	void custom(Player& player, EntityManager& manager);
 
-	void setCustom(int index, double value);
-
-	char getCustom(int index) { return static_cast<char>(customVars[index]); };
+	entity_property_data::CustomData& getCustom() { return customData; };
 
 	void customInit();
 
-	std::vector < char > getFlags() { return flags; };
+	const std::vector < char >& getFlags() const { return flags; };
 
 	doublePoint getVelocity() { return velocity; };
 
 	bool isInvisible() { return invis; };
 
-	SDL_Rect getPosition();
+	SDL_Rect getPosition() const;
 
 	doublePoint& getPosError() { return posError; };
 
-	void setAnim(int a) { currentAnim = a; };
+	void setAnim(int a);
+
+	void renderRaw(const SDL_Rect& cameraPosition) const;
 
 	SDL_Point calcRectDirection(SDL_Rect& objCollide);
 
 	virtual entityPtrType& platformPtr();
 
-	const std::string& getKey() { return prop.key; };
+	PhysStruct toPhysStruct() const;
 
 	friend void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept;
 
 	static SDL_Rect getRelativePos(const SDL_Rect& objPos, const SDL_Rect& camPos);
 
-	bool loaded;
 	doublePoint velocity;
 	bool shouldSave;
 	bool canCollide;
 
 	static SDL_Point xyPoint(SDL_Rect rect) { return SDL_Point{ rect.x, rect.y }; };
 	
-	static std::unordered_map < std::string, PhysProp* >* physProps;
+	template < typename F >
+	auto applyToCurrentAnimations(F&& f) const -> 
+	typename std::enable_if_t< decltype(entity_property_data::isConstAnimationFunction(f))::value, void > {
+		if (animations.empty()) {
+			return;
+		}
+		int temp = currentAnim;
+		do {
+			f(animations[temp % animations.size()]);
+			temp /= animations.size();
+		} while (temp != 0);
+	}
 
-private:
-	std::vector < AnimStruct > anim_data;
-	entityPtrType self;
-	PhysProp prop;
-	EntType eType;
-	bool destroyAfterLoop;
+	template < typename F >
+	auto applyToCurrentAnimations(F&& f) ->
+	typename std::enable_if_t< !decltype(entity_property_data::isConstAnimationFunction(f))::value, void > {
+		if (animations.empty()) {
+			return;
+		}
+		int temp = currentAnim;
+		do {
+			f(animations[temp % animations.size()]);
+			temp /= animations.size();
+		} while (temp != 0);
+	}
 	
+	static entity_property_data::CustomData createCustomData(const PhysStruct& physStruct);
+private:
+
+	entityPtrType self;
+	std::string dataKey;
+	bool destroyAfterLoop;
+
 protected:
+	entity_property_data::CustomData customData;
 	std::vector < std::unique_ptr < Animation > > animations;
 	SDL_Rect collisionRect;
-	std::vector < double > customVars;
 	std::vector < char > flags;
-	Uint32 time;
-	Uint32 last_time;
 	int currentAnim;
 	bool invis;
 	double gravity;
@@ -166,27 +156,35 @@ struct EntityManager {
 		toAdd(add)
 	{};
 
-	void MarkAsDestroyed(const PhysicsEntity* entity) {
-		if (entityList.empty()) {
-			throw "Attempt to mark invalid entity.";
-		}
+	void MarkAsDestroyed(const PhysicsEntity* entity);
 
-		const PhysicsEntity* firstEntity = &(*entityList.front());
-
-		std::size_t distance = std::distance(firstEntity, entity);
-
-		if (distance >= entityList.size()) {
-			throw "Attempt to mark invalid entity.";
-		}
-
-		toDestroy[distance] = true;
-	}
-
-	void AddEntity(std::unique_ptr < PhysicsEntity >&& entity) {
-		toAdd.emplace_back(std::move(entity));
-	}
+	void AddEntity(std::unique_ptr < PhysicsEntity >&& entity);
 private:
 	std::vector < std::unique_ptr < PhysicsEntity > >& entityList;
 	std::vector < bool >& toDestroy;
 	std::vector < std::unique_ptr < PhysicsEntity > >& toAdd;
 };
+
+template < typename Custom > auto renderWithDefaultImpl(const PhysicsEntity& entity, const SDL_Rect& cameraPosition, const Custom& custom)
+-> typename std::enable_if_t<decltype(entity_property_data::hasRender(custom))::value, void> {
+	custom.render(entity, cameraPosition);
+}
+
+template < typename Custom > auto renderWithDefaultImpl(const PhysicsEntity& entity, const SDL_Rect& cameraPosition, const Custom& custom)
+-> typename std::enable_if_t<!decltype(entity_property_data::hasRender(custom))::value, void> {
+	entity.renderRaw(cameraPosition);
+}
+
+void renderWithDefault(const PhysicsEntity& entity, const SDL_Rect& cameraPosition);
+
+SDL_Point getCenterDifference(const SDL_Rect& r1, const SDL_Rect& r2);
+
+SDL_Point calcRectDirection(const SDL_Rect& r1, const SDL_Rect& r2);
+
+bool canBeStoodOn(const PhysicsEntity& entity);
+
+bool canBePushedAgainst(const PhysicsEntity& entity);
+
+enum class Side { RIGHT, BOTTOM, LEFT, TOP, MIDDLE };
+
+Side getCollisionSide(const SDL_Rect& r1, const SDL_Rect& r2); 

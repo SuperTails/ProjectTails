@@ -1,4 +1,4 @@
-#include "stdafx.h"
+/*#include "stdafx.h"
 #include "TextureManager.h"
 
 int sign(int val) {
@@ -48,4 +48,4 @@ void TextureManager::Update() {
 TextureManager::~TextureManager()
 {
 }
-
+*/

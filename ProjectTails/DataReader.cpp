@@ -1,92 +1,105 @@
 #include "stdafx.h"
 #include "DataReader.h"
+#include "Ground.h"
+#include "CollisionTile.h"
+#include "Constants.h"
+#include <fstream>
+#include <iomanip>
+#include <unordered_map>
+
+enum class ActType : unsigned char { TITLE, TORNADO, NORMAL };
 
 //Block and blockFlags refer to the visible tile mappings,
 //Collide and collideFlags refer to the collision mappings
-void DataReader::LoadJSONBlock(std::string path, Ground::groundArrayData& arrayData) {
-	std::ifstream DataFile;
-	DataFile.open(path.c_str());
+void DataReader::LoadJSONBlock(const std::string& path) {
+	Ground::groundArrayData arrayData;
+
+	std::ifstream DataFile(path.c_str());
 	json j;
 	DataFile >> j;
+	DataFile.close();
+	
+	const auto& layers = j["layers"];
 
-	int numLayers = j["layers"].size();
+	const int numLayers = layers.size();
 	bool isDoubleLayer = false;
-	bool hasAdditionalFlags = false;
 
 	const int MAX_GRAPHICS_TILE_INDEX = 339;
 
-	arrayData.graphicsIndices.resize(GROUND_SIZE, 0);
-	arrayData.graphicsFlags.resize(GROUND_SIZE, 0);
-
-	//Load image data
-	for (int i = 0; i < GROUND_SIZE; i++) {
-		auto& thisTile = j["layers"][0]["tiles"][i];
-
-		arrayData.graphicsIndices[i] = thisTile["tile"].get<int>();
-
-		if (thisTile["rot"].get<int>() == 2) {
-			arrayData.graphicsFlags[i] |= SDL_FLIP_VERTICAL;
-			arrayData.graphicsFlags[i] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
-		}
-		else {
-			arrayData.graphicsFlags[i] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
-		}
-	}
-	if (numLayers >= 2) {
-		if (j["layers"][1]["tiles"][0]["tile"].get<int>() <= MAX_GRAPHICS_TILE_INDEX) {
-			isDoubleLayer = true;
-			//Load image data for layer 2
-			arrayData.graphicsIndices.resize(GROUND_SIZE * 2);
-			arrayData.graphicsFlags.resize(GROUND_SIZE * 2);
-			for (int i = 0; i < GROUND_SIZE; i++) {
-				auto& thisTile = j["layers"][1]["tiles"][i];
-				arrayData.graphicsIndices[i + GROUND_SIZE] = thisTile["tile"].get<int>();
-				if (thisTile["rot"].get<int>() == 2) {
-					arrayData.graphicsFlags[i + GROUND_SIZE] |= SDL_FLIP_VERTICAL;
-					arrayData.graphicsFlags[i + GROUND_SIZE] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
-				}
-				else {
-					arrayData.graphicsFlags[i + GROUND_SIZE] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
-				}
-			}
-		}
-	}
-	hasAdditionalFlags = (j["layers"].back()["name"] == "AdditionalFlags");
-	arrayData.collideIndices.resize(GROUND_SIZE * (numLayers - isDoubleLayer - hasAdditionalFlags - 1), MAX_GRAPHICS_TILE_INDEX + 1);
-	arrayData.collideFlags.resize(GROUND_SIZE * (numLayers - isDoubleLayer - hasAdditionalFlags - 1), 0);
-	for (int l = 1 + isDoubleLayer; l < numLayers - hasAdditionalFlags; l++) {
-		//Load collision data
-		for (int i = 0; i < GROUND_SIZE; i++) {
-			auto& thisTile = j["layers"][l]["tiles"][i];
-			int current = thisTile["tile"].get<int>();
-			if (current == 591) {
-				current = 560;
-			}
-			arrayData.collideIndices[i + GROUND_SIZE * (l - isDoubleLayer - 1)] = current - 340;
-			if (thisTile["rot"].get<int>() == 2) {
-				arrayData.collideFlags[i + GROUND_SIZE * (l - isDoubleLayer - 1)] |= SDL_FLIP_VERTICAL;
-				arrayData.collideFlags[i + GROUND_SIZE * (l - isDoubleLayer - 1)] |= (!thisTile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+	auto loadGraphicsLayer = [&](int layer) {
+		for (int i = 0; i < GROUND_SIZE; ++i) {
+			const auto& data = layers[layer]["tiles"][i];
+			auto& tile = arrayData.graphics[layer][i];
+			// Set tile index for graphics layer 0
+			tile = { data["tile"].get<int>(), 0 };
+			
+			// Sets flags for graphics layer 0
+			if (data["rot"].get<int>() == 2) {
+				tile.flags |= SDL_FLIP_VERTICAL;
+				tile.flags |= (!data["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
 			}
 			else {
-				arrayData.collideFlags[i + GROUND_SIZE * (l - isDoubleLayer - 1)] |= (thisTile["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL);
+				tile.flags |= data["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL;
 			}
 		}
+	};
+
+	// Load image data
+	arrayData.graphics.resize(1);
+	loadGraphicsLayer(0);
+
+	if (numLayers >= 2 && layers[1]["tiles"][0]["tile"].get<int>() <= MAX_GRAPHICS_TILE_INDEX) {
+		isDoubleLayer = true;
+
+		// Load image data for layer 2
+		arrayData.graphics.resize(2);
+		loadGraphicsLayer(1);
+	}
+
+	const bool hasAnimatedLayer = (layers[isDoubleLayer]["name"] == "Animation");
+
+	// Handle animation
+	if (hasAnimatedLayer) {
+		
+	}
+
+	const int collisionLayersStart = 1 + isDoubleLayer + hasAnimatedLayer;
+
+	const bool hasAdditionalFlags = (layers.back()["name"] == "AdditionalFlags");
+	arrayData.collision.resize(numLayers - collisionLayersStart - hasAdditionalFlags, { MAX_GRAPHICS_TILE_INDEX + 1, 0 });
+
+	for (int l = 0; l < numLayers - collisionLayersStart - hasAdditionalFlags; ++l) {
+		// Load collision data
+		const auto& layerTiles = layers[l + collisionLayersStart]["tiles"];
+		std::transform(layerTiles.begin(), layerTiles.end(), arrayData.collision[l].begin(),
+			[](const json& tile) {
+				int current = tile["tile"].get<int>();
+				Ground::Tile result{ ((current == 591) ? 560 : current) - 340, 0 };
+				if (tile["rot"].get<int>() == 2) {
+					result.flags |= SDL_FLIP_VERTICAL;
+					result.flags |= (!tile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+				}
+				else {
+					result.flags |= (tile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+				}
+				return result;
+			});
 	}
 
 	if (hasAdditionalFlags) {
-		for (int i = 0; i < GROUND_SIZE; i++) {
-			auto& thisTile = j["layers"].back()["tiles"][i];
-			int current = thisTile["tile"].get<int>();
-			if (current == 592) {
-				arrayData.collideFlags[i] |= int(Ground::Flags::TOP_SOLID);
+		for (int i = 0; i < GROUND_SIZE; ++i) {
+			if (layers.back()["tiles"][i]["tile"].get<int>() == 592) {
+				arrayData.collision[0][i].flags |= static_cast < int >(Ground::Flags::TOP_SOLID);
 			}
 		}
 	}
+
+	Ground::addTile(arrayData);
 
 	DataFile.close();
 }
 
-void DataReader::LoadActData(std::string path, int& n, std::string& name1, std::vector < PhysStructInit >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >* ground, std::vector < Ground::groundArrayData >* arrayData, std::vector < groundData >* groundIndices, SDL_Point* levelSize) {
+void DataReader::LoadActData(const std::string& path, int& n, std::string& name1, std::vector < PhysStruct >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >& ground, SDL_Point& levelSize) {
 	std::ifstream DataFile;
 	std::string data;
 	DataFile.open(path + "Data.txt");
@@ -100,24 +113,26 @@ void DataReader::LoadActData(std::string path, int& n, std::string& name1, std::
 	DataFile >> n;
 
 	//Name
-	char* temp = new char[30];
-	DataFile.getline(temp, 30, '\n');
-	name1 = std::string(temp);
-	delete[] temp;
+	DataFile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	std::getline(DataFile, name1);
 
 	//Entity reading
 	entities.clear();
 	do {
-		PhysStructInit current;
+		std::cout << "Destroying entity!\n";
+		PhysStruct current;
 		DataFile >> data;
-		current.pos.x = atoi(data.c_str());
+		if (data == "E") {
+			break;
+		}
+		current.position.x = atoi(data.c_str());
 		DataFile >> data;
-		current.pos.y = atoi(data.c_str());
-		current.pos.w = current.pos.h = 16;
+		current.position.y = atoi(data.c_str());
+		current.position.w = current.position.h = 16;
 		DataFile >> data;
-		current.prop = data;
+		current.typeId = data;
 		char flag = DataFile.get();
-		while (flag != '\n') {
+		while (flag != '\n' && flag != '\r') {
 			if (flag == ' ') {
 				flag = DataFile.get();
 				continue;
@@ -125,9 +140,12 @@ void DataReader::LoadActData(std::string path, int& n, std::string& name1, std::
 			current.flags.push_back(flag);
 			flag = DataFile.get();
 		}
+		using namespace entity_property_data;
+		if (current.flags.size() != requiredFlagCount(getEntityTypeData(current.typeId).behaviorKey)) {
+			throw std::logic_error("Invalid flag count for entity!");
+		}
 		entities.push_back(current);
 	} while (data != "E");
-	entities.pop_back();
 
 	//Win Area
 	DataFile >> data;
@@ -142,52 +160,38 @@ void DataReader::LoadActData(std::string path, int& n, std::string& name1, std::
 	//Act Type
 	DataFile >> data;
 	if (data == "TITLE") {
-		actType = TITLE;
+		actType = ActType::TITLE;
 	}
 	else if (data == "TORNADO") {
-		actType = TORNADO;
+		actType = ActType::TORNADO;
 	}
 	else if (data == "NORMAL") {
-		actType = NORMAL;
+		actType = ActType::NORMAL;
 		//Start loading ground:
 
 		//Load the tilemap
 		DataFile >> data;
-		Ground::setMap(data);
+		Ground::setMap(std::string{ ASSET } + data);
 
 		int count = 0;
 		DataFile >> data;
 		int numTiles = atoi(data.c_str());
 		DataFile >> data;
-		levelSize->x = std::stoi(data);
+		levelSize.x = std::stoi(data);
 		DataFile >> data;
-		levelSize->y = std::stoi(data);
-		ground->resize(numTiles);
-		groundIndices->resize(numTiles);
+		levelSize.y = std::stoi(data);
+		ground.resize(numTiles);
+
 		while (count < numTiles) {
-			DataFile >> data;
-			SDL_Point a;
-			a.x = atoi(data.c_str());
-			DataFile >> data;
-			a.y = atoi(data.c_str());
-			DataFile >> data;
-			int ind = std::stoi(data);
-			char next = DataFile.get();
-			bool flip = false;
-			if (next != EOF && next != '\n')
-				flip = DataFile.get() - '0';
-			if (groundIndices != nullptr) {
-				(*groundIndices)[count] = DataReader::groundData{ a.x, a.y, ind, flip };
-			}
-			(*ground)[count] = std::move(Ground(a, (*arrayData)[ind], flip));
-			count++;
+			DataFile >> ground[count];
+			++count;
 		}
 	}
 
 	DataFile.close();
 }
 
-void DataReader::LoadEntityData(std::string path, std::vector < PhysProp >& prop, std::unordered_map < std::string, PhysProp* >& entityKeys, std::vector < std::string >& Types) {
+void DataReader::LoadEntityData(const std::string& path) {
 	std::ifstream DataFile(path);
 
 	if (DataFile.fail()) {
@@ -196,117 +200,62 @@ void DataReader::LoadEntityData(std::string path, std::vector < PhysProp >& prop
 		return;
 	}
 
+	char nextChar = 'a';
 
-	int status = 0;
 	while (!DataFile.eof()) {
-		status = 0;
 		std::string next = "";
-		PhysProp current;
-		//while (next != "ENDOBJ") {
-		switch (status) {
-		case 0:
+		entity_property_data::EntityType current;
+		auto getInt = [&]() {
+			std::string next;
 			DataFile >> next;
 			std::cout << next << " ";
-			status++;
-		case 1:
+			return std::stoi(std::move(next));
+		};
+		auto getDouble = [&]() {
+			std::string next;
 			DataFile >> next;
 			std::cout << next << " ";
-			Types.push_back(next);
-			current.key = Types.back();
-			status++;
-		case 2:
+			return std::stod(std::move(next));
+		};
+		auto& types = entity_property_data::entityTypes;
+		DataFile >> next;
+		std::cout << next << " ";
+		DataFile >> next;
+		std::cout << next << " ";
+		std::string id = std::move(next);
+		current.collisionRect = SDL_Rect{ getInt(), getInt(), getInt(), getInt() };
+		current.defaultVelocity = { getDouble(), getDouble() };
+		current.defaultGravity = getDouble();
+		while (true) {
 			DataFile >> next;
 			std::cout << next << " ";
-			current.collision.x = atoi(next.c_str());
-			DataFile >> next;
-			std::cout << next << " ";
-			current.collision.y = atoi(next.c_str());
-			DataFile >> next;
-			std::cout << next << " ";
-			current.collision.w = atoi(next.c_str());
-			DataFile >> next;
-			std::cout << next << " ";
-			current.collision.h = atoi(next.c_str());
-			//case 2.5:
-			DataFile >> next;
-			std::cout << next << " ";
-			current.vel.x = (double)atof(next.c_str());
-			DataFile >> next;
-			std::cout << next << " ";
-			current.vel.y = (double)atof(next.c_str());
-			//case 2 3/4:
-			DataFile >> next;
-			std::cout << next << " ";
-			current.gravity = atoi(next.c_str());
-			status++;
-		case 3:
-			while (true) {
-				DataFile >> next;
-				std::cout << next << " ";
-				if (next != "EA") {
-					AnimStruct a;
-					a.SpritePath = next;
-					DataFile >> next;
-					std::cout << next << " ";
-					a.delay = atoi(next.c_str());
-					DataFile >> next;
-					std::cout << next << " ";
-					a.frames = atoi(next.c_str());
-					current.anim.push_back(a);
-				}
-				else {
-					break;
-				}
+			if (next == "EA") {
+				break;
 			}
-			status++;
-		case 4:
-			DataFile >> next;
-			std::cout << next << " ";
-			if (next == "ENEMY") {
-				current.eType = ENEMY;
+			else {
+				AnimStruct a;
+				a.SpritePath = ASSET + next;
+				a.delay = std::chrono::milliseconds(getInt());
+				a.frames = getInt();
+				current.animationTypes.push_back(a);
 			}
-			else if (next == "RING") {
-				current.eType = RING;
-			}
-			else if (next == "WEAPON") {
-				current.eType = WEAPON;
-			}
-			else if (next == "PHYSICS") {
-				current.eType = PATHSWITCH;
-			}
-			else if (next == "SPRING") {
-				current.eType = SPRING;
-			}
-			else if (next == "PLATFORM") {
-				current.eType = PLATFORM;
-			}
-			else if (next == "SPIKES") {
-				current.eType = SPIKES;
-			}
-			else if (next == "MONITOR") {
-				current.eType = MONITOR;
-			}
-			else if (next == "GOALPOST") {
-				current.eType = GOALPOST;
-			}
-			status++;
-		case 5:
-			DataFile >> next;
-			std::cout << next << "\n";
 		}
-		prop.push_back(current);
-		//}
+		DataFile >> next;
+		std::cout << next << " ";
+		current.behaviorKey = entity_property_data::stringToKey(next);
+		DataFile >> next;
+		std::cout << next << "\n";
+		types.emplace(std::move(id), std::move(current));
 		std::cout << "Done loading entity!\n";
+		DataFile.ignore(2);
+		nextChar = DataFile.peek();
 	}
 
-	for (PhysProp& i : prop) {
-		entityKeys.emplace(i.key, &i);
-	}
 	std::cout << "All entity loading complete!\n";
 	DataFile.close();
 }
 
-void DataReader::LoadTileData(std::string path, std::vector < CollisionTile >& tiles) {
+void DataReader::LoadTileData(const std::string& path, std::vector < CollisionTile >& tiles) {
 	std::ifstream DataFile;
 	DataFile.open(path + "Tiles.txt");
 	std::string data;
@@ -364,10 +313,10 @@ void DataReader::LoadTileData(std::vector < CollisionTile >& tiles, matrix < int
 	}
 };
 
-void DataReader::LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles) {
+void DataReader::LoadCollisionsFromImage(const std::string& path, matrix < int >& heights, std::vector < double >& angles) {
 	SDL_Surface* s = IMG_Load(path.c_str());
 	
-	SDL_Surface* DataFile = SDL_ConvertSurface(s, SDL_GetWindowSurface(globalObjects::window)->format, NULL);
+	SDL_Surface* DataFile = SDL_ConvertSurface(s, SDL_GetWindowSurface(globalObjects::window)->format, 0u);
 	SDL_FreeSurface(s);
 	if (DataFile == NULL) {
 		throw "Could not open image file!\n";
@@ -388,7 +337,7 @@ void DataReader::LoadCollisionsFromImage(std::string path, matrix < int >& heigh
 	dmask = 0x00000100;
 #endif
 
-	Uint32 color1 = Animation::getPixel(DataFile, 16, 15);
+	Uint32 color1 = ::getPixel(DataFile, 16, 15);
 
 	heights.resize(224);
 	angles.resize(224);
@@ -399,7 +348,7 @@ void DataReader::LoadCollisionsFromImage(std::string path, matrix < int >& heigh
 			heights[tileX / 16 + tileY * 2].resize(16, 0);
 			for (int x = 0; x < 16; x++) {
 				for (int y = 15; y >= 0; y--) {
-					Uint32 color = Animation::getPixel(DataFile, tileX + x, tileY + y);
+					Uint32 color = ::getPixel(DataFile, tileX + x, tileY + y);
 					if (color & cmask) {
 						assert((color & gmask) / dmask >= 0);
 						int tempAngle = (color & gmask) / dmask;
@@ -417,24 +366,25 @@ void DataReader::LoadCollisionsFromImage(std::string path, matrix < int >& heigh
 	SDL_FreeSurface(DataFile);
 };
 
-void DataReader::LoadBackground(std::string path, std::vector < std::vector < Animation > >& background, int numTiles) {
-	typedef ::Animation::effectType effectType;
-	typedef ::Animation::effectData effectData;
-	
+void DataReader::LoadBackground(const filesystem::path& directory, std::vector < std::vector < Animation > >& background) {
 	SDL_Surface* current;
-	background.clear();
-	background.resize(8);
-	for (int tile = 0; tile < numTiles; tile++) {
-		std::string currentPath = path + std::to_string(tile + 1) + '_';
-		for (int layer = 0; layer < 8; layer++) {
-			std::string fullCurrentPath = currentPath + std::to_string(layer) + ".png";
-			current = IMG_Load(fullCurrentPath.c_str());
-			background[layer].emplace_back(current, 12.0 * 1000.0 / 60.0, 1);
-			SDL_FreeSurface(current);
+	background = std::vector < std::vector < Animation > >(8, std::vector<Animation>(2, Animation{}));
+	for (const auto& file : filesystem::directory_iterator(directory)) {
+		if (file.path().extension() == ".png") {
+			auto tile = file.path().filename().string()[0] - '0';
+			auto layer = file.path().filename().string()[2] - '0';
+
+			using namespace std::chrono_literals;
+
+			background[layer][tile] = Animation{ AnimStruct{ file.path().string(), 200ms, 1 } }; 
+
 			if (layer == 0) {
-				std::vector < std::vector < effectType > > types(4, std::vector<effectType>(1, effectType::PALETTE_SWAP));
-				std::vector < std::vector < effectData > > data(4, std::vector<effectData>(1));
-				std::vector < Uint32 > oldColors{ 0x006080a0, 0x006080e0, 0x0080a0e0, 0x00a0c0e0 };
+				using namespace animation_effects;
+				std::vector < AnimationEffectList > effects(4, AnimationEffectList(1, PaletteSwap{}));
+				auto color = [](auto r, auto g, auto b) {
+					return SDL_MapRGBA(&imageFormat, r, g, b, SDL_ALPHA_OPAQUE);
+				};
+				std::vector < Uint32 > oldColors{ color(0x60,0x80,0xa0), color(0x60,0x80,0xe0), color(0x80,0xa0,0xe0), color(0xa0,0xc0,0xe0) };
 				std::vector < std::vector < Uint32 > > newColors{
 					{
 						oldColors[0], oldColors[1], oldColors[2], oldColors[3]
@@ -449,26 +399,31 @@ void DataReader::LoadBackground(std::string path, std::vector < std::vector < An
 						oldColors[1], oldColors[3], oldColors[2], oldColors[0]
 					}
 				};
-				for (int i = 0; i < 4; i++) {
-					data[i][0].swp.oldColors = oldColors;
-					data[i][0].swp.newColors = newColors[i];
+				for(std::size_t i = 0; i < effects.size(); ++i) {
+					auto& effect = std::get<PaletteSwap>(effects[i][0]);
+					effect.oldColors = oldColors;
+					effect.newColors = newColors[i];
 				}
-				background[0][tile].addStaticEffects(types, data);
+				background[0][tile].addStaticEffects(effects);
 			}
-			std::cout << "\tLayer " << layer << " done\n";
 		}
-		std::cout << "Tile " << tile << " done\n";
 	}
+	std::cout << "Background loading complete.\n";
 }
 
-void DataReader::LoadLevelBlocks(std::string path, std::vector<Ground::groundArrayData>& arrayData) {
+void DataReader::LoadLevelBlocks(const std::string& path) {
 	int currentBlockNum = 0;
 	std::string currentBlock = path + std::to_string(currentBlockNum + 1) + ".json";
-	arrayData.clear();
-	while (std::experimental::filesystem::exists(currentBlock)) {
-		arrayData.emplace_back();
-		LoadJSONBlock(currentBlock, arrayData.back());
-		currentBlockNum++;
+	Ground::clearTiles();
+	std::ifstream fileCheck;
+	while (true) {
+		fileCheck.open(currentBlock.c_str());
+		if (!fileCheck.good()) {
+			break;
+		}
+		fileCheck.close();
+		LoadJSONBlock(currentBlock); 
+		++currentBlockNum;
 		currentBlock = path + std::to_string(currentBlockNum + 1) + ".json";
 	}
 }

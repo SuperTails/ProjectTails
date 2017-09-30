@@ -1,11 +1,13 @@
 #include "stdafx.h"
 #include "Camera.h"
+#include "Timer.h"
+#include "Player.h"
 
 
-Camera::Camera(SDL_Rect* collision)
+Camera::Camera(const SDL_Rect& collision)
 {
 	position = { 0,0,0,0 };
-	collisionRect = (*collision);
+	collisionRect = collision;
 	currentLookOffset = 0;
 	frameCount = 0;
 }
@@ -15,13 +17,15 @@ Camera::~Camera()
 {
 }
 
-void Camera::updatePos(SDL_Rect playerPos, int lookDirection) {
-	int left = -8;
-	int right = left + 16;
-	int top = -16;
-	int bottom = top + 48;
+void Camera::updatePos(const Player& player) {
+	const int left = -8;
+	const int right = left + 16;
+	const int top = -16;
+	const int bottom = top + 48;
+	const int lookDirection = player.lookDirection();
+	SDL_Point playerPos = getXY(player.getPosition());
 	playerPos.x += offset.x;
-	playerPos.y += offset.y;
+	playerPos.y += offset.y + player.getYRadius();
 	if (playerPos.x - position.x < left) {
 		position.x += std::max(playerPos.x - position.x - left, -16);
 	}
@@ -35,7 +39,7 @@ void Camera::updatePos(SDL_Rect playerPos, int lookDirection) {
 		position.y += std::min(playerPos.y - position.y - bottom, 16);
 	}
 	position.x = std::max(int(WINDOW_HORIZONTAL_SIZE * globalObjects::ratio / 2), position.x - offset.x) + offset.x;
-	double thisFrames = ((globalObjects::time - globalObjects::last_time) / (1000.0 / 60.0));
+	const double thisFrames = (Timer::getFrameTime().count() / (1000.0 / 60.0));
 	if (lookDirection != 0 && (currentLookOffset == 0 || (lookDirection > 0) == (currentLookOffset < 0))) {
 		frameCount = std::min(thisFrames + frameCount, 120.0);
 		if (frameCount == 120.0) {

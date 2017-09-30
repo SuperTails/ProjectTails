@@ -1,68 +1,68 @@
 #include "stdafx.h"
+#include <algorithm>
+#include <cmath>
+#include "EntityTypes.h"
 #include "Player.h"
+#include "Functions.h"
+#include "Ground.h"
+#include "CollisionTile.h"
+#include "Miscellaneous.h"
+#include "InputComponent.h"
+#include "Camera.h"
 
 Player::Player() :
-	accel(0.046875),
-	decel(0.5),
-	frc(accel),
-	top(6.0),
-	slp(0.125),
 	horizFlip(false),
 	path(0),
 	controlLock(0),
 	spindash(-1),
-	looking(0),
-	flightTime(0.0),
+	flightTime(8000),
 	corkscrew(false),
 	ceilingBlocked(false),
 	displayAngle(0.0),
 	actCleared(false),
 	state(State::IDLE),
 	rings(0),
-	centerOffset{ -25, -11 }
+	damageCountdown(0)
 {
 	using namespace player_constants::animation_paths;
+	using namespace std::chrono_literals;
 	const std::vector < AnimStruct > PLAYER_ANIMATIONS = {
-		{ TORNADO_PATH, 50, 4 },		//0
-		{ IDLE_PATH, 133, 4 },
-		{ WALK_PATH, 133, 7 },
-		{ RUN_PATH,  133, 4 },
-		{ ROLL_BODY_PATH, 64, 6 },	//4
-		{ ROLL_TAILS_PATH, 128, 3 },
-		{ CROUCH_PATH, 133, 5 },
-		{ SPINDASH_PATH, 30, 5 },
-		{ FLY_PATH, 50, 2 },		//8
-		{ FLY_TIRED_PATH, 60, 4 },
-		{ LOOK_UP_PATH, 133, 5 },
-		{ CORKSCREW_PATH, 50, 11 },
-		{ HURT_PATH, 32, 2 },		//12
-		{ ACT_CLEAR_PATH, 150, 3 }
+		{ TORNADO_PATH, 50ms, 4 },		//0
+		{ IDLE_PATH, 133ms, 5 },
+		{ WALK_PATH, 133ms, 7 },
+		{ RUN_PATH,  133ms, 4 },
+		{ ROLL_BODY_PATH, 64ms, 6 },	//4
+		{ ROLL_TAILS_PATH, 128ms, 3 },
+		{ CROUCH_PATH, 133ms, 5 },
+		{ SPINDASH_PATH, 30ms, 5 },
+		{ FLY_PATH, 50ms, 2 },		//8
+		{ FLY_TIRED_PATH, 60ms, 4 },
+		{ LOOK_UP_PATH, 133ms, 5 },
+		{ CORKSCREW_PATH, 50ms, 11 },
+		{ HURT_PATH, 32ms, 2 },		//12
+		{ ACT_CLEAR_PATH, 150ms, 3 }
 	};
 	
 	for (const AnimStruct& i : PLAYER_ANIMATIONS) {
-		animations.emplace_back(new Animation(i));
+		animations.push_back(std::make_unique<Animation>(i));
 	}
 
 	position = PRHS_Rect{ 20, 0, 120, 64, 0 };
-	collisionRect = SDL_Rect{ 0,19,120,30 };
+	collisionRect = SDL_Rect{ 0, 19, 120, 30 };
 
-	loaded = true;
+	customData = NoCustomData{};
 }
 
-void Player::setActType(int aType) {
+void Player::setActType(unsigned char aType) {
 	actType = aType;
 	if (actType == 1) {
-		currentAnim = 0;
+		setAnimation(0);
 		gravity = 0;
 	}
 	else if (actType == 2) {
 		collisionRect = { 0, 0, 36, 31 };
-		currentAnim = 1;
+		setAnimation(1);
 		gravity = 0.21875;
-		accel = 0.046875;
-		decel = 0.5;
-		frc = accel;
-		top = 6;
 	}
 }
 
@@ -70,19 +70,24 @@ double Player::getAngle() {
 	return hexToDeg(angle);
 }
 
-void Player::takeDamage(EntityManager& manager, int enemyX) {
+void Player::takeDamage(EntityManager& manager, int enemyCenterX) {
 	double toRad = M_PI / 180;
 	double angle = 101.25;
 	bool n = false;
 	int speed = 4;
+	flightTime.stop();
+	gravity = 0.21875;
+	onGround = false;
+	jumping = false;
+
 	if (damageCountdown == 0) {
-		for (int i = 0; (i < rings) && (i < 32); i++) {
-			PhysStruct p { SDL_Rect{position.x, position.y, 256, 256}, *(PhysicsEntity::physProps->find("RING")->second), false, std::vector < char >() };
-			std::unique_ptr < PhysicsEntity > temp(new PhysicsEntity(p));
+		for (int i = 0; (i < rings) && (i < 32); ++i) {
+			const auto& ringProperties = entity_property_data::getEntityTypeData("RING");
+			PhysStruct p { "RING", {}, { position.x, position.y, 16, 16 }, true };
+			auto temp = std::make_unique<PhysicsEntity>(p);
 			doublePoint vel { -1 * sin(angle * toRad) * speed, cos(angle * toRad) * speed };
 			temp->setVelocity(vel);
 			temp->setGravity(0.09375);
-			temp->setCustom(0, 4267.0);
 			temp->shouldSave = false;
 			if (n) {
 				temp->setVelocity({ vel.x * -1, vel.y });
@@ -96,40 +101,33 @@ void Player::takeDamage(EntityManager& manager, int enemyX) {
 
 			manager.AddEntity(std::move(temp));
 		}
-		int tempRings = rings;
 		rings = 0;
 		damageCountdown = 2000;
 		velocity.y = -4;
-		velocity.x = 2 * signum(position.x - enemyX);
+		velocity.x = 2 * signum(position.x - enemyCenterX);
 		velocity.x = (velocity.x == 0) ? 1.0 : velocity.x;
-		currentAnim = 12;
+		setAnimation(12);
 	}
 }
 
-void Player::hitEnemy(EntityManager& manager, SDL_Point enemyCenter) {
-	if (canDamage()) {
-		if (position.y > enemyCenter.y || velocity.y < 0) {
-			velocity.y -= signum(velocity.y);
-		}
-		else {
-			if (globalObjects::input.GetKeyState(InputComponent::JUMP)) {
-				velocity.y *= -1;
-			}
-			else {
-				velocity.y = std::max(-1.0 * velocity.y, -1.0);
-			}
-		}
+int Player::getYRadius() const {
+	int yRadius = 0;
+	applyToCurrentAnimations([&](const auto& anim) { yRadius = std::max(yRadius, anim->GetSize().y - anim->getOffset()->y); });
+	if (currentAnim == 5 + 4 * animations.size()) {
+		return 14;
+	}
+	else if (currentAnim == 5 + 7 * animations.size()) {
+		return 21;
+	}
+	return yRadius;
+}
+
+void Player::hitEnemy(EntityManager& manager, PhysicsEntity& enemy) {
+	if (canDamageEnemy()) {
+		destroyEnemy(manager, enemy);
 	}
 	else {
-		velocity.y = -4;
-		velocity.x = 2 * signum(position.x - enemyCenter.x);
-		flightTime = 0.0;
-		gravity = 0.21875;
-		onGround = false;
-		jumping = false;
-		velocity.x = velocity.x ? velocity.x : 2;
-		currentAnim = 12;
-		takeDamage(manager, enemyCenter.x);
+		takeDamage(manager, enemy.getCollisionRect().x + enemy.getCollisionRect().y / 2 );
 	}
 }
 
@@ -138,17 +136,15 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 	using namespace physics;
 
 	InputComponent& input = globalObjects::input;
-	last_time = time;
-	time = SDL_GetTicks();
 
-	Uint32 deltaTime = time - last_time;
+	const auto deltaTime = Timer::getFrameTime();
 
-	if (deltaTime == 0) {
+	if (deltaTime.count() == 0) {
 		return;
 	}
 
 	if (onGround) {
-		if (!onGroundPrev && onGround) {
+		if (!onGroundPrev) {
 			if (velocity.x == 0 && velocity.y == 0) {
 				gsp = 0.0;
 			}
@@ -157,11 +153,11 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 				double velocityAngle = atan2(-velocity.y, velocity.x);
 				
 				// Compute the dot product between the velocity and the ground
-				gsp = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2)) * cos(velocityAngle - hexToDeg(angle) * M_PI / 180.0);
+				gsp = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2)) * cos(velocityAngle - hexToRad(angle));
 			}
 		}
-		velocity.x = gsp * cos(hexToDeg(angle) * M_PI / 180.0);
-		velocity.y = -1 * gsp * sin(hexToDeg(angle) * M_PI / 180.0);
+		velocity.x = gsp * cos(hexToRad(angle));
+		velocity.y = -1 * gsp * sin(hexToRad(angle));
 	}
 	
 
@@ -174,7 +170,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		else if (input.GetKeyState(InputComponent::RIGHT)) {
 			velocity.x = 2;
 		}
-		else if (abs(velocity.x - 1.5) <= 0.05) {
+		else if (std::abs(velocity.x - 1.5) <= 0.05) {
 			velocity.x = 1.5;
 		}
 		else {
@@ -188,7 +184,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			velocity.y = -2;
 			break;
 		}
-		else if (abs(velocity.y) <= 0.5) {
+		else if (std::abs(velocity.y) <= 0.5) {
 			velocity.y = 0;
 			break;
 		}
@@ -196,7 +192,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		break;
 	//Normal act
 	case 2:
-
+		{
 		if (!onGroundPrev && onGround) {
 			if (velocity.x == 0) {
 				state = State::IDLE;
@@ -213,9 +209,11 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			velocity.x = std::max(0.0, velocity.x);
 		}
 
-		decel = DEFAULT_DECCELERATION;
-		slp = DEFAULT_SLOPE;
-		top = DEFAULT_TOP_SPEED;
+		double accel = (onGround ? DEFAULT_ACCELERATION : AIR_ACCELERATION); 
+		double decel = (onGround ? DEFAULT_DECCELERATION : AIR_DECCELERATION);
+		double frc = (onGround ? DEFAULT_FRICTION : AIR_FRICTION);
+		double top = DEFAULT_TOP_SPEED;
+		double slp = DEFAULT_SLOPE;
 
 		// Reset gravity unless flying
 		if (state != State::FLYING) {
@@ -224,77 +222,57 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 
 		// Set miscellaneous variables
 		if (onGround) {
-			flightTime = 0.0;
-			accel = DEFAULT_ACCELERATION;
-			frc = DEFAULT_FRICTION;
+			flightTime.stop();
 			jmp = 0;
 			corkscrew = false;
 		}
-		else {
-			accel = AIR_ACCELERATION;
-			decel = AIR_DECCELERATION;
-			frc   = AIR_FRICTION;
-		}
-
 
 		const double FRAME_TIME_MS = 1000.0 / 60.0;
 
-		double thisFrameCount = deltaTime / FRAME_TIME_MS;
+		const double thisFrameCount = deltaTime.count() / FRAME_TIME_MS;
 
 		double thisAccel = thisFrameCount * accel;
 		double thisDecel = thisFrameCount * decel;
 		double thisFrc   = thisFrameCount * frc;
 
-		double thisDecay = 256.0 / thisFrameCount;
 		double thisAdd = 2.0 * thisFrameCount;
 
-		double anim_steps = std::max(8.0 - abs(gsp), 1.0);
+		double anim_steps = std::max(8.0 - std::abs(gsp), 1.0);
 
-		controlLock = std::max(0, controlLock - int(deltaTime));
+		controlLock = std::max<int>(0, controlLock - deltaTime.count());
 
-		if (state != State::CROUCHING && state != State::LOOKING_UP) {
-			looking = 0;
-		}
+		using namespace std::chrono_literals;
 
 		switch (state) {
 		case State::IDLE:
 
 			// If pressing down, crouch.
 			if (input.GetKeyState(InputComponent::DOWN)) {
-				looking = -1;
 				state = State::CROUCHING;
 				position.y += ROLL_VERTICAL_OFFSET;
 				break;
 			}
 			// If pressing up, look up
 			else if (input.GetKeyState(InputComponent::UP)) {
-				looking = 1;
 				state = State::LOOKING_UP;
 				break;
 			}
 
-			updateIfWalkOrIdle(input, thisAccel, thisDecel, thisFrc);
+			updateIfWalkOrIdle(input, thisAccel, thisDecel, thisFrc, slp);
 
 			if (gsp != 0) {
 				state = State::WALKING;
 				break;
 			}
 
-			currentAnim = 1;
-
-			if (horizFlip) {
-				centerOffset = { -9, -11 };
-			}
-			else {
-				centerOffset = { -27, -11 };
-			}
+			setAnimation(1);
 
 			break;
 		case State::WALKING:
 
 			// If moving slowly enough, just crouch. Otherwise, roll.
 			if (input.GetKeyState(InputComponent::DOWN)) {
-				if (abs(gsp) < 0.5) {
+				if (std::abs(gsp) < 0.5) {
 					state = State::CROUCHING;
 					position.y += ROLL_VERTICAL_OFFSET;
 					gsp = 0.0;
@@ -306,22 +284,20 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 				}
 			}
 
-			updateIfWalkOrIdle(input, thisAccel, thisDecel, thisFrc);
+			updateIfWalkOrIdle(input, thisAccel, thisDecel, thisFrc, slp);
 
 			if (gsp == 0) {
 				state = State::IDLE;
 				break;
 			}
 
-			currentAnim = 2 + (abs(gsp) >= 0.9 * top);
-			animations[currentAnim]->SetDelay(anim_steps * 1000.0 / 60.0);
+			setAnimation(2 + (std::abs(gsp) >= 0.9 * top));
+			animations[currentAnim]->setDelay(Animation::DurationType(static_cast<int>(anim_steps * FRAME_TIME_MS)));
 
 			if (gsp < 0) {
-				centerOffset = { -20, -11 };
 				horizFlip = true;
 			}
 			else if (gsp > 0) {
-				centerOffset = { -29, -11 };
 				horizFlip = false;
 			}
 
@@ -330,7 +306,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 
 			// Start flying
 			if (input.GetKeyPress(InputComponent::JUMP) && !corkscrew) {
-				flightTime = 8000.0;
+				flightTime.start();
 				gravity = 0.03125;
 				state = State::FLYING;
 				break;
@@ -340,40 +316,38 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 				velocity.y = -4.0;
 			}
 
-			currentAnim = 5 + 4 * animations.size();
-			animations[5]->SetDelay(128);
+			setAnimation(5 + 4 * animations.size());
+			animations[5]->setDelay(128ms);
 
-			centerOffset = { -14, -14 };
-			
 			break;
 		case State::FLYING:
-
-			accel = AIR_ACCELERATION;
-			frc = AIR_FRICTION;
-
-			thisAccel = thisFrameCount * accel;
 			thisFrc = pow(frc, thisFrameCount);
 
 			if (velocity.y < -1) {
 				gravity = FLIGHT_GRAVITY;
 			}
 			
-			// If there is flight time remaining, check for the jump button being pressed
-			if (flightTime > 0.0) {
+			if (flightTime.update()) {
+				flightTime.stop();
+			}
+			else {
+				// If there is flight time remaining, check for the jump button being pressed
 				if (input.GetKeyPress(InputComponent::JUMP)) {
 					if (velocity.y >= -1) {
 						gravity = -0.125;
 					}
 				}
-				flightTime = std::max(0.0, flightTime - deltaTime);
 			}
 
 			// Change flip only if velocity crosses zero, not just touches it
-			horizFlip = (horizFlip ? velocity.x <= 0 : velocity.x < 0);
+			if (velocity.x < 0) {
+				horizFlip = true;
+			}
+			else if (velocity.x > 0) {
+				horizFlip = false;
+			}
 
-			currentAnim = 8 + (flightTime == 0.0);
-
-			centerOffset.y = -12;
+			setAnimation(flightTime.isTiming() ? 8 : 9);
 
 			break;
 		case State::CROUCHING:
@@ -382,7 +356,6 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			if (!input.GetKeyState(InputComponent::DOWN)) {
 				state = State::IDLE;
 				position.y -= ROLL_VERTICAL_OFFSET;
-				looking = 0;
 				break;
 			}
 			// If jump is pressed, start a spindash
@@ -393,12 +366,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 				break;
 			}
 
-			currentAnim = 6;
-
-			centerOffset = { -26, -9 };
-			if (horizFlip) {
-				centerOffset.x = -10;
-			}
+			setAnimation(6);
 
 			break;
 		case State::SPINDASH:
@@ -407,24 +375,25 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			if (!input.GetKeyState(InputComponent::DOWN)) {
 				state = State::ROLLING;
 				position.y += ROLL_VERTICAL_OFFSET;
+				std::cout << spindash << "\n";
 				gsp = 8.0 + floor(spindash) / 2;
 				gsp *= (horizFlip * -2 + 1);
 				spindash = -1.0;
-				top = 16;
-				looking = 0;
 			}
 			// If jump is pressed, add speed
 			else if (input.GetKeyPress(InputComponent::JUMP)) {
 				spindash += thisAdd;
 			}
 
+
+			{
 			// Make sure spindash decays
-			spindash -= double((floor(spindash) * 8) / thisDecay);
+			const double thisDecay = 256.0 / thisFrameCount;
+			spindash -= double((floor(spindash * 8)) / thisDecay);
+			}
 
-			currentAnim = 5 + 7 * animations.size();
-			animations[5]->SetDelay(60);
-
-			centerOffset = { -47, -4 };
+			setAnimation(5 + 7 * animations.size());
+			animations[5]->setDelay(60ms);
 
 			break;
 		case State::ROLLING:
@@ -434,7 +403,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			thisDecel = thisFrameCount * decel;
 
 			// Check for moving too slowly on a wall or ceiling
-			if (abs(gsp) < 2.0 && collideMode != GROUND) {
+			if (std::abs(gsp) < 2.0 && collideMode != GROUND) {
 				if (angle >= 0x40 && angle <= 0xC0) {
 					collideMode = GROUND;
 					angle = 0.0;
@@ -459,7 +428,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			}
 
 			// Calculate slope value
-			if (signum(gsp) == signum(sin(hexToDeg(angle) * M_PI / 180.0))) {
+			if (signum(gsp) == signum(sin(hexToRad(angle)))) {
 				// Uphill
 				slp = 0.078125;
 			}
@@ -473,11 +442,10 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			
 			// If friction would cause a sign change, stop
 			if (onGround) {
-				if (abs(gsp) < thisFrc / 2) {
+				if (std::abs(gsp) < thisFrc / 2) {
 					gsp = 0.0;
 					state = State::IDLE;
 					position.y -= ROLL_VERTICAL_OFFSET;
-					looking = 0;
 				}
 				else {
 					gsp -= thisFrc * signum(gsp) / 2.0;
@@ -485,10 +453,9 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			}
 
 			// Going too slow should cause us to stop rolling
-			if (abs(gsp) < 0.5 && onGround) {
+			if (std::abs(gsp) < 0.5 && onGround) {
 				position.y -= ROLL_VERTICAL_OFFSET;
 				state = (gsp == 0 ? State::IDLE : State::WALKING);
-				looking = 0;
 				break;
 			}
 
@@ -503,18 +470,15 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 				angle = 0.0;
 			}
 
-			currentAnim = 5 + 4 * animations.size();
-			animations[5]->SetDelay(128);
 
-			centerOffset = { -14, -14 };
+			setAnimation(5 + 4 * animations.size());
+			animations[5]->setDelay(128ms);
 
 			break;
 		case State::ROLLJUMPING:
 
-			currentAnim = 5 + 4 * animations.size();
-			animations[5]->SetDelay(128);
-
-			centerOffset = { -14, -14 };
+			setAnimation(5 + 4 * animations.size());
+			animations[5]->setDelay(128ms);
 
 			break;
 		case State::LOOKING_UP:
@@ -522,20 +486,14 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			// If no longer pressing up, return to normal
 			if (!input.GetKeyState(InputComponent::UP)) {
 				state = State::IDLE;
-				looking = 0;
 				break;
 			}
 
-			currentAnim = 10;
-
-			if (horizFlip) {
-				centerOffset = { -9, -11 };
-			}
-			else {
-				centerOffset = { -27, -11 };
-			}
+			setAnimation(10);
 
 			break;
+		default:
+			throw "Invalid Player state!";
 		}
 
 		// Reset jump
@@ -544,43 +502,42 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		}
 		// Update in air
 		else {
-			double thisAccel = ((time - last_time) / (1000.0 / 60.0)) * accel;
-			double thisDecel = ((time - last_time) / (1000.0 / 60.0)) * decel;
-			double thisFrc = pow(frc, (time - last_time) / (1000.0 / 60.0));
+			double thisAccel = thisFrameCount * accel;
+			double thisDecel = thisFrameCount * decel;
+			double thisFrc = pow(frc, thisFrameCount);
 			updateInAir(input, thisAccel, thisDecel, thisFrc);
 		}
 
 		// Stop the player if they are damaged
 		if (damageCountdown > 0) {
 			gsp = 0.0;
-			damageCountdown = std::max(0, damageCountdown - int(deltaTime));
+			damageCountdown = std::max<int>(0, damageCountdown - deltaTime.count());
 		}
 		
 		// Overriding default animations
 		if (actCleared) {
-			currentAnim = 13;
+			setAnimation(13);
 			gsp = 0.0;
 			velocity.x = 0.0;
 		}
 		else if (damageCountdown) {
-			currentAnim = 12;
+			setAnimation(12);
 		}
 		else if (corkscrew) {
-			currentAnim = 11;
+			setAnimation(11);
 		}
 
 		// Reset act-clear animation
 		if (currentAnim == 13 && (animations[currentAnim]->GetLooped() || animations[currentAnim]->getFrame() == 2)) {
 			animations[13]->SetFrame(2);
-			animations[13]->SetDelay(-1);
+			animations[13]->setDelay(-1ms);
 		}
 
-		if (abs(gsp) > top) {
-			gsp = top * signum(gsp);
+		if (state != State::ROLLING) { 
+			std::clamp(gsp, -16.0, 16.0);
 		}
 
-		if (abs(velocity.y) > 16.0) {
-			velocity.y = 16.0 * signum(velocity.y);
+		std::clamp(velocity.y, -16.0, 16.0);
 		}
 	}
 
@@ -592,26 +549,23 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		else {
 			invis = false;
 		}
-		damageCountdown = std::max(damageCountdown - int(deltaTime), 0);
+		damageCountdown = std::max<int>(0, damageCountdown - deltaTime.count());
 	}
 	else {
 		invis = false;
 	}
 
-	if (velocity.y > -1e-10 && velocity.y < 1e-10) {
+	if (std::abs(velocity.y) < 1e-10) {
 		velocity.y = 0.0;
 	}
 
-	if (switchDebounce != 0) {
-		--switchDebounce;
-	}
 
 	handleCollisions(tiles, manager);
 
-	PhysicsEntity::update(false);
+	PhysicsEntity::update(this, &manager);
 
 	if (onGround) {
-		velocity.y -= gravity;
+		velocity.y -= gravity * (Timer::getFrameTime().count() * 1000.0 / 60.0);
 	}
 }
 
@@ -623,23 +577,46 @@ bool Player::addRing(int num) {
 	return false;
 }
 
-void Player::addCollision(Player::entityPtrType entity) {
-	collisionQueue.push(entity);
+void Player::addCollision(std::unique_ptr<PhysicsEntity>& entity) {
+	collisionQueue.push(entity.get());
+}
+
+void Player::doCorkscrew() {
+	corkscrew = true;
+	setAnimation(11);
+}
+
+void Player::setAnimation(std::size_t index) {
+	Animation& currentAnimation = *animations[currentAnim % animations.size()];
+	Animation& nextAnimation = *animations[index % animations.size()];
+	if (currentAnimation.getNumFrames() == nextAnimation.getNumFrames()) {
+		//nextAnimation.SetFrame(currentAnimation.getFrame());
+		nextAnimation.synchronize(currentAnimation);
+	}
+	const int oldYRadius = getYRadius();
+	currentAnim = index;
+	position.y += oldYRadius - getYRadius();
 }
 
 void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, EntityManager& manager) {
 	bool hurt = false;
 	int damageCenter = -1;
-	std::vector < PhysicsEntity > platforms;
-	int yRadius(20 - 6 * isOffsetState(state));
-	int xRadius(9 - 2 * (state == State::ROLLING || state == State::ROLLJUMPING));
+	std::vector < SDL_Rect > platforms;
+	std::vector < SDL_Rect > walls;
 
-	collisionRect = SDL_Rect{ -xRadius, centerOffset.y, 2 * xRadius, yRadius - centerOffset.y };
+	const int yRadius = getYRadius();
+
+	int xRadius = 9 - 2 * (state == State::ROLLING || state == State::ROLLJUMPING);
+
+	SDL_Point offset = *animations[currentAnim % animations.size()]->getOffset(); 
+	collisionRect = SDL_Rect{ -xRadius, -offset.y, 2 * xRadius, yRadius + offset.y }; 
+	SDL_Rect playerCollide = getCollisionRect();
 
 	while (!collisionQueue.empty()) {
-		PhysicsEntity& entity = **collisionQueue.front();
+		PhysicsEntity& entity = *collisionQueue.front();
 		
-		EntType entityType = entity.getType();
+		const auto& entityKey = entity.getKey();
+		const auto& entityTypeData = entity_property_data::getEntityTypeData(entityKey);
 
 		SDL_Rect entityCollision = entity.getCollisionRect();
 
@@ -647,85 +624,50 @@ void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, Ent
 
 		SDL_Point dir;
 
-		switch (entityType) {
-		case ENEMY:
-			std::cout << "Collision type was with enemy\n";
+		Side collisionSide = getCollisionSide(collisionRect, entityCollision);
 
-			entityCenter.x = entityCollision.x + entityCollision.w / 2;
-			entityCenter.y = entityCollision.y + entityCollision.h / 2;
+		if (canBePushedAgainst(entity)) {
+			platforms.push_back(entityCollision);	
+			walls.push_back(entityCollision);
+		}
+		else if (canBeStoodOn(entity)) {
+			platforms.push_back(entityCollision);
+		}
 
-			entity.destroy();
-			if (!canDamage()) {
-				hurt = true;
-				damageCenter = entityCenter.x;
+		if (entityKey == "RING" && addRing()) {
+			std::cout << "Collision with ring\n";
+			std::get<Ring>(entity.getCustom()).pickedUp = true;
+		}
+		else if (entityKey == "PATHSWITCH") {
+			const bool prevPath = path;
+			std::get<Pathswitch>(entity.getCustom()).setPath(path);
+			if (path != prevPath) {
+				std::cout << std::boolalpha << "Path changed to " << path << " from previous " << prevPath << std::noboolalpha << "\n";
+			}
+		}
+		else if (entityKey == "SPRINGYELLOW") {
+			setOnGround(false);
+			corkscrew = true;
+			std::get<Spring>(entity.getCustom()).bounceEntity(entity, static_cast<PhysicsEntity&>(*this));
+		}
+		else if (entityKey == "RINGMONITOR") {
+			if (canDamageEnemy()) {
+				hitEnemy(manager, entity);
+				addRing(10);
+			}
+		}
+		else if (entity_property_data::isHazard(entityKey)) {
+			std::cout << "Collision with hazard: " << entityKey << "\n";
+			entityCenter = getXY(entityCollision) + (SDL_Point{ entityCollision.w, entityCollision.h } / 2);
+
+			if (entity_property_data::isEnemy(entityKey)) {
+				hitEnemy(manager, entity);
 			}
 			else {
-				hitEnemy(manager, entityCenter);
+				takeDamage(manager, entity.getCollisionRect().x + entity.getCollisionRect().w / 2);
 			}
-			break;
-		case RING:
-			if (addRing()) {
-				std::cout << "Collision type was with ring\n";
-				entity.destroy();
-			}
-			break;
-		case WEAPON:
-
-			break;
-		case PATHSWITCH:
-			switch (entity.getCustom(0)) {
-			case 'i':
-				switchPath();
-				break;
-			case 's':
-				setPath(1);
-				break;
-			case 'u':
-				setPath(0);
-				break;
-			default:
-				throw "Pathswitch has no set flag!";
-			}
-			break;
-		case SPRING:
-			std::cout << "Collision type was with spring\n";
-			switch (static_cast <char>(entity.getCustom(0))) {
-			case 'u':
-				velocity.y = -10;
-				setOnGround(false);
-				setCorkscrew(true);
-				state = State::WALKING;
-				break;
-			case 'd':
-				velocity.y = 10;
-				setOnGround(false);
-				state = State::WALKING;
-				break;
-			case 'l':
-				velocity.x = -10;
-				setGsp(-6.0);
-				state = State::WALKING;
-				break;
-			case 'r':
-				velocity.x = 10;
-				setGsp(6.0);
-				state = State::WALKING;
-				break;
-			default:
-				throw "Spring has no direction flag!";
-			}
-			setJumping(false);
-			setRolling(false);
-			setControlLock(48);
-			setFlightTime(0.0);
-			entity.setCustom(1, 100.0);
-			break;
-		case PLATFORM:
-			dir = calcRectDirection(entityCollision);
-			//if (dir.y <= 0 && dir.y >= -20 - entityCollision.h / 2 && dir.x >= -entityCollision.w / 2 && dir.x <= entityCollision.w / 2 && ((getCollisionRect().y + getCollisionRect().h) > entityCollision.y)) {
-				platforms.push_back(entity);
-			//}
-			break;
+		}
+		/*switch () { 
 		case SPIKES:
 			dir = calcRectDirection(entityCollision);
 			if (dir.y < 0 && dir.x >= -entityCollision.w / 2 && dir.x <= entityCollision.w / 2) {
@@ -749,7 +691,7 @@ void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, Ent
 		default:
 			throw "Invalid collision type.";
 			break;
-		}
+		}*/
 
 		collisionQueue.pop();
 	}
@@ -758,21 +700,17 @@ void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, Ent
 		takeDamage(manager, damageCenter);
 	}
 
-	collideGround(tiles, platforms);
+	collideGround(tiles, platforms, walls);
 }
 
 //Returns height of A, height of B, and angle
-std::string Player::collideGround(const std::vector < std::vector < Ground > >& tiles, std::vector < PhysicsEntity >& platforms) {
+std::string Player::collideGround(const std::vector < std::vector < Ground > >& tiles, std::vector < SDL_Rect >& platforms, std::vector < SDL_Rect >& walls) {
 	onGroundPrev = onGround;
-	int cx(position.x);
-	int cy(position.y);
 	int height1(-1), height2(-1), height3(-1), height4(-1), wallHeightLeft(-1), wallHeightRight(-1);
 	double ang1, ang2, ang3, ang4;
-	int yMin(cy);
-	int yMax(cy + 36);
 	double sensorDir(-1);
 	int h;
-	int yRadius(20 - 6 * isOffsetState(state));
+	int yRadius = getYRadius();
 	int xRadius(9 - 2 * (state == State::ROLLING || state == State::ROLLJUMPING));
 
 	bool onGround1, onGround2, onGround3, onGround4, wallCollideLeft, wallCollideRight;
@@ -785,11 +723,11 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 	//Calculate which mode to be in based on angle
 	collideMode = Mode((static_cast<int>(angle + 0x20) & 0xFF) >> 6);
 
-	static double logData = 0.0;
+	static Timer logData{ 16 };
 
-	if (globalObjects::input.GetKeyPress(InputComponent::X)) {
+	if (globalObjects::input.GetKeyPress(InputComponent::M)) {
 		std::cout << "Panic\n";
-		logData = 0.5;
+		logData.start();
 	}
 
 	//Check for left floor:
@@ -802,112 +740,90 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 	height2 = abs(h);
 	onGround2 = (h >= 0);
 
-	if (logData) {
-		logData -= (time - last_time) / 1000.0;
+	if (logData.isTiming()) {
+		if (logData.update()) {
+			logData.stop();
+		}
 		std::cout << "position: " << position.x % GROUND_PIXEL_WIDTH << ", " << position.y % GROUND_PIXEL_WIDTH << "\n";
 		std::cout << "heights: " << height1 % GROUND_PIXEL_WIDTH << ", " << height2 % GROUND_PIXEL_WIDTH << "\n";
 		std::cout << "angles: " << int(ang1) << ", " << int(ang2) << "\n";
 		std::cout << "collide mode: " << modeToString(collideMode) << "\n\n";
-		if (logData < 0.0) {
-			logData = 0.0;
-		}
-		if (!(onGround1 || onGround2)) {
-			std::cout << "Panic!\n";
-		}
 	}
 
-	int temph1 = checkSensor('A', tiles, ang1, &topOnly[0]);
-	int temph2 = checkSensor('B', tiles, ang2, &topOnly[1]);
-
-	std::string output(std::to_string(position.x));
-	output += " ";
-	output += std::to_string(position.y);
+	std::string output;
 
 	int platformHeight = -1;
 	bool platformOnGround = false;
 
 	// Check platform sensors
 	if (collideMode == GROUND && velocity.y >= 0.0) {
-		for (PhysicsEntity& entity : platforms) {
-			int entityRadius = entity.getCollisionRect().w / 2;
-			int entityCenter = entity.getCollisionRect().x + entityRadius;
-			int entityTop = entity.getCollisionRect().y + 1;
+		for (SDL_Rect& entityCollision : platforms) {
+			const int entityRadius = entityCollision.w / 2;
+			const int entityCenter = entityCollision.x + entityRadius;
+			const int entityTop = entityCollision.y + 1;
 
-			int rightDir = position.x + xRadius - entityCenter;
-			int leftDir = position.x - xRadius - entityCenter;
+			const int rightDir = position.x + xRadius - entityCenter;
+			const int leftDir = position.x - xRadius - entityCenter;
 
-			int sensorDistance = entityTop - position.y - yRadius;
+			const int sensorDistance = entityTop - position.y - yRadius;
 
 			// Continue if not close enough to the platform
 			if (sensorDistance < -topOnlyMaxOvershoot || sensorDistance > topOnlyMaxOvershoot) {
 				continue;
 			}
-
-			auto setHigherSensor = [&platformHeight,&platformOnGround,&sensorDistance]() {
-				if (platformHeight < sensorDistance && platformOnGround) {
-					// Do nothing
-				}
-				else {
-					std::swap(platformHeight, sensorDistance);
-					platformOnGround = true;
-				}
-			};
-
-			if (rightDir < -entityRadius || leftDir > entityRadius) {
+			else if (rightDir < -entityRadius || leftDir > entityRadius) {
 				// No collision
 				continue;
 			}
-			else {
-				setHigherSensor();
+			else if (platformHeight == -1 || platformHeight - (position.y + yRadius) > sensorDistance || !platformOnGround) {
+				platformHeight = entityTop;
+				platformOnGround = true;
 			}
 		}
 	}
 
 	auto getCollisionHeight = [this,yRadius,topOnlyMaxOvershoot](int rawHeight, bool ground, bool top) {
 		rawHeight -= position.y + yRadius;
-		if (top && (velocity.y < 0.0 || rawHeight < -topOnlyMaxOvershoot || rawHeight > topOnlyMaxOvershoot)) {
-			return std::pair < int, bool >(-1, false);
+		if (!ground || (top && (velocity.y < 0.0 || rawHeight < -topOnlyMaxOvershoot || rawHeight > topOnlyMaxOvershoot))) {
+			return std::optional<int>{};
 		}
 		else {
-			return std::pair < int, bool >(rawHeight, ground);
+			return std::optional<int>{ rawHeight + position.y + yRadius }; 
 		}
 	};
 
 	if (collideMode == GROUND && platformOnGround) {
-		std::pair < int, bool > sensor1 = getCollisionHeight(height1, onGround1, topOnly[0]);
-		std::pair < int, bool > sensor2 = getCollisionHeight(height2, onGround2, topOnly[1]);
+		auto sensor1 = getCollisionHeight(height1, onGround1, topOnly[0]);
+		auto sensor2 = getCollisionHeight(height2, onGround2, topOnly[1]);
 
-		double tempAngle = 0.0;
-
-		platformHeight += position.y + yRadius;
+		auto sensorPlatform = getCollisionHeight(platformHeight, platformOnGround, true);
 
 		// Only valid sensor is the platform sensor
-		if (!(sensor1.second || sensor2.second)) {
-			height1 = platformHeight;
-			onGround1 = true;
+		if (!(sensor1 || sensor2)) {
+			height1 = sensorPlatform.value_or(-1);
+			onGround1 = sensorPlatform.has_value();
 			topOnly[0] = true;
 
 			height2 = -1;
 			onGround2 = false;
 		}
 		else {
-			sensor1.first += position.y + yRadius;
-			sensor2.first += position.y + yRadius;
-
-			// Put higher ground sensor in sensor1
-			if ((sensor1.first < sensor2.first && sensor1.second) || !sensor2.second) {
-				tempAngle = ang1;
+			/*if (sensor1) {
+				*sensor1 += position.y + yRadius;
 			}
-			else {
-				tempAngle = ang2;
-				std::swap(sensor1, sensor2);
+			if (sensor2) {
+				*sensor2 += position.y + yRadius;
+			}*/
+			
+			if (!sensor1 || (sensor2 && *sensor1 > *sensor2)) {
+				sensor1 = sensor2;
 			}
 
-			height1 = sensor1.first;
-			onGround1 = sensor1.second;
+			height1 = sensor1.value_or(-1);
+			onGround1 = sensor1.has_value();
 
-			height2 = platformHeight;
-			onGround2 = platformOnGround;
+			height2 = sensorPlatform.value_or(-1);
+			onGround2 = sensorPlatform.has_value();
 		}
 	}
 
@@ -931,7 +847,7 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 
 				if (topOnly[0] && (height1 < -topOnlyMaxOvershoot || velocity.y < 0.0)) {
 					onGround = false;
-					angle = 0;
+					angle = 0.0;
 					collideMode = GROUND;
 				}
 				else {
@@ -986,7 +902,7 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 		}
 		else {
 			onGround = false;
-			angle = 0;
+			angle = 0.0;
 			collideMode = GROUND;
 		}
 	}
@@ -1022,13 +938,16 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 	height4 = abs(h);
 	onGround4 = (h >= 0);
 
+	
+
 	//Push the player out of ceilings
 	if ((onGround3 && !topOnly[2]) || (onGround4 && !topOnly[3])) {
+		int topDistance = ((state == State::ROLLING | state == State::ROLLJUMPING) ? 14 : 10);
 		switch (collideMode) {
 		case GROUND:
-			height3 -= position.y - 10;
-			height4 -= position.y - 10;
-			if (height4 < height3 && onGround3) {
+			height3 -= position.y - topDistance;
+			height4 -= position.y - topDistance;
+			if ((height4 > height3 && onGround3) || !onGround4) {
 				std::swap(height3, height4);
 			}
 			ceilingBlocked = (height3 >= -5);
@@ -1038,11 +957,11 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 			}
 			break;
 		case LEFT_WALL:
-			height3 -= position.x + 10;
-			height4 -= position.x + 10;
+			height3 -= position.x + topDistance;
+			height4 -= position.x + topDistance;
 			height3 *= -1;
 			height4 *= -1;
-			if (height4 < height3 && onGround3) {
+			if ((height4 > height3 && onGround3) || !onGround4) {
 				std::swap(height3, height4);
 			}
 			ceilingBlocked = (height3 >= -5);
@@ -1052,11 +971,11 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 			}
 			break;
 		case CEILING:
-			height3 -= position.y + 10;
-			height4 -= position.y + 10;
+			height3 -= position.y + topDistance;
+			height4 -= position.y + topDistance;
 			height3 *= -1;
 			height4 *= -1;
-			if (height4 < height3 && onGround3) {
+			if ((height4 > height3 && onGround3) || !onGround4) {
 				std::swap(height3, height4);
 			}
 			ceilingBlocked = (height3 >= -5);
@@ -1066,9 +985,9 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 			}
 			break;
 		case RIGHT_WALL:
-			height3 -= position.x - 10;
-			height4 -= position.x - 10;
-			if (height4 < height3 && onGround3) {
+			height3 -= position.x - topDistance;
+			height4 -= position.x - topDistance;
+			if ((height4 > height3 && onGround3) || !onGround4) {
 				std::swap(height3, height4);
 			}
 			ceilingBlocked = (height3 >= -5);
@@ -1078,7 +997,7 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 			}
 			break;
 		}
-		/**/
+		
 	}
 
 	//Check for left wall
@@ -1093,17 +1012,48 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 	wallHeightRight = abs(h);
 	wallCollideRight = (h >= 0);
 
+	if (collideMode == Mode::GROUND) {
+		for (const SDL_Rect& entityCollision : walls) {
+			if (position.y + yRadius < entityCollision.y || position.y + 4 > entityCollision.y + entityCollision.h) {
+				break;
+			}
+
+			int distance = entityCollision.x - position.x;
+			if (position.x < entityCollision.x + entityCollision.w / 2) {
+				if (distance <= 10 && (!wallCollideRight || (wallHeightRight - position.x) > distance)) {
+					wallCollideRight = true;
+					wallHeightRight = entityCollision.x;
+				}
+			}
+			else {
+				distance += entityCollision.w;
+				if (distance >= -10 && (!wallCollideLeft || (wallHeightLeft - position.x) < distance)) {
+					wallCollideLeft = true;
+					wallHeightLeft = entityCollision.x + entityCollision.w;
+				}
+			}
+		}
+	}
+
+	output += "Walls: " + std::to_string(wallCollideLeft) + " " + std::to_string(wallCollideRight);
+
+	sensorDir = -1;
+	int temph1 = checkSensor('E', tiles, sensorDir, &topOnly[2]);
+	sensorDir = 1;
+	int temph2 = checkSensor('E', tiles, sensorDir, &topOnly[3]);
+
+
 	//Push the player out of walls
 	switch (collideMode) {
 	case GROUND:
 		wallHeightLeft -= position.x;
 		wallHeightRight -= position.x;
-		if (wallHeightRight < 10 && wallCollideRight && !topOnly[5]) {
+		if (wallHeightRight <= 10 && wallCollideRight && !topOnly[5]) {
 			position.x -= 10 - wallHeightRight;
 			velocity.x = std::min(velocity.x, 0.0);
 			gsp = std::min(gsp, 0.0);
 		}
-		if (wallHeightLeft > -10 && wallCollideLeft && !topOnly[4]) {
+		if (wallHeightLeft >= -10 && wallCollideLeft && !topOnly[4]) {
 			position.x += 10 + wallHeightLeft;
 			velocity.x = std::max(velocity.x, 0.0);
 			gsp = std::max(gsp, 0.0);
@@ -1112,61 +1062,40 @@ std::string Player::collideGround(const std::vector < std::vector < Ground > >& 
 	case LEFT_WALL:
 		wallHeightLeft -= position.y;
 		wallHeightRight -= position.y;
-		if (wallHeightRight < 10 && wallCollideRight) {
+		if (wallHeightRight <= 10 && wallCollideRight) {
 			position.y -= 10 - wallHeightRight;
 			velocity.y = std::min(velocity.y, 0.0);
 			gsp = std::min(gsp, 0.0);
 		}
-		if (wallHeightLeft > -10 && wallCollideLeft) {
+		if (wallHeightLeft >= -10 && wallCollideLeft) {
 			position.y += 10 + wallHeightLeft;
 		}
 		break;
 	case CEILING:
 		wallHeightLeft -= position.x;
 		wallHeightRight -= position.x;
-		if (wallHeightRight > -10 && wallCollideRight) {
+		if (wallHeightRight >= -10 && wallCollideRight) {
 			position.x += 10 + wallHeightRight;
 			velocity.x = std::max(velocity.x, 0.0);
 			gsp = std::min(gsp, 0.0);
 		}
-		if (wallHeightLeft < 10 && wallCollideLeft) {
+		if (wallHeightLeft <= 10 && wallCollideLeft) {
 			position.x -= 10 - wallCollideLeft;
 		}
 		break;
 	case RIGHT_WALL:
 		wallHeightLeft -= position.y;
 		wallHeightRight -= position.y;
-		if (wallHeightRight > -10 && wallCollideRight) {
+		if (wallHeightRight >= -10 && wallCollideRight) {
 			position.y += 10 + wallHeightRight;
 			velocity.y = std::max(velocity.y, 0.0);
 			gsp = std::min(gsp, 0.0);
 		}
-		if (wallHeightLeft < 10 && wallCollideLeft) {
+		if (wallHeightLeft <= 10 && wallCollideLeft) {
 			position.y -= 10 - wallCollideLeft;
 		}
 		break;
 	}
-
-	/*if (wall) {
-	SDL_Rect objCollide = (*wall)->getCollisionRect();
-	SDL_Point dir = PhysicsEntity::calcRectDirection(objCollide);
-
-	if ((dir.x > -1 * objCollide.w / 2 || dir.x < objCollide.w / 2) && !(dir.y < -1 * objCollide.h || dir.y > objCollide.y)) {
-	if (dir.x < 0) {
-	velocity.x = std::min(velocity.x, 0.0);
-	gsp = std::min(gsp, 0.0);
-	position.x += -1 * objCollide.w / 2 - dir.x;
-	}
-	else {
-	velocity.x = std::max(velocity.x, 0.0);
-	gsp = std::max(gsp, 0.0);
-	position.x += objCollide.w / 2 - dir.x;
-	}
-	}
-	else {
-	wall = nullptr;
-	}
-	}*/
 
 	return output;
 }
@@ -1288,50 +1217,49 @@ int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > 
 	int tileX = (xStart - blockX * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
 	int tileY = (yStart - blockY * TILE_WIDTH * GROUND_WIDTH) / TILE_WIDTH;
 	bool flip = false;
+	
+	int maxHeight = -1;
+	
+	const int startTileX = xStart / TILE_WIDTH;
+	const int startTileY = yStart / TILE_WIDTH;
+
+	const int endTileX = xEnd / TILE_WIDTH;
+	const int endTileY = yEnd / TILE_WIDTH;
+
 
 	while (true) {
-		const Ground& block = tiles[blockX][blockY];
-
-		auto getTileAt = [&tiles, blockX, blockY](int tileX, int tileY) -> std::pair < const Ground&, std::pair < int, int > > {
-			int offsetX = 0;
-			int offsetY = 0;
-			if (tileX == -1) {
-				tileX = GROUND_WIDTH - 1;
-				--offsetX;
-			}
-			else if (tileX == GROUND_WIDTH) {
-				tileX = 0;
-				++offsetX;
-			}
-			
-			if (tileY == -1) {
-				tileY = GROUND_WIDTH - 1;
-				--offsetY;
-			}
-			else if (tileY == GROUND_WIDTH) {
-				tileY = 0;
-				++offsetY;
-			}
-
-			return std::pair < const Ground&, std::pair < int, int > >(tiles[blockX + offsetX][blockY + offsetY], std::pair < int, int >(tileX, tileY));
-		};
-
-		CollisionTile dummy;
-
-		const CollisionTile& tile = block.empty() ? dummy : block.getTile(tileX, tileY, path);
-
 		bool flip = false;
 
-		int tileHeight = (block.empty()) ? 0 : Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, path, xStart, xEnd, yStart, yEnd, flip);
+		int tileHeight = 0;
+		
+		bool outOfBounds = (blockX < 0 || blockX >= tiles.size()) || (blockY < 0 || blockY >= tiles[0].size());
 
-		if (!block.empty() && (block.getFlag(tileX, tileY, path) & static_cast<int>(Ground::Flags::TOP_SOLID))) {
-			if (isTopOnly) {
-				*isTopOnly = true;
+		if (!outOfBounds) {
+			const Ground& block = tiles[blockX][blockY];
+
+			if (!block.empty()) {
+				tileHeight = Player::getHeight(tiles, SDL_Point{ blockX, blockY }, SDL_Point{ tileX, tileY }, side, path, xStart, xEnd, yStart, yEnd, flip);
+
+				if (block.getFlag(tileX, tileY, path) & static_cast<int>(Ground::Flags::TOP_SOLID)) {
+					if (isTopOnly) {
+						if (iterOp == direction::UP) {
+							*isTopOnly = true;
+						}
+						else {
+							tileHeight = 0;
+						}
+					}
+				}
+
+			}
+
+			if (tileHeight != 0) {
+				ang = block.getTileAngle(tileX, tileY, path);
 			}
 		}
 
-		// Get height of tile and check edge cases
-		if (tile.getCollide()) {
+
+		if (tileHeight != 0) {
 			bool isFlippedAway = false;
 
 			switch (iterOp) {
@@ -1345,63 +1273,15 @@ int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > 
 				break;
 			}
 
-			if (isFlippedAway && tileHeight != 0) {
+			if (isFlippedAway) {
 				tileHeight = TILE_WIDTH;
 			}
-		}
-
-		if (tileHeight == 0) {
-			// If the height is 0 on the first tile,
-			// then there is no collision.
-			if (count == 0) {
-				return -1;
-			}
-
-			// If the height is 0 but there is a tile
-			// below the current one, return the top of
-			// the last found tile
-			int prevTileX;
-			int prevTileY;
-
-			switch (iterOp) {
-			case direction::UP:
-				prevTileX = tileX;
-				prevTileY = tileY + 1;
-				break;
-			case direction::DOWN:
-				prevTileX = tileX;
-				prevTileY = tileY - 1;
-				break;
-			case direction::LEFT:
-				prevTileX = tileX + 1;
-				prevTileY = tileY;
-				break;
-			case direction::RIGHT:
-				prevTileX = tileX - 1;
-				prevTileY = tileY;
-				break;
-			}
-
-			std::pair < const Ground&, std::pair < int, int > > position = getTileAt(prevTileX, prevTileY);
-
-			ang = position.first.getTileAngle(position.second.first, position.second.second, path);
-
-			/*   Return position of top of last found tile, x or y depends on the type of check     */
+			
 			if (iterOp == direction::UP || iterOp == direction::LEFT) {
-				return ((side ? tileX : tileY) + 1) * TILE_WIDTH + GROUND_PIXEL_WIDTH * (side ? blockX : blockY);
+				maxHeight =  ((side ? tileX : tileY) + 1) * TILE_WIDTH + static_cast < int >(GROUND_PIXEL_WIDTH) * (side ? blockX : blockY) - tileHeight;
 			}
 			else {
-				return ((side ? tileX : tileY) + 0) * TILE_WIDTH + GROUND_PIXEL_WIDTH * (side ? blockX : blockY);
-			}
-		}
-
-		if (tileHeight < 16) {
-			ang = block.getTileAngle(tileX, tileY, path);
-			if (iterOp == direction::UP || iterOp == direction::LEFT) {
-				return ((side ? tileX : tileY) + 1) * TILE_WIDTH + GROUND_PIXEL_WIDTH * (side ? blockX : blockY) - tileHeight;
-			}
-			else {
-				return ((side ? tileX : tileY) + 0) * TILE_WIDTH + GROUND_PIXEL_WIDTH * (side ? blockX : blockY) + tileHeight;
+				maxHeight = ((side ? tileX : tileY) + 0) * TILE_WIDTH + static_cast < int > (GROUND_PIXEL_WIDTH) * (side ? blockX : blockY) + tileHeight;
 			}
 		}
 
@@ -1439,55 +1319,48 @@ int Player::checkSensor(char sensor, const std::vector < std::vector < Ground > 
 			--blockY;
 		}
 
-		int startTileX = (xStart - blockX * GROUND_PIXEL_WIDTH) / TILE_WIDTH;
-		int startTileY = (yStart - blockY * GROUND_PIXEL_WIDTH) / TILE_WIDTH;
 
-		if (signum(tileX - startTileX) * tileX < signum(tileX - startTileX) * startTileX) {
-			return -1;
+		if (signum(xStart - xEnd) * ((xStart % static_cast < int >(TILE_WIDTH)) + tileX * static_cast < int >(TILE_WIDTH) + blockX * static_cast < int >(GROUND_PIXEL_WIDTH)) < signum(xStart - xEnd) * xEnd) {
+			return maxHeight;
 		}
 
-		if (signum(tileY - startTileY) * tileY < signum(tileY - startTileY) * startTileY) {
-			return -1;
-		}
-
-		if (blockX < 0 || blockX > tiles.size()) {
-			return -1;
-		}
-		if (blockY < 0 || blockY > tiles[0].size()) {
-			return -1;
+		if (signum(yStart - yEnd) * ((yStart % static_cast < int >(TILE_WIDTH)) + tileY * static_cast < int >(TILE_WIDTH) + blockY * static_cast < int >(GROUND_PIXEL_WIDTH)) < signum(yStart - yEnd) * yEnd) {
+			return maxHeight;
 		}
 	}
 }
 
-int Player::getHeight(const std::vector < std::vector < Ground > >& ground, SDL_Point blockPosition, SDL_Point tile, bool side, bool path, int xStart, int xEnd, int yStart, int yEnd, bool& flip) {
+int Player::getHeight(const std::vector < std::vector < Ground > >& ground, SDL_Point blockPosition, SDL_Point tilePosition, bool side, bool path, int xStart, int xEnd, int yStart, int yEnd, bool& flip) {
 	flip = false;
 
 	int h;
-	const Ground& block = ground[blockPosition.x][blockPosition.y];
+	const auto& block = ground[blockPosition.x][blockPosition.y];
+	const auto& tile = block.getTile(tilePosition.x, tilePosition.y, path);
+	const auto& tileFlags = block.getFlag(tilePosition.x, tilePosition.y, path);
 
 	if (side) {
-		if (block.getFlag(tile.x, tile.y, path) & SDL_FLIP_VERTICAL) {
+		if (tileFlags & SDL_FLIP_VERTICAL) {
 			// Tile is flipped, so set the current height to the flipped heightMap
-			h = block.getTile(tile.x, tile.y, path).getHeight(TILE_WIDTH - 1 - ((yStart - blockPosition.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
+			h = tile.getHeight(TILE_WIDTH - 1 - ((yStart - blockPosition.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
 		}
 		else {
 			// Tile is not flipped, set the current height normally.
-			h = block.getTile(tile.x, tile.y, path).getHeight((yStart - blockPosition.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
+			h = tile.getHeight((yStart - blockPosition.y * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
 		}
-		if (block.getFlag(tile.x, tile.y, path) & SDL_FLIP_HORIZONTAL) {
+		if (tileFlags & SDL_FLIP_HORIZONTAL) {
 			flip = true;
 		}
 	}
 	else {
-		if (block.getFlag(tile.x, tile.y, path) & SDL_FLIP_HORIZONTAL) {
+		if (tileFlags & SDL_FLIP_HORIZONTAL) {
 			// Tile is flipped, so set the current height to the flipped heightMap
-			h = block.getTile(tile.x, tile.y, path).getHeight(TILE_WIDTH - 1 - ((xStart - blockPosition.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
+			h = tile.getHeight(TILE_WIDTH - 1 - ((xStart - blockPosition.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH), side);
 		}
 		else {
 			// Tile is not flipped, set the current height normally.
-			h = block.getTile(tile.x, tile.y, path).getHeight((xStart - blockPosition.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
+			h = tile.getHeight((xStart - blockPosition.x * TILE_WIDTH * GROUND_WIDTH) % TILE_WIDTH, side);
 		}
-		if (block.getFlag(tile.x, tile.y, path) & SDL_FLIP_VERTICAL) {
+		if (tileFlags & SDL_FLIP_VERTICAL) {
 			flip = true;
 		}
 	}
@@ -1513,68 +1386,52 @@ std::string Player::modeToString(Mode m) {
 void Player::render(SDL_Rect& cam, double screenRatio) {
 	if (invis)
 		return;
-	typedef Animation::effectData effectData;
-	typedef Animation::effectType effectType;
 	angle = (angle == 255.0 || angle == 1.0) ? 0.0 : angle;
-	SDL_Rect pos = GetRelativePos(cam);
-	pos.x += centerOffset.x;
-	pos.y += centerOffset.y;
-	//For only 45-degree rotations 
-	double frames((time - last_time) / (1000.0 / 60.0));
+	SDL_Rect pos = getRelativePos(cam);
+	double frames = Timer::getFrameTime().count() / (1000.0 / 60.0);
 	displayAngle = angle;
 	displayAngle += 256;
 	displayAngle %= 256;
 	int rot = ((state == State::ROLLING || state == State::ROLLJUMPING) ? 0 : 45 * (displayAngle / 32.0)); //For all rotations
 	//const int numRotations = 10;
 	//int rot = (360 / numRotations) * ((displayAngle + 128 / numRotations) / (256 / numRotations));
-	SDL_Point center{ -1 * centerOffset.x, -1 * centerOffset.y };
 	SDL_RendererFlip flip = static_cast<SDL_RendererFlip>(SDL_FLIP_HORIZONTAL & horizFlip);
 	int temp = currentAnim;
 
-	effectData efxData;
-	effectType efxType;
+	using namespace animation_effects;
+
 
 	do {
+		AnimationEffectList effects;
 		if (temp % animations.size() == 5) {
 			SDL_Rect tailPos = pos;
-			SDL_Point tailCenter;
+			SDL_Point tailCenter = { 0, 0 };
 			SDL_RendererFlip tailFlip;
-			int tailRot = -90;
+			int tailRot = 360-90;
 			if (temp == 5 + 4 * animations.size()) {
-				//Tails have width of 14, radius of 7
-				int offset = 2;
-				tailCenter = { 7, centerOffset.y + offset };
-				tailPos.x -= centerOffset.x + 7;
-				tailPos.y -= 2 * centerOffset.y + offset;
 				if (velocity.x != 0.0 || velocity.y != 0.0) {
 					tailRot += atan2(-velocity.y, -velocity.x) * 180.0 / M_PI;
 				}
 				tailFlip = static_cast < SDL_RendererFlip > (SDL_FLIP_HORIZONTAL & (velocity.x > 0.0));
-				efxType = effectType::ROTATION;
-				efxData.rot.degrees = tailRot;
-				*efxData.rot.center = tailCenter;
 			}
 			else {
-				tailPos.x -= centerOffset.x + 5 + (horizFlip * 39);
-				tailPos.y += 24;
-				tailCenter = { 7, -10 };
-				tailRot = 90 * (horizFlip * -2 + 1);
+				//tailPos.x -= centerOffset.x + 5 + (horizFlip * 39);
+				//tailPos.y += 24;
+				tailRot = 90 * (horizFlip ? -1 : 1);
 				tailFlip = static_cast < SDL_RendererFlip >(SDL_FLIP_HORIZONTAL & !horizFlip);
-				efxType = effectType::NONE;
 			}
-			animations[temp % animations.size()]->Render(&tailPos, tailRot, &tailCenter, 1.0 / screenRatio, tailFlip, efxType, &efxData);
+			effects.emplace_back(Rotation{ { 0, 0 }, tailRot });
+			animations[temp % animations.size()]->Render(getXY(tailPos), 0, nullptr, 1.0 / screenRatio, tailFlip, effects);
 		}
 		else {
-			efxType = effectType::ROTATION;
-			efxData.rot.degrees = rot;
-			*efxData.rot.center = center;
-			animations[temp % animations.size()]->Render(&pos, rot, &center, 1.0 / screenRatio, flip, efxType, &efxData);
+			effects.emplace_back(Rotation { { 0, 0 }, rot });
+			animations[temp % animations.size()]->Render(getXY(pos), 0, nullptr, 1.0 / screenRatio, flip, effects);
 		}
 		temp /= animations.size();
 	} while (temp != 0);
 }
 
-SDL_Rect Player::getCollisionRect() {
+SDL_Rect Player::getCollisionRect() const {
 	switch (collideMode) {
 	case GROUND:
 		return SDL_Rect{ position.x + collisionRect.x, position.y + collisionRect.y, collisionRect.w, collisionRect.h };
@@ -1593,17 +1450,46 @@ void Player::setActCleared(bool b)
 {
 	actCleared = b;
 	if (!b) {
-		animations[13]->SetDelay(150);
+		using namespace std::chrono_literals;
+		animations[13]->setDelay(150ms);
 		animations[13]->setLooped(false);
 	}
 }
 
-bool Player::canDamage() {
-	return (!corkscrew && jumping) || (state == State::ROLLING || state == State::ROLLJUMPING);
+bool Player::canDamageEnemy() const {
+	return (!corkscrew && jumping && state != State::FLYING) || (state == State::ROLLING || state == State::ROLLJUMPING);
+}
+
+int Player::lookDirection() const {
+	if (state == State::LOOKING_UP) {
+		return 1;
+	}
+	else if (state == State::CROUCHING) {
+		return -1;
+	}
+	else {
+		return 0;
+	}
+}
+
+void Player::destroyEnemy(EntityManager& manager, PhysicsEntity& entity) {
+	entity.destroy();
+	SDL_Point entityCenter = getXY(entity.getCollisionRect()) + (SDL_Point{ entity.getCollisionRect().w, entity.getCollisionRect().h } / 2);
+	if (position.y > entityCenter.y || velocity.y < 0) {
+		velocity.y -= signum(velocity.y);
+	}
+	else {
+		if (globalObjects::input.GetKeyState(InputComponent::JUMP)) {
+			velocity.y *= -1;
+		}
+		else {
+			velocity.y = std::max(-1.0 * velocity.y, -1.0);
+		}
+	}
 }
 
 void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc) {
-	if (abs(gsp) < 2.0 && collideMode != GROUND && !controlLock) {
+	if (std::abs(gsp) < 2.0 && collideMode != GROUND && !controlLock) {
 		if (angle >= 64 && angle <= 192) {
 			collideMode = GROUND;
 			angle = 0.0;
@@ -1612,12 +1498,12 @@ void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, dou
 		controlLock = 400;
 	}
 	if (input.GetKeyState(InputComponent::LEFT) && !controlLock) {
-		if (gsp <= 0) {
+		if (gsp <= 0.0) {
 			gsp -= thisAccel;
 		}
 		else {
-			if (abs(gsp - thisDecel) != gsp - thisDecel) {
-				gsp = 0;
+			if (std::abs(gsp - thisDecel) != gsp - thisDecel) {
+				gsp = 0.0;
 			}
 			else {
 				gsp -= thisDecel;
@@ -1625,12 +1511,12 @@ void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, dou
 		}
 	}
 	else if (input.GetKeyState(InputComponent::RIGHT) && !controlLock) {
-		if (gsp >= 0) {
+		if (gsp >= 0.0) {
 			gsp += thisAccel;
 		}
 		else {
-			if (abs(gsp + thisDecel) != gsp + thisDecel) {
-				gsp = 0;
+			if (std::abs(gsp + thisDecel) != gsp + thisDecel) {
+				gsp = 0.0;
 			}
 			else {
 				gsp += thisDecel;
@@ -1638,8 +1524,8 @@ void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, dou
 		}
 	}
 	else {
-		if (abs(gsp) < thisFrc) {
-			gsp = 0;
+		if (std::abs(gsp) < thisFrc) {
+			gsp = 0.0;
 		}
 		else {
 			gsp -= thisFrc * signum(gsp);
@@ -1647,14 +1533,20 @@ void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, dou
 	}
 }
 
-void Player::updateIfWalkOrIdle(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc) {
+void Player::updateIfWalkOrIdle(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc, double slp) {
 	// Perform normal actions
 	walkLeftAndRight(input, thisAccel, thisDecel, thisFrc);
 
+	using namespace player_constants::physics;
+
 	// Do slope calculations
-	if (gsp != 0 || (angle >= 16 && angle <= 240)) {
-		double thisSlp((time - last_time) / (1000.0 / 60.0) * slp);
-		gsp -= thisSlp * sin(hexToDeg(angle) * M_PI / 180.0);
+	if (gsp != 0.0 || (angle >= 16 && angle <= 240)) {
+		const double thisSlp = slp * Timer::getFrameTime().count() / (1000.0 / 60.0);
+		const double speedDifference = -thisSlp * sin(hexToRad(angle));
+		gsp += speedDifference;
+		if (std::abs(gsp) >= DEFAULT_TOP_SPEED) {
+			gsp = signum(gsp) * DEFAULT_TOP_SPEED;
+		}
 	}
 
 	// Initiate a jump
@@ -1664,8 +1556,8 @@ void Player::updateIfWalkOrIdle(const InputComponent& input, double thisAccel, d
 		state = State::JUMPING;
 		collideMode = GROUND;
 		jmp = 6.5;
-		velocity.x -= jmp * sin(hexToDeg(angle) * M_PI / 180.0);
-		velocity.y -= jmp * cos(hexToDeg(angle) * M_PI / 180.0);
+		velocity.x -= jmp * sin(hexToRad(angle));
+		velocity.y -= jmp * cos(hexToRad(angle));
 		angle = 0.0;
 	};
 }
@@ -1677,19 +1569,18 @@ void Player::updateInAir(const InputComponent & input, double thisAccel, double 
 	if (input.GetKeyState(InputComponent::RIGHT) && state != State::ROLLJUMPING) {
 		velocity.x += thisAccel;
 	}
-	if (velocity.y < 0 && velocity.y > -4 && abs(velocity.x) >= 0.125) {
+	if (velocity.y < 0 && velocity.y > -4 && std::abs(velocity.x) >= 0.125) {
 		velocity.x *= thisFrc;
 	}
 }
 
-void Player::switchPath() {
-	path = path ^ (!switchDebounce);
-	switchDebounce = 2;
-}
-
 double hexToDeg(double hex) {
 	return (256 - hex) * 1.40625;
-};
+}
+
+double hexToRad(double hex) {
+	return hexToDeg(hex) * M_PI / 180.0;
+}
 
 int signum(int a) {
 	return (0 < a) - (a < 0);

@@ -1,14 +1,18 @@
 #include "stdafx.h"
 #include "PhysicsEntity.h"
 #include "Player.h"
-
-std::unordered_map < std::string, PhysProp* >* PhysicsEntity::physProps = nullptr;
+#include "Functions.h"
+#include "Animation.h"
+#include "Timer.h"
+#include <cmath>
+#include <algorithm>
 
 PhysicsEntity::PhysicsEntity()
 {
 	position = { 0,0,0,0 };
 	velocity = { 0,0 };
 	self = nullptr;
+	destroyAfterLoop = false;
 }
 
 PhysicsEntity::PhysicsEntity(PhysicsEntity&& other) :
@@ -23,64 +27,54 @@ PhysicsEntity::PhysicsEntity(PhysicsEntity&& other) :
 PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
 	invis(arg.invis),
 	posError(arg.posError),
-	prop(arg.prop),
-	velocity(arg.prop.vel),
-	loaded(arg.loaded),
+	dataKey(arg.dataKey),
+	velocity(arg.velocity),
 	shouldSave(arg.shouldSave),
-	time(SDL_GetTicks()),
-	last_time(time),
 	currentAnim(arg.currentAnim),
-	eType(arg.eType),
-	collisionRect(arg.prop.collision),
-	anim_data(arg.anim_data),
+	collisionRect(arg.collisionRect),
 	canCollide(true),
 	destroyAfterLoop(arg.destroyAfterLoop),
 	gravity(arg.gravity),
-	customVars(arg.customVars),
 	flags(arg.flags),
+	customData(arg.customData),
 	self(nullptr)
 {
-	for (int i = 0; i < arg.animations.size(); i++) {
-		animations.emplace_back(new Animation(*arg.animations[i]));
+	for (const auto& animation : arg.animations) {
+		animations.emplace_back(std::make_unique<Animation>(*animation));
 	}
+
 	position = arg.position;
 	previousPosition = arg.previousPosition;
 };
 
-PhysicsEntity::PhysicsEntity(PhysStruct p) :
+PhysicsEntity::PhysicsEntity(const PhysStruct& p) :
 	invis(false),
-	anim_data(p.prop.anim),
-	prop(p.prop),
-	velocity(p.prop.vel),
-	loaded(false),
-	shouldSave(true),
-	time(SDL_GetTicks()),
-	last_time(time),
+	shouldSave(!p.temporary),
 	currentAnim(0),
-	eType(p.prop.eType),
-	collisionRect(p.prop.collision),
 	canCollide(true),
 	destroyAfterLoop(false),
-	gravity(p.prop.gravity),
 	self(nullptr),
 	flags(p.flags),
-	posError{ 0.0, 0.0 }
+	posError{ 0.0, 0.0 },
+	dataKey(p.typeId),
+	collisionRect(entity_property_data::getEntityTypeData(dataKey).collisionRect),
+	customData(createCustomData(p))
 {
-	for (int i = 0; i < anim_data.size(); i++) {
-		animations.emplace_back(new Animation(anim_data[i]));
+	const auto& entityTypeData = entity_property_data::getEntityTypeData(dataKey);
+	for (const auto& animData : entityTypeData.animationTypes) {
+		animations.emplace_back(std::make_unique<Animation>(animData));
+		animations.back()->stop();
+	}
+
+	if (!animations.empty()) {
+		animations[currentAnim % animations.size()]->start();
 	}
 
 	position.w = collisionRect.w;
 	position.h = collisionRect.h;
 
-	previousPosition = convertRect(p.pos);
-	position = convertRect(p.pos);
-
-	for (int i = 0; i < p.flags.size(); i++) {
-		customVars.push_back(p.flags[i]);
-	}
-
-	customInit();
+	previousPosition = convertRect(p.position);
+	position = convertRect(p.position);
 }
 
 PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) :
@@ -95,16 +89,13 @@ PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) :
 		animations.emplace_back(new Animation(tileSize));
 };
  
-void PhysicsEntity::update(bool updateTime, Player* player, EntityManager* manager) {
-	if (updateTime) {
-		last_time = time;
-		time = SDL_GetTicks();
-	}
-
+void PhysicsEntity::update(Player* player, EntityManager* manager) {
 	previousPosition = position;
 
-	posError.x += (time - last_time) * velocity.x / (1000.0 / 60.0);
-	posError.y += (time - last_time) * velocity.y / (1000.0 / 60.0);
+	const double frameTime = Timer::getFrameTime().count();
+
+	posError.x += frameTime * velocity.x / (1000.0 / 60.0);
+	posError.y += frameTime * velocity.y / (1000.0 / 60.0);
 
 	position.x += floor(posError.x);
 	position.y += floor(posError.y);
@@ -112,20 +103,20 @@ void PhysicsEntity::update(bool updateTime, Player* player, EntityManager* manag
 	posError.x -= floor(posError.x);
 	posError.y -= floor(posError.y);
 
-	velocity.y += gravity * (time - last_time) / (1000.0 / 60.0);
-	
-	this->custom(player, manager);
+	velocity.y += gravity * frameTime / (1000.0 / 60.0);
 
-	if (!animations.empty()) {
-		int temp = currentAnim;
-		do {
-			animations[temp % animations.size()]->Update();
-			temp /= animations.size();
-		} while (temp != 0);
-		if (animations[currentAnim % animations.size()]->GetLooped() && destroyAfterLoop && manager != nullptr) {
-			manager->MarkAsDestroyed(this);
-		}
+	if (player != nullptr && manager != nullptr ) {
+		custom(*player, *manager);
 	}
+
+	applyToCurrentAnimations([](auto& animation) { animation->Update(); });
+	if (!animations.empty() && animations[currentAnim % animations.size()]->GetLooped() && destroyAfterLoop && manager != nullptr) {
+		manager->MarkAsDestroyed(this);
+	}
+}
+
+std::size_t PhysicsEntity::currentAnimIndex() const noexcept {
+	return currentAnim;
 }
 
 PhysicsEntity::entityPtrType& PhysicsEntity::platformPtr() {
@@ -134,341 +125,129 @@ PhysicsEntity::entityPtrType& PhysicsEntity::platformPtr() {
 
 void PhysicsEntity::AddAnim(AnimStruct n) {
 	animations.emplace_back(new Animation(n));
+	animations.back()->stop();
 }
 
-SDL_Rect PhysicsEntity::GetRelativePos(const SDL_Rect& p) const {
-	return { (position.x - p.x), (position.y - p.y), (position.w), (position.h) };
+void PhysicsEntity::Render(SDL_Rect& camPos, double ratio) {
+	renderWithDefault(*this, camPos);
+}
+
+SDL_Rect PhysicsEntity::getRelativePos(const SDL_Rect& p) const {
+	return getRelativePos(getPosition(), p);
+}
+
+SDL_Rect PhysicsEntity::getRelativePos(const SDL_Rect& a, const SDL_Rect& b) {
+	return { a.x - b.x, a.y - b.y, a.w, a.h };
 }
 
 void PhysicsEntity::destroy() {
 	velocity.x = 0;
 	velocity.y = 0;
 	canCollide = false;
-	currentAnim = animations.size() - 1;
-	animations[currentAnim]->refreshTime();
-	animations[currentAnim]->SetFrame(0);
-	destroyAfterLoop = true;
+	if (currentAnim != animations.size() - 1) {
+		setAnim(animations.size() - 1);
+		animations[currentAnim]->SetFrame(0);
+		animations[currentAnim]->start();
+		destroyAfterLoop = true;
+	}
 }
 
-SDL_Rect PhysicsEntity::getPosition() {
+SDL_Rect PhysicsEntity::getPosition() const {
 	return SDL_Rect{ position.x, position.y,
 		std::max((!animations.empty()) ? animations[currentAnim % animations.size()]->GetSize().x : 0, collisionRect.w),
 		std::max((!animations.empty()) ? animations[currentAnim % animations.size()]->GetSize().y : 0, collisionRect.h) };
 }
 
-SDL_Rect PhysicsEntity::getCollisionRect() {
+void PhysicsEntity::setAnim(int a) {
+	animations[currentAnim % animations.size()]->stop();
+	currentAnim = a;
+	animations[currentAnim % animations.size()]->start();
+}
+
+void PhysicsEntity::renderRaw(const SDL_Rect& cameraPosition) const {
+	SDL_Point relativePosition = getXY(getRelativePos(cameraPosition));
+	applyToCurrentAnimations([&](const auto& animation) {
+		animation->Render(relativePosition, 0, nullptr, 1.0 / globalObjects::ratio);
+	});
+}
+
+SDL_Rect PhysicsEntity::getCollisionRect() const {
 	return SDL_Rect{ position.x + collisionRect.x, position.y + collisionRect.y, collisionRect.w, collisionRect.h };
 }
 
-std::unique_ptr < Animation >& PhysicsEntity::GetAnim(int index) {
+const std::string& PhysicsEntity::getKey() const {
+	return dataKey;
+}
+
+std::unique_ptr < Animation >& PhysicsEntity::getAnim(int index) {
 	return animations[index];
 }
 
-std::unique_ptr < Animation >& PhysicsEntity::GetAnim() {
-	return animations[currentAnim];
+const std::unique_ptr < Animation >& PhysicsEntity::getAnim(int index) const {
+	return animations[index];
 }
 
-void PhysicsEntity::custom(Player* player, EntityManager* manager) {
-	using namespace entity_property_data::keys;
-	using namespace entity_property_data::indices;
-	
-	const std::string& key = prop.key;
-	double frameCount = (time - last_time) / (1000.0 / 60.0);
-	switch(eType){
-	case RING:
-		if (velocity.x != 0.0 || velocity.y != 0.0) {
-			if (customVars[0] != -1) {
-				customVars[0] -= std::max((double)(time - last_time), 0.0);
-				animations[0]->SetDelay((int)(233.0 * (customVars[0] / 4267.0) + 33.0));
-				if (customVars[0] == 0) {
-					destroyAfterLoop = true;
-				}
-			}
-		}
-		break;
-	case SPRING:
-		if (customVars[1] >= (time - last_time)) {
-			customVars[1] -= (time - last_time);
-			currentAnim = 1;
-		}
-		else {
-			customVars[1] = 0;
-			currentAnim = 0;
-		}
-		break;
-	case ENEMY:
-		if (key == BEE_BADNIK) {
-			/* vars:
-			0 = frames until moving again
-			1 = already fired
-			*/
-			double& framesUntilMove = customVars[std::size_t(BeeBadnik::FRAMES_UNTIL_MOVE)];
-			double& alreadyFired = customVars[std::size_t(BeeBadnik::HAS_FIRED)];
-
-			if (currentAnim == 0 || customVars[0] == 0.0) {
-				velocity.x = -2.0;
-				currentAnim = 0;
-				if (player && player->getPosition().x != position.x && abs(double(position.y - player->getPosition().y) / (player->getPosition().x - position.x) - 1) <= 0.1) {
-					currentAnim = 1;
-					framesUntilMove = 120.0;
-					velocity.x = 0.0;
-					alreadyFired = 0.0;
-				}
-			}
-			else {
-				framesUntilMove = std::max(0.0, framesUntilMove - (time - last_time) / (1000.0 / 60.0));
-				if (framesUntilMove < 60.0 && !alreadyFired) {
-					alreadyFired = 1.0;
-					PhysStruct temp(SDL_Rect{ position.x + 30, position.y + 25, position.w, position.h }, *physProps->find(std::string("BEEPROJECTILE"))->second, -1, std::vector<char>());
-					manager->AddEntity(std::unique_ptr < PhysicsEntity >(new PhysicsEntity(temp)));
-				}
-				velocity.x = 0;
-			}
-		}
-		else if (key == "CRABBADNIK") {
-			/* vars:
-			0 = frames until walk, default 240.0
-			1 = frames until stop, default 30.0
-			2 = sign of direction
-			*/
-			double& framesUntilWalk = customVars[std::size_t(CrabBadnik::FRAMES_UNTIL_WALK)];
-			double& framesUntilStop = customVars[std::size_t(CrabBadnik::FRAMES_UNTIL_STOP)];
-			double& directionSign = customVars[std::size_t(CrabBadnik::WALK_DIRECTION)];
-
-			if (framesUntilWalk > 0.0) {
-				currentAnim = 0;
-				framesUntilWalk -= frameCount;
-
-				if (framesUntilWalk <= 0.0) {
-					position.y += 7;
-					framesUntilWalk = 0.0;
-				}
-			}
-			else if (framesUntilStop > 0.0) {
-				currentAnim = 1;
-				posError.x += directionSign * frameCount;
-				framesUntilStop -= frameCount;
-				if (framesUntilStop <= 0) {
-					framesUntilWalk = 180.0;
-					framesUntilStop = 30.0;
-					directionSign *= -1;
-					position.y -= 7;
-				}
-			}
-		}
-		break;
-	case PLATFORM:
-		if (key == "BRIDGE") {
-			double& bridgeWidth = customVars[std::size_t(Bridge::WIDTH)];
-			double& playerPosition = customVars[std::size_t(Bridge::PLAYER_POSITION)];
-
-			entityPtrType platform = player->platformPtr();
-			collisionRect.x = 0;
-			collisionRect.y = 0;
-			collisionRect.w = bridgeWidth * 16;
-			collisionRect.h = 16;
-			if (platform) {
-				//Smooth on/off timer
-				customVars.back() = std::min(1.0, customVars.back() + ((time - last_time) / (1000.0 / 60.0)) / 30);
-
-				//Player index
-				playerPosition = (player->getPosition().x - getPosition().x) / 16.0;
-				collisionRect.x = std::max(playerPosition * 16, 0.0);
-				collisionRect.x = std::min(collisionRect.x, int(bridgeWidth - 1) * 16);
-				collisionRect.w = 16;
-
-				auto getMaxDepression = [size = static_cast<std::size_t>(bridgeWidth)](std::size_t index) {
-					if (index < size / 2) {
-						return 2 * (index + 1);
-					}
-					else if (index > size / 2) {
-						return 2 * (size - index);
-					}
-					else {
-						return size;
-					}
-				};
-
-				/*for (int i = 0; i < maxDepression.size(); i++) {
-					if (i < maxDepression.size() / 2)
-						maxDepression[i] = 2 * (i + 1);
-					else if (i > maxDepression.size() / 2)
-						maxDepression[i] = 2 * (maxDepression.size() - i);
-					else
-						maxDepression[i] = maxDepression.size();
-				}*/
-
-				std::size_t playerIndex = std::min(playerPosition, bridgeWidth - 1.0);
-				int thisMax;
-
-				if (playerIndex < int(bridgeWidth) / 2) {
-					thisMax = 2 * (playerIndex + 1);
-				}
-				else if (playerIndex > int(bridgeWidth) / 2) {
-					thisMax = 2 * (int(bridgeWidth) - playerIndex);
-				}
-				else {
-					thisMax = bridgeWidth;
-				}
-
-				int thisMax = getMaxDepression(std::size_t(std::min(playerPosition, bridgeWidth - 1.0)));
-				for (int i = 0; i < std::min(playerPosition + 1, bridgeWidth - 1.0); i++) {
-					customVars[i + 2] = customVars.back() * thisMax * sin(M_PI / 2 * (1 + i) / (1 + playerPosition));
-				}
-				for (int i = playerPosition + 1; i < bridgeWidth; i++) {
-					customVars[i + 2] = customVars.back() * thisMax * sin(M_PI / 2 * (bridgeWidth - i) / (bridgeWidth - playerPosition));
-				}
-				if (playerPosition < customVars.size() - 2)
-					collisionRect.y = customVars[playerPosition + 2];
-			}
-			else {
-				customVars.back() = std::max(0.0, customVars.back() - ((time - last_time) / (1000.0 / 60.0)) / 120);
-				playerPosition = -1.0;
-				for (int i = 2; i < customVars.size(); i++) {
-					customVars[i] = customVars[i] * sqrt(customVars.back());
-				}
-			}
-		}
-		break;
-	case GOALPOST:
-	{
-		double& framesUntilStop = customVars[std::size_t(Goalpost::FRAMES_UNTIL_STOP)];
-		double& finishedSpinning = customVars[std::size_t(Goalpost::FINISHED_SPINNING)];
-		if (framesUntilStop > 0.0) {
-			framesUntilStop -= frameCount;
-			animations[0]->SetDelay(240.0 - customVars[0] / 1.5);
-			finishedSpinning = 1.0;
-		}
-		else {
-			animations[0]->SetDelay(-1);
-			if (finishedSpinning && animations[0]->getFrame() != 4) {
-				animations[0]->SetDelay(240.0);
-			}
-		}
-	}
-		break;
-	default:
-		break;
-	}
+std::unique_ptr < Animation >& PhysicsEntity::getAnim() {
+	return animations[currentAnim % animations.size()];
 }
 
-void PhysicsEntity::customInit() {
-	const std::string& key = prop.key;
-	switch(eType){
-	case RING:
-		//INIT_RING
-		customVars.resize(1);
-		customVars[0] = -1;
-		break;
-	case SPRING:
-		//INIT_SPRING
-		customVars.resize(2);
-		customVars[1] = 0;
-		break;
-	case PATHSWITCH:
-		//INIT_PATHSWITCH
-		customVars.resize(2);
-		customVars[1] = static_cast <double>(false);
-		break;
-	case ENEMY:
-		if (key == "BEEBADNIK") {
-			//INIT_BEE
-			customVars.resize(2);
-			customVars[0] = 0.0;
-			customVars[1] = 0.0;
-		}
-		else if (key == "CRABBADNIK") {
-			//INIT_CRAB
-			customVars.resize(3);
-			customVars[0] = 180.0;
-			customVars[1] = 30.0;
-			customVars[2] = 1.0;
-		}
-		break;
-	case PLATFORM:
-		if (key == "BRIDGE") {
-			//INIT_BRIDGE
-			customVars.resize(std::size_t(customVars[0] + 3), 0);
-			customVars[1] = -1.0;
-			customVars.back() = 0.0;
-			position.w = customVars[0] * 16;
-		}
-		break;
-	case GOALPOST:
-		customVars.resize(2);
-		animations[0]->SetDelay(-1);
-		customVars[0] = 0.0;
-		customVars[0] = 0.0;
-		break;
-	}
+const std::unique_ptr < Animation >& PhysicsEntity::getAnim() const {
+	return animations[currentAnim % animations.size()];
+}
+
+void PhysicsEntity::custom(Player& player, EntityManager& manager) {
+	auto updateAny = [&](auto& data) {
+		data.update(*this, manager, player);
+	};
+	std::visit(updateAny, customData);
 }
 
 void PhysicsEntity::setGravity(double g) {
 	gravity = g;
 }
 
-void PhysicsEntity::setCustom(int index, double value) {
-	customVars[index] = value;
-}
-
-void PhysicsEntity::Render(SDL_Rect& camPos, double ratio, bool absolute) {
-	if (absolute) {
-		animations[currentAnim]->Render(&convertRect(position), 0, NULL, 1.0 / ratio);
-		return;
-	}
-	if (!animations.empty()) {
-		int rot = 0;
-		SDL_Rect relativePos = GetRelativePos(camPos);
-		std::string key = getKey();
-		if (eType == SPRING) {
-			switch (static_cast <char> (customVars[0])) {
-			case 'u':
-				relativePos.y -= (customVars[1] != 0) << 3;
-				break;
-			case 'd':
-				rot = 180;
-				relativePos.y += (customVars[1] != 0) << 3;
-				break;
-			case 'l':
-				rot = -90;
-				relativePos.x -= (customVars[1] != 0) << 3;
-				break;
-			case 'r':
-				rot = 90;
-				relativePos.x += (customVars[1] != 0) << 3;
-				break;
-			}
-			animations[currentAnim]->Render(&relativePos, rot, NULL, 1.0 / ratio);
-		}
-		else if (key == "BRIDGE") {
-			int xStart = relativePos.x;
-			int yStart = relativePos.y;
-			for (int& x = relativePos.x; x < customVars[0] * 16 + xStart; x += 16) {
-				relativePos.y = yStart + customVars[(x - xStart) / 16 + 2];
-				animations[currentAnim]->Render(&relativePos, rot, NULL, 1.0 / ratio);
-			}
-		}
-		else {
-			animations[currentAnim]->Render(&relativePos, rot, NULL, 1.0 / ratio);
-		}
-	}
-
-	/*SDL_Rect rect = getRelativePos(getCollisionRect(), camPos);
-	rect.x /= globalObjects::ratio;
-	rect.y /= globalObjects::ratio;
-	rect.w /= globalObjects::ratio;
-	rect.h /= globalObjects::ratio;
-
-	SDL_RenderDrawRect(globalObjects::renderer, &rect);*/
-}
-
-SDL_Rect PhysicsEntity::getRelativePos(const SDL_Rect& objPos, const SDL_Rect& camPos) {
-	return SDL_Rect{ objPos.x - camPos.x, objPos.y - camPos.y, objPos.w, objPos.h };
+entity_property_data::CustomData PhysicsEntity::createCustomData(const PhysStruct& physStruct) {
+	using namespace entity_property_data;
+	Keys entityDataKey = getEntityTypeData(physStruct.typeId).behaviorKey;
+	return entity_property_data::createCustomFromKey(entityDataKey, physStruct.flags);
 }
 
 //Returns direction of THIS entity relative to objCollide
 SDL_Point PhysicsEntity::calcRectDirection(SDL_Rect& objCollide) {
-	SDL_Rect thisCollide = getCollisionRect();
+	return ::calcRectDirection(getCollisionRect(), objCollide);
+}
+
+PhysStruct PhysicsEntity::toPhysStruct() const {
+	return PhysStruct{ getKey(), getFlags(), getPosition(), shouldSave };
+}
+
+void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept {
+	using std::swap;
+
+	swap(static_cast<PRHS_Entity&>(lhs), static_cast<PRHS_Entity&>(rhs));
+
+	swap(lhs.velocity, rhs.velocity);
+	swap(lhs.shouldSave, rhs.shouldSave);
+	swap(lhs.canCollide, rhs.canCollide);
+	swap(lhs.self, rhs.self);
+	swap(lhs.dataKey, rhs.dataKey);
+	swap(lhs.destroyAfterLoop, rhs.destroyAfterLoop);
+	swap(lhs.customData, rhs.customData);
+	swap(lhs.animations, rhs.animations);
+	swap(lhs.collisionRect, rhs.collisionRect);
+	swap(lhs.currentAnim, rhs.currentAnim);
+	swap(lhs.invis, rhs.invis);
+	swap(lhs.gravity, rhs.gravity);
+	swap(lhs.posError, rhs.posError);
+}
+
+SDL_Point getCenterDifference(const SDL_Rect& r1, const SDL_Rect& r2) {
+	return SDL_Point { (r1.x + r1.w / 2) - (r2.x + r2.w / 2), (r1.y + r1.h / 2) - (r2.y + r2.h / 2) };
+}
+
+SDL_Point calcRectDirection(const SDL_Rect& r1, const SDL_Rect& r2) {
+	const SDL_Rect& thisCollide = r1; 
+	const SDL_Rect& objCollide = r2;
 
 	SDL_Point ret{ 0, 0 };
 
@@ -492,28 +271,47 @@ SDL_Point PhysicsEntity::calcRectDirection(SDL_Rect& objCollide) {
 	return ret;
 }
 
-void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept {
-	using std::swap;
+bool canBeStoodOn(const PhysicsEntity& entity) {
+	using namespace entity_property_data;
+	const auto& entityType = entity.getKey();
+	return (canBePushedAgainst(entity) || entityType == "PLATFORM");
+}
 
-	swap(static_cast<PRHS_Entity&>(lhs), static_cast<PRHS_Entity&>(rhs));
+bool canBePushedAgainst(const PhysicsEntity& entity) {
+	using namespace entity_property_data;
+	const auto& entityType = entity.getKey();
+	return (entityType == "MONITOR" || entityType == "SPIKES" || entityType == "SPRING");
+}
 
-	swap(lhs.loaded, rhs.loaded);
-	swap(lhs.velocity, rhs.velocity);
-	swap(lhs.shouldSave, rhs.shouldSave);
-	swap(lhs.canCollide, rhs.canCollide);
-	swap(lhs.anim_data, rhs.anim_data);
-	swap(lhs.self, rhs.self);
-	swap(lhs.prop, rhs.prop);
-	swap(lhs.eType, rhs.eType);
-	swap(lhs.destroyAfterLoop, rhs.destroyAfterLoop);
-	swap(lhs.collisionRect, rhs.collisionRect);
-	swap(lhs.time, rhs.time);
-	swap(lhs.last_time, rhs.last_time);
-	swap(lhs.currentAnim, rhs.currentAnim);
-	swap(lhs.invis, rhs.invis);
-	swap(lhs.gravity, rhs.gravity);
-	swap(lhs.posError, rhs.posError);
-	lhs.animations.swap(rhs.animations);
-	lhs.customVars.swap(rhs.customVars);
-	lhs.flags.swap(rhs.flags);
+Side getCollisionSide(const SDL_Rect& r1, const SDL_Rect& r2) {
+	SDL_Point rectDirection = calcRectDirection(r1, r2);
+	if (rectDirection.x == 0 && rectDirection.y == 0) {
+		return Side::MIDDLE;
+	}
+	else if (abs(rectDirection.x) > abs(rectDirection.y)) {
+		return ((rectDirection.x < 0) ? Side::LEFT : Side::RIGHT);
+	}
+	else {
+		return ((rectDirection.y < 0) ? Side::TOP : Side::BOTTOM);
+	}
+}
+
+void EntityManager::MarkAsDestroyed(const PhysicsEntity* entity) {
+	const auto& toMark = std::find_if(entityList.begin(), entityList.end(), [&entity](const auto& obj) { return entity == obj.get(); });
+
+	if (toMark == entityList.end()) {
+		throw std::logic_error("Attempt to mark invalid entity");
+	}
+
+	toDestroy[std::distance(entityList.begin(), toMark)] = true;
+}
+
+void EntityManager::AddEntity(std::unique_ptr < PhysicsEntity >&& entity) {
+	toAdd.emplace_back(std::move(entity));
+}
+
+void renderWithDefault(const PhysicsEntity& entity, const SDL_Rect& cameraPosition) {
+	using namespace entity_property_data;
+	auto keyValue = static_cast< std::size_t >(getEntityTypeData(entity.getKey()).behaviorKey);
+	helpers::getOne<int>([&](auto& p) { renderWithDefaultImpl(entity, cameraPosition, p); return int{}; }, keyValue);
 }

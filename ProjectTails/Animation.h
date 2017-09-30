@@ -1,111 +1,155 @@
 #pragma once
-#include <vector>
-#include "SDL.h"
 #include "SDL_image.h"
-#include <math.h>
-#include "prhsGameLib.h"
-#include <iostream>
-#include "Miscellaneous.h"
-#include "Constants.h"
-#include <cassert>
+#include "Sprite.h"
+#include "Timer.h"
+#include <vector>
+#include <chrono>
+#include <tuple>
+#include <variant>
+#include <optional>
+
+struct SDL_Window;
+struct SDL_Renderer;
+
+namespace globalObjects {
+	extern SDL_Window* window;
+	extern SDL_Renderer* renderer;
+	extern std::chrono::milliseconds getFrameTime();
+}
+
+namespace animation_effects {
+	struct PaletteSwap {
+		std::vector < Uint32 > oldColors;
+		std::vector < Uint32 > newColors;
+	};
+	struct Rotation {
+		SDL_Point center;
+		int degrees;
+	};
+
+	typedef std::variant < animation_effects::PaletteSwap, animation_effects::Rotation > AnimationEffect;
+	typedef std::vector < AnimationEffect > AnimationEffectList;
+
+	Surface apply(const PaletteSwap& effect, Surface srf);
+	Surface apply(const Rotation& effect, Surface srf);
+
+	std::pair < Surface, SDL_Point > rotateSprite(const Rotation& effect, Surface srf);
+
+	std::tuple < SDL_Point, SDL_Point, int > getPrincipalRect(SDL_Point oldOffset, SDL_Point oldSize, int angle);
+	SDL_Point getLeftmostPoint(SDL_Point offset, SDL_Point size, int angle);
+	SDL_Point getTopmostPoint(SDL_Point offset, SDL_Point size, int angle);
+	SDL_Point getRotatedOffset(SDL_Point oldOffset, SDL_Point size, int angle);
+	
+	const AnimationEffectList NO_EFFECT;
+}
 
 //SpritePath, delay, frames
 struct AnimStruct {
 	std::string SpritePath;
-	int delay;
+	std::chrono::milliseconds delay;
 	int frames;
 };
+
+using animation_effects::AnimationEffect;
+using animation_effects::AnimationEffectList;
+
+
+Uint32 getPixel(const SDL_Surface* s, const int& x, const int& y);
+void setPixel(SDL_Surface* surface, int x, int y, Uint32 pixel);
+
+
+Surface applyEffectList(Surface surface, const AnimationEffectList& effects);
+
+SDL_Rect getFrameWindow(SDL_Point size, int frame);
+
+Surface getSurfaceRegion(const Surface& surface, const SDL_Rect& region);
+
+SDL_Point getFlippedOffset(SDL_Point size, SDL_Point offset, SDL_RendererFlip flip);
+
+Surface expandSurface(const Surface& surface, SDL_Point moveTo);
+
+void Render(const Animation& animation, const SDL_Point& position, int rotation, const SDL_Point* center, double ratio, SDL_RendererFlip flip = SDL_FLIP_NONE, AnimationEffectList effectList = animation_effects::NO_EFFECT);
 
 class Animation
 {
 public:
-	enum effectType { NONE = 0, PALETTE_SWAP = 1, ROTATION = 2 };
-	struct effectData {
-		effectData() : swp() {};
-		struct palSwp {
-			std::vector < Uint32 > oldColors;
-			std::vector < Uint32 > newColors;
-			palSwp() : oldColors(), newColors() {};
-		};
-		struct rotate {
-			rotate() : ctr(), center(&ctr), degrees(0) {};
-			SDL_Point* center;
-			int degrees;
-		private:
-			SDL_Point ctr;
-		};
-		palSwp swp;
-		rotate rot;
-	};
-
+	typedef std::chrono::milliseconds DurationType;
 
 	Animation();
 
 	//Creates a new animation from the given sprite sheet
-	Animation(SDL_Surface* Sprites, int delay, int frames, bool tile = false);
-	Animation(AnimStruct);
+	//Animation(SDL_Surface* Sprites, int delay, int frames, bool tile = false);
+	Animation(const Surface& s, DurationType d, int f);
+	Animation(const AnimStruct& a);
 	Animation(SDL_Point tileSize);
-	Animation(const Animation& arg);
-	Animation(Animation&& other);
+	Animation(const Animation& arg) = default;
+	Animation(Animation&& other) = default;
 
 	void SetFrame(int f);
 
 	void Update();
 
-	void setLooped(bool b) { looped = b; };
+	void setLooped(bool b) { hasLooped = b; };
 
-	void Render(const SDL_Rect* dest, const int& rot, SDL_Point* center, const double& ratio, const SDL_RendererFlip& flip = SDL_FLIP_NONE, const effectType& effect = NONE, const effectData* efxData = nullptr);
-	void SizeRender(SDL_Rect* dest, int rot, SDL_Point* center, double ratio);
+	void Render(SDL_Point dest, int rot, const SDL_Point* center, double ratio, SDL_RendererFlip flip = SDL_FLIP_NONE, AnimationEffectList effects = animation_effects::NO_EFFECT) const;
 
-	void SetDelay(int delay);
+	void setDelay(DurationType delay);
 
-	SDL_Point GetSize() {return { SpriteSheet->w / numFrames, SpriteSheet->h }; };
+	SDL_Point GetSize() { return { getSize(sprite).x / numFrames, getSize(sprite).y }; };
 
-	bool GetLooped() { return looped; };
+	bool GetLooped() { return hasLooped; };
 
-	static void setTimeDifference(Uint32 dt) { deltaTime = dt; };
+	void refreshTime() { timer.reset(); };
 
-	void refreshTime() { timeError = 0; };
+	std::optional<SDL_Point> getOffset();
 
-	int getNumFrames() { return numFrames; };
+	int getNumFrames() const { return numFrames; };
 
-	SDL_Surface* GetSpriteSheet(SDL_RendererFlip flip = SDL_FLIP_NONE);
+	void stop() { timer.stop(); };
 
-	int getFrame() { return frame; };
+	void start() { timer.start(); };
 
-	SDL_Surface* getSurfaceFrame(int frame);
+	SDL_Surface* getSpriteSheet();
 
-	inline SDL_Surface* getSurfaceFrame();
+	int getFrame() const { return currentFrame; };
 
-	bool updateTexture();
+	Surface getSurfaceFrame(int frame);
 
-	void setTimeError(Uint32 error) { timeError = error; };
+	Surface getSurfaceFrame();
 
-	SDL_Texture*& getTexture() { return tex; };
+	void updateTexture();
+
+	Texture& getTexture() { return sprite.getTexture(); };
 
 	Uint32 getPixel(const int& x, const int& y) const;
 
-	void addStaticEffects(const std::vector < std::vector < effectType > >& types, const std::vector < std::vector < effectData > >& effects);
+	Animation& operator= (const Animation& rhs) = default;
 
-	static SDL_Surface* FlipSurface(SDL_Surface* surface, SDL_RendererFlip flip);
+	Animation& operator= (Animation&& rhs) noexcept = default;
+
+	void addStaticEffects(const std::vector < AnimationEffectList >& effects);
+
+	static Surface FlipSurface(const Surface& surface, SDL_RendererFlip flip);
 	static SDL_Surface* PaletteSwap(SDL_Surface* surface, const std::vector < Uint32 >& oldColors, const std::vector < Uint32 >& newColors);
-	static SDL_Surface* Rotate(SDL_Surface* surface, const SDL_Point* cntr, int degrees, SDL_Point& offset);
-	static Uint32 getPixel(const SDL_Surface* s, const int& x, const int& y);
-	static void setPixel(SDL_Surface* surface, int x, int y, Uint32 pixel);
-	static void setRenderer(SDL_Renderer* r);
+	static std::pair<SDL_Surface*, SDL_Rect> Rotate(SDL_Surface* surface, const SDL_Point* cntr, int degrees);
 
-	~Animation();
+	static void RenderExact(const Sprite& sprite, const SDL_Rect& src, const SDL_Rect& dst, SDL_RendererFlip flip, int degrees, const SDL_Point* cntr = nullptr);
+
+	static void transform(Sprite& sprite, AnimationEffectList effects, std::optional< SDL_Point >& offset, SDL_RendererFlip& flip);
+
+	void synchronize(const Animation& other) noexcept;
+
+	friend void swap(Animation& lhs, Animation& rhs) noexcept;
+
 private:
-	int Delay; //Time between frames
-	SDL_Surface* SpriteSheet;
-	std::vector <SDL_Rect> FrameWindows;
-	int frame;
-	int numFrames;
-	bool looped;
-	bool tile;
-	Uint32 timeError;
-	SDL_Texture* tex;
-	static Uint32 deltaTime;
-	static SDL_Renderer* renderer;
-};
+	Sprite sprite;
+	
+	std::optional<SDL_Point> offset;
 
+	Timer timer;
+
+	int currentFrame;
+	int numFrames;
+
+	bool hasLooped;
+};

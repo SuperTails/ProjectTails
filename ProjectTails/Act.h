@@ -16,14 +16,14 @@
 #include "DataReader.h"
 #include "Typedefs.h"
 
-enum ActType { TITLE, TORNADO, NORMAL };
+//enum class ActType : unsigned char;
 
 class Act
 {
 public:
 	Act();
 
-	Act(const int& num, const std::string& name1, const std::vector < PhysStructInit >& ent, const SDL_Rect& w, const ActType& a, const double& screenRatio, const SDL_Point& levelSize, const std::vector < std::vector < Animation > >& backgnd, std::vector < Ground >&& ground = std::vector < Ground > ());
+	Act(const int& num, const std::string& name1, const std::vector < PhysStruct >& ent, const SDL_Rect& w, const ActType& a, double screenRatio, const SDL_Point& levelSize, const std::vector < std::vector < Animation > >& backgnd, std::vector < Ground >& ground);
 	Act(Act&& other);
 
 
@@ -51,10 +51,8 @@ public:
 	std::unique_ptr < PhysicsEntity >& getEntity(int index) { return entities[index]; };
 	std::vector < std::unique_ptr < PhysicsEntity > >& getEntityArray() { return entities; };
 
-	void resetTime() { last_time = time = SDL_GetTicks(); };
-
-	static void setProps(std::vector < PhysProp >& p) { props = p; };
-	static void setKeys(std::unordered_map < std::string, PhysProp* >& p) { entityKeys = p; };
+	//static void setProps(std::vector < PhysProp >& p) { props = p; };
+	//static void setKeys(std::unordered_map < std::string, PhysProp* >& p) { entityKeys = p; };
 
 	void initialize();
 
@@ -65,7 +63,7 @@ public:
 
 	ActType getType() { return aType; };
 
-	typedef matrix < int > matrix;
+	//typedef matrix < int > matrix;
 
 	static void loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, int& currentAct, std::vector < Ground::groundArrayData >& arrayData, std::vector<std::vector<Animation>>& background);
 
@@ -80,8 +78,6 @@ private:
 
 	Act(const Act& other) {};
 	bool debounce;
-	Uint32 time;
-	Uint32 last_time;
 	int number; //Which zone it is, title screen = 0.
 	double ratio; //Ratio of playfield coords to screen coords
 	std::string name; //The zone's name. Does NOT include "zone," that's added later.
@@ -98,7 +94,7 @@ private:
 	ActType aType;
 	int frame;
 
-	static std::vector < PhysProp > props;
-	static std::unordered_map < std::string, PhysProp* > entityKeys;
+	//static std::vector < PhysProp > props;
+	//static std::unordered_map < std::string, PhysProp* > entityKeys;
 };
 

@@ -1,14 +1,13 @@
 #pragma once
-#include "Animation.h"
+#include <cstddef>
+#include <string>
 #include <vector>
-#include "InputComponent.h"
-#include <SDL.h>
-#include "Constants.h"
-#include "Text.h"
-#include <algorithm>
-#include <time.h>
+#include <chrono>
 
 class Animation;
+class InputComponent;
+class SDL_Window;
+class SDL_Renderer;
 
 namespace globalObjects {
 	struct loadData {
@@ -21,21 +20,18 @@ namespace globalObjects {
 	extern SDL_Window* window;
 	extern double ratio;
 	extern SDL_Renderer* renderer;
-	extern Uint32 time, last_time;
 	extern std::vector < loadData > loadProgress;
 	extern std::vector < Animation > titleScreen;
 	extern int titleScreenOffset;
-	extern Uint32 titleScreenHoverBegin;
+	extern std::uint32_t titleScreenHoverBegin;
 	extern int gameState;
 	extern double titleScreenFlash;
-	extern int lastShuffle;
-	extern std::vector < int > lastPalette;
-	
+
 	void renderBackground(std::vector < std::vector < Animation > >& background, const int& cameraCenterX, const double& ratio);
 	void renderTitleScreen(std::vector < std::vector < Animation > >& background, const int& centerX);
 	void renderTitleFlash();
 	void unloadTitleScreen();
 	void updateLoading(const double& incr);
 	double lerp(const double& x, const double& y, const double& t);
-	Uint32 lerp(const Uint32& x, const Uint32& y, const double& t);
+	std::uint32_t lerp(const std::uint32_t& x, const std::uint32_t& y, const double& t);
 };

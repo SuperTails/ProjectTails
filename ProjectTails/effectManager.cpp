@@ -1,7 +1,8 @@
 #include "stdafx.h"
 #include "effectManager.h"
+#include "Timer.h"
 
-Animation* effectManager::rain(nullptr);
+std::unique_ptr < Animation > effectManager::rain(nullptr);
 bool effectManager::fadeWhite(false);
 double effectManager::fadeFrames(0.0);
 double effectManager::startFrames(0.0);
@@ -40,11 +41,11 @@ void effectManager::updateFade() {
 		SDL_DestroyTexture(tex);
 		SDL_FreeSurface(srf);
 		if (fadeFrames >= 0.0) {
-			fadeFrames -= (globalObjects::time - globalObjects::last_time) / (1000.0 / 60.0);
+			fadeFrames -= (Timer::getFrameTime().count()) / (1000.0 / 60.0);
 			fadeFrames = std::max(fadeFrames, 0.0);
 		}
 		else {
-			fadeFrames += (globalObjects::time - globalObjects::last_time) / (1000.0 / 60.0);
+			fadeFrames += (Timer::getFrameTime().count()) / (1000.0 / 60.0);
 			if (fadeFrames >= 0.0) {
 				inFade = false;
 			}
@@ -56,40 +57,35 @@ void effectManager::loadEHZRain() {
 	int pixelWidth = WINDOW_HORIZONTAL_SIZE * globalObjects::ratio;
 	int pixelHeight = WINDOW_VERTICAL_SIZE * globalObjects::ratio;
 
-	SDL_Surface* window = SDL_GetWindowSurface(globalObjects::window);
+	Surface rainFile("..\\..\\asset\\Rain.png");
 
-	SDL_Surface* rainFile = IMG_Load("..\\..\\asset\\Rain.png");
+	Surface rainSrf(SDL_Point{ pixelWidth * 2, pixelHeight });
 
-	SDL_SetSurfaceRLE(rainFile, SDL_TRUE);
-
-	SDL_Surface* rainSrf = SDL_CreateRGBSurface(0, pixelWidth * 2, pixelHeight, 32, window->format->Rmask, window->format->Gmask, window->format->Bmask, window->format->Amask);
-
-	SDL_SetColorKey(rainSrf, SDL_RLEACCEL, SDL_MapRGBA(rainSrf->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
+	SDL_SetColorKey(rainSrf.get(), SDL_RLEACCEL, SDL_MapRGBA(rainSrf.get()->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
 
 	for (int x = 0; x + 64 <= pixelWidth; x += 64) {
 		for (int y = 0; y + 64 <= pixelHeight; y += 64) {
 			SDL_Rect src{ 0, 0, 64, 64 };
 			SDL_Rect dst{ x, y, 64, 64 };
-			SDL_BlitSurface(rainFile, &src, rainSrf, &dst);
+			SDL_BlitSurface(rainFile.get(), &src, rainSrf.get(), &dst);
 			dst.x += pixelWidth;
 			src.x += 64;
-			SDL_BlitSurface(rainFile, &src, rainSrf, &dst);
+			SDL_BlitSurface(rainFile.get(), &src, rainSrf.get(), &dst);
 		}
 	}
+	
+	using namespace std::chrono_literals;
+	rain = std::make_unique < Animation >(rainSrf, 64ms, 2);
 
-	rain = new Animation(rainSrf, 64, 2, globalObjects::window);
-
-	SDL_SetTextureAlphaMod(rain->getTexture(), 0x80);
-
-	SDL_FreeSurface(rainFile);
+	SDL_SetTextureAlphaMod(rain->getTexture().get(), 0x80);
 }
 
-void effectManager::renderEHZRain() {
-	SDL_Rect dst = { 0, 0, int(WINDOW_HORIZONTAL_SIZE), int(WINDOW_VERTICAL_SIZE) };
+/*void effectManager::renderEHZRain() {
+	SDL_Rect dst = { 0, 0 };
 	rain->Update();
-	rain->Render(&dst, 0, NULL, 1.0 / globalObjects::ratio);
-}
+	rain->Render(dst, 0, NULL, 1.0 / globalObjects::ratio);
+}*/
 
 void effectManager::unloadEHZRain() {
-	delete rain;
+	delete rain.release();
 }

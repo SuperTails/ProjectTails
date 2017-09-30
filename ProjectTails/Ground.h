@@ -1,65 +1,65 @@
 #pragma once
-#include "PhysicsEntity.h"
-#include "CollisionTile.h"
+#include "Constants.h"
 #include "Typedefs.h"
-#include "CollisionTile.h"
+#include <array>
 #include <vector>
-#include <json.hpp>
-
-using json = nlohmann::json;
 
 using constants::GROUND_SIZE;
 using constants::GROUND_WIDTH;
 using constants::TILE_WIDTH;
 using constants::GROUND_PIXEL_WIDTH;
 
-class Ground : public PhysicsEntity
-{
+class Animation;
+
+class CollisionTile;
+
+class Ground {
 public:
 	enum class Flags { TOP_SOLID = 4 };
 
+	struct Tile {
+		int index;
+		int flags;
+	};
+
+	typedef std::array < Tile, GROUND_SIZE > Layer;
+	typedef std::vector < Layer > DataType;
+
 	struct groundArrayData {
-		std::vector < int > graphicsIndices;
-		std::vector < int > graphicsFlags;
-		std::vector < int > collideIndices;
-		std::vector < int > collideFlags;
-		groundArrayData() = default;
-		groundArrayData(const std::vector<int>& indices, const std::vector<int>& flags, const std::vector<int>& collides, const std::vector<int>& collideFlags) :
-			graphicsIndices(indices),
-			graphicsFlags(flags),
-			collideIndices(collides),
-			collideFlags(collideFlags)
-		{};
+		DataType graphics;
+		DataType collision;
 	};
 
 	Ground();
-	/*
-	p - location
-	indices - graphics tile indices
-	flags - graphics tile flags
-	collideIndices - collision tile indices
-	collideFlags - collision tile flags
-	*/
-	Ground(SDL_Point p, const groundArrayData& arrayData, bool pFlip = false);
-	Ground(const Ground&);
-	Ground(Ground&& other) noexcept;
+	Ground(std::size_t index, SDL_Point pos, bool pFlip = false);
+	Ground(const Ground&) = default;
+	Ground(Ground&& other) = default;
+	~Ground() = default;
 	
-	void Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position = nullptr, int layer = 0, bool flip = false) const;
-	int* getIndices() { return tileIndices; };
-	void setPoint(SDL_Point p) { position = { 256 * p.x, 256 * p.y, 256, 256 }; };
-	bool getMulti() const { return multiPath; };
+	void Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position = nullptr, int layer = 2, bool doFlip = false) const;
+	void setPoint(SDL_Point p) { position = { 256 * p.x, 256 * p.y }; };
+	bool getMulti() const { return data[dataIndex].getMultiPath(); };
 
 	const CollisionTile& getTile(int tileX, int tileY, bool path) const;
 	double getTileAngle(int tileX, int tileY, bool path) const;
 	int getFlag(int tileX, int tileY, bool path) const;
-	bool empty() const { return (tileIndices == nullptr); };
+	bool empty() const { return (dataIndex == -1) || data[dataIndex].getCollision().empty(); };
 
-	void setIndice(int ind, int value) { tileIndices[ind] = value; };
-	void setFlag(int ind, int value) { tileFlags[ind] |= value; };
-	void unsetFlag(int ind, int value) { tileFlags[ind] &= ~value; };
+	void setPosition(SDL_Point pos);
+	SDL_Point getPosition() const;
 
-	static void setMap(std::string mapPath);
-	static void setList(std::vector < CollisionTile > list);
+	void setIndex(std::size_t index);
+	std::size_t getIndex() const;
+
+	void setFlip(bool newFlip);
+	bool getFlip() const;
+
+	static void setMap(const std::string& mapPath);
+	static void setCollisionList(std::vector < CollisionTile > list);
+
+	static void clearTiles() { data.clear(); };
+	static void addTile(const groundArrayData& tileData) { data.emplace_back(tileData); };
+	static std::size_t tileCount() { return data.size(); };
 
 	static std::string getMapPath() { return mPath; };
 
@@ -67,13 +67,41 @@ public:
 
 	friend void swap(Ground& lhs, Ground& rhs) noexcept;
 
-	~Ground();
 private:
+	std::size_t dataIndex;
+	bool flip;
+
+	SDL_Point position;
+
 	static std::string mPath;
 	static std::vector < CollisionTile > tileList;
-	static SDL_Surface* map;
-	int* tileIndices;
-	int* tileFlags;
-	bool multiPath;
-	bool flip;
+	static Surface map;
+
+	class GroundData;
+
+	static std::vector < GroundData > data;
+
+	class GroundData {
+		friend class Ground;
+	public:
+		GroundData() = default;
+		GroundData(const GroundData&) = default;
+		GroundData(GroundData&&) = default;
+
+		GroundData(const Ground::groundArrayData& arrayData);
+
+		const DataType& getCollision() { return collision; }; 
+
+		bool getMultiPath() { return collision.size() == 2; };
+
+	private:
+		DataType graphics;
+		DataType collision;
+
+		std::array < Animation, 2 > layers;
+	};
 };
+
+std::istream& operator>> (std::istream& stream, Ground& g);
+
+std::ostream& operator<< (std::ostream& stream, const Ground& g);

@@ -1,0 +1,117 @@
+[
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/InputComponent.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/InputComponent.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/InputComponent.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Animation.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Animation.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Animation.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/PhysicsEntity.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/PhysicsEntity.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/PhysicsEntity.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/DataReader.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/DataReader.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/DataReader.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/effectManager.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/effectManager.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/effectManager.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/EntityTypes.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/EntityTypes.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/EntityTypes.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Camera.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Camera.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Camera.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/LevelEditor.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/LevelEditor.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/LevelEditor.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Miscellaneous.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Miscellaneous.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Miscellaneous.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Constants.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Constants.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Constants.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Act.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Act.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Act.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Player.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Player.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Player.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/prhsGameLib.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/prhsGameLib.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/prhsGameLib.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Functions.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Functions.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Functions.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/ProjectTails.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/ProjectTails.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/ProjectTails.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Timer.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Timer.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Timer.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/stdafx.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/stdafx.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/stdafx.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/CollisionTile.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/CollisionTile.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/CollisionTile.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/SoundHandler.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/SoundHandler.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/SoundHandler.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Ground.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Ground.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Ground.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/TextureManager.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/TextureManager.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/TextureManager.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Text.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Text.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Text.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/ProjectTails/build",
+  "command": "/usr/bin/c++    -I/home/super-tails/Documents/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/Sprite.cpp.o -c /home/super-tails/Documents/ProjectTails/ProjectTails/Sprite.cpp",
+  "file": "/home/super-tails/Documents/ProjectTails/ProjectTails/Sprite.cpp"
+}
+]

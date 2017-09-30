@@ -1,23 +1,20 @@
 #include "stdafx.h"
 #include "LevelEditor.h"
+#include "Functions.h"
+#include "InputComponent.h"
+#include <functional>
 
-const bool LevelEditor::levelEditing(false);
+bool LevelEditor::levelEditing(false);
 
 std::string LevelEditor::levelPath("");
 
-std::vector < Ground > LevelEditor::groundList(0);
+std::vector < std::vector < Ground > > LevelEditor::levelBlocks(0);
 
-std::vector < std::vector < LevelEditor::groundData > > LevelEditor::levelBlocks(0);
-
-std::vector < PhysStructInit > LevelEditor::levelEntities;
-
-std::unordered_map < std::string, PhysProp* >* LevelEditor::entityList;
+std::vector < PhysStruct > LevelEditor::levelEntities;
 
 std::unordered_map < std::string, Animation > LevelEditor::entityView;
 
-std::vector < std::string >* LevelEditor::entityTypes;
-
-std::vector < PhysStructInit >::iterator LevelEditor::currentEntity = LevelEditor::levelEntities.end();
+std::vector < PhysStruct >::iterator LevelEditor::currentEntity = LevelEditor::levelEntities.end();
 
 bool LevelEditor::mouseDebounce(false);
 
@@ -31,35 +28,38 @@ SDL_Texture* LevelEditor::SkyTexture;
 
 double LevelEditor::mouseWheelValue = 0;
 
-void LevelEditor::init(std::vector < DataReader::groundData >& levelGround, SDL_Point levelSize, std::vector < Ground::groundArrayData >& arrayData) {
-	levelBlocks.resize(levelSize.x, std::vector < groundData >(levelSize.y, groundData{ -1, false }));
-	Sky = IMG_Load("..\\..\\asset\\Sky.png");
+void LevelEditor::init(std::vector < Ground >& levelGround, SDL_Point levelSize) {
+	levelBlocks.resize(levelSize.x, std::vector < Ground >(levelSize.y, Ground()));
+	Sky = IMG_Load(ASSET"Sky.png");
 	SkyTexture = SDL_CreateTextureFromSurface(globalObjects::renderer, Sky);
 
-	for (DataReader::groundData& g : levelGround) {
-		levelBlocks[g.x][g.y].index = g.index;
-		levelBlocks[g.x][g.y].flip = g.flip;
+	for (Ground& g : levelGround) {
+		const SDL_Point position = g.getPosition();
+		levelBlocks[position.x][position.y] = g;
 	}
 
-	for (int i = 0; i < arrayData.size(); i++) {
-		groundList.emplace_back(SDL_Point{ 0, 0 }, arrayData[i]);
+	for (std::size_t x = 0; x < levelBlocks.size(); ++x) {
+		for (std::size_t y = 0; y < levelBlocks[x].size(); ++y) {
+			levelBlocks[x][y].setPosition(SDL_Point{ int(x), int(y) });
+		}
 	}
 
-	std::unordered_map <  std::string, PhysProp* >::iterator i = entityList->begin();
-	while (i != entityList->end()) {
-		if (!i->second->anim.empty()) {
-			Animation current(i->second->anim.front());
+	auto i = entity_property_data::entityTypes.begin();
+	while (i != entity_property_data::entityTypes.end()) {
+		if (!i->second.animationTypes.empty()) {
+			Animation current(i->second.animationTypes.front());
 			entityView.emplace(i->first, current);
 		}
-		else if(i->second->eType == PATHSWITCH) {
-			AnimStruct temp{ ASSET"pathswitch.png", 10, 1 };
+		else if(i->first == "PATHSWITCH") {
+			using namespace std::chrono_literals;
+			AnimStruct temp{ ASSET"Pathswitch.png", 10ms, 1 };
 			Animation current(temp);
 			entityView.emplace(i->first, current);
 		}
 		else {
 			throw "No image file available for entity";
 		}
-		i++;
+		++i;
 	}
 
 	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
@@ -70,67 +70,67 @@ void LevelEditor::init(std::vector < DataReader::groundData >& levelGround, SDL_
 void LevelEditor::renderTiles() {
 	SDL_Rect src{ 0, 0, 1, 1 }, dst{ 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE };
 	SDL_RenderCopyEx(globalObjects::renderer, SkyTexture, &src, &dst, 0, NULL, SDL_FLIP_NONE);
-	for (int column = 0; column < levelBlocks.size(); column++) {
-		for (int row = 0; row < levelBlocks[column].size(); row++) {
-			int tile = levelBlocks[column][row].index;
-			if (tile != -1) {
-				SDL_Rect pos{ column * int(TILE_WIDTH * GROUND_WIDTH), row * int(TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH), int(TILE_WIDTH * GROUND_WIDTH) };
-				SDL_Rect relativePos = PhysicsEntity::getRelativePos(pos, cam->getPosition());
-				SDL_RendererFlip currentFlip = static_cast < SDL_RendererFlip >(levelBlocks[column][row].flip);
-				groundList[tile].Render(cam->getPosition(), 1.0 / globalObjects::ratio, &relativePos, 1, currentFlip);
-				groundList[tile].Render(cam->getPosition(), 1.0 / globalObjects::ratio, &relativePos, 0, currentFlip);
+	for (int column = 0; column < levelBlocks.size(); ++column) {
+		for (int row = 0; row < levelBlocks[column].size(); ++row) {
+			std::size_t tile = levelBlocks[column][row].getIndex();
+			if (tile != static_cast<std::size_t>(-1)) {
+				levelBlocks[column][row].Render(cam->getPosition(), 1.0 / globalObjects::ratio);
 			}
 		}
 	}
-	SDL_Rect boundingRect = PhysicsEntity::getRelativePos(SDL_Rect{ 0, 0, int(levelBlocks.size() * TILE_WIDTH * GROUND_WIDTH), int(levelBlocks[0].size() * TILE_WIDTH * GROUND_WIDTH) }, cam->getPosition());
-	boundingRect.x *= globalObjects::ratio;
-	boundingRect.y *= globalObjects::ratio;
-	boundingRect.w *= globalObjects::ratio;
-	boundingRect.h *= globalObjects::ratio;
+	SDL_Rect boundingRect = PhysicsEntity::getRelativePos(SDL_Rect{ 0, 0, int(levelBlocks.size() * GROUND_PIXEL_WIDTH), int(levelBlocks[0].size() * GROUND_PIXEL_WIDTH) }, cam->getPosition());
+	boundingRect *= globalObjects::ratio;
 	SDL_RenderDrawRect(globalObjects::renderer, &boundingRect);
 }
 
 void LevelEditor::renderEntities() {
-	for (PhysStructInit& i : levelEntities) {
-		SDL_Rect dst{ i.pos.x, i.pos.y, 16, 16 };
+	static Text flagsText(constants::FONT_PATH);
+	for (PhysStruct& i : levelEntities) {
+		SDL_Rect dst{ i.position.x, i.position.y, 16, 16 };
 		dst = PhysicsEntity::getRelativePos(dst, cam->getPosition());
-		entityView.find(i.prop)->second.Render(&dst, 0, NULL, globalObjects::ratio);
+		entityView.find(i.typeId)->second.Render(getXY(dst), 0, NULL, globalObjects::ratio);
+		auto requiredFlags = entity_property_data::requiredFlagCount(entity_property_data::getEntityTypeData(i.typeId).behaviorKey);
+		if (i.flags.size() != requiredFlags) {
+			SDL_RenderFillRect(globalObjects::renderer, &dst);
+		}
 	}
 	if (currentEntity != levelEntities.end()) {
-		SDL_Rect dst(PhysicsEntity::getRelativePos(currentEntity->pos, cam->getPosition()));
-		dst.x *= globalObjects::ratio;
-		dst.y *= globalObjects::ratio;
-		dst.w *= globalObjects::ratio;
-		dst.h *= globalObjects::ratio;
+		SDL_Rect dst(PhysicsEntity::getRelativePos(currentEntity->position, cam->getPosition()));
+		dst *= globalObjects::ratio;
 		SDL_RenderDrawRect(globalObjects::renderer, &dst);
 	}
-	//SDL_RenderPresent(globalObjects::renderer);
 }
 
 void LevelEditor::renderText() {
-	Text t("..\\..\\asset\\FontGUI.png");
+	static Text t(ASSET"FontGUI.png");
 	t.StringToText("Mode: " + mtos(mode) + " Size: " + std::to_string(levelBlocks.size()) + " " + std::to_string(levelBlocks[0].size()));
-	SDL_Texture* tex = SDL_CreateTextureFromSurface(globalObjects::renderer, t.getText());
-	SDL_Rect dst{ 10, 10, t.getText()->w, t.getText()->h };
-	SDL_RenderCopyEx(globalObjects::renderer, tex, NULL, &dst, 0.0, NULL, SDL_FLIP_NONE);
-	SDL_DestroyTexture(tex);
-	//SDL_RenderPresent(globalObjects::renderer);
+	t.Render(SDL_Point { 25, 25 });
 }
 
 bool LevelEditor::handleInput() {
-	int thisDistance = ((globalObjects::time - globalObjects::last_time) / (1000.0 / 60.0)) * 10;
+	double thisDistance = (Timer::getFrameTime().count() / (1000.0 / 60.0)) * 5;
+
+	static double cameraXError = 0;
+	static double cameraYError = 0;
+	
 	if (globalObjects::input.GetKeyState(InputComponent::A)) {
-		cam->updatePosition({ -1 * thisDistance, 0, 0, 0, 0 }, PRHS_UPDATE_RELATIVE);
+		cameraXError -= thisDistance;
 	}
 	else if (globalObjects::input.GetKeyState(InputComponent::D)) {
-		cam->updatePosition({ thisDistance, 0, 0, 0, 0 }, PRHS_UPDATE_RELATIVE);
+		cameraXError += thisDistance;
 	}
 	if (globalObjects::input.GetKeyState(InputComponent::W)) {
-		cam->updatePosition({ 0, -1 * thisDistance, 0, 0, 0 }, PRHS_UPDATE_RELATIVE);
+		cameraYError -= thisDistance;
 	}
 	else if (globalObjects::input.GetKeyState(InputComponent::S)) {
-		cam->updatePosition({ 0, thisDistance, 0, 0, 0 }, PRHS_UPDATE_RELATIVE);
+		cameraYError += thisDistance;
 	}
+
+	cam->updatePosition({ static_cast<int>(cameraXError), static_cast<int>(cameraYError), 0, 0, 0 }, PRHS_UPDATE_RELATIVE);
+
+	cameraXError -= static_cast<int>(cameraXError);
+	cameraYError -= static_cast<int>(cameraYError);
+
 	if (globalObjects::input.GetKeyPress(InputComponent::M)) {
 		mode = (mode == TILE) ? ENTITY : TILE;
 	}
@@ -143,16 +143,16 @@ bool LevelEditor::handleInput() {
 		if (thisMove < 1)
 			thisMove = (SDL_GetTicks() % int(1.0 / thisMove)) == 0;
 		if (globalObjects::input.GetKeyState(InputComponent::LARROW)) {
-			currentEntity->pos.x -= thisMove;
+			currentEntity->position.x -= thisMove;
 		}
 		else if (globalObjects::input.GetKeyState(InputComponent::RARROW)) {
-			currentEntity->pos.x += thisMove;
+			currentEntity->position.x += thisMove;
 		}
 		if (globalObjects::input.GetKeyState(InputComponent::UARROW)) {
-			currentEntity->pos.y -= thisMove;
+			currentEntity->position.y -= thisMove;
 		}
 		else if (globalObjects::input.GetKeyState(InputComponent::DARROW)) {
-			currentEntity->pos.y += thisMove;
+			currentEntity->position.y += thisMove;
 		}
 	}
 
@@ -164,13 +164,31 @@ bool LevelEditor::handleInput() {
 	mouseX += cam->getPosition().x * globalObjects::ratio;
 	mouseY += cam->getPosition().y * globalObjects::ratio;
 
+	int mouseTileX = mouseX / (GROUND_PIXEL_WIDTH * globalObjects::ratio);
+	int mouseTileY = mouseY / (GROUND_PIXEL_WIDTH * globalObjects::ratio);
+
 	if (mouseState & (SDL_BUTTON(SDL_BUTTON_LEFT) | SDL_BUTTON(SDL_BUTTON_RIGHT))) {
 		if (!mouseDebounce) {
 			if (mode == TILE) {
-				if ((mouseX / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio)) < levelBlocks.size() && (mouseY / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio)) < levelBlocks[0].size()) {
-					int temp = (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) ? 2 : groundList.size() + 1;
-					int& index = levelBlocks[(mouseX / (GROUND_PIXEL_WIDTH * globalObjects::ratio))][(mouseY / (GROUND_PIXEL_WIDTH * globalObjects::ratio))].index;
-					index = ((index + temp) % (groundList.size() + 1)) - 1;
+				if (mouseTileX < levelBlocks.size() && mouseTileY < levelBlocks[0].size()) {
+					Ground& clickedOn = levelBlocks[(mouseX / (GROUND_PIXEL_WIDTH * globalObjects::ratio))][(mouseY / (GROUND_PIXEL_WIDTH * globalObjects::ratio))];
+					std::size_t currentIndex = clickedOn.getIndex();
+					if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+						if (currentIndex == (Ground::tileCount() - 1)) {
+							clickedOn.setIndex(static_cast<std::size_t>(-1));
+						}
+						else {
+							clickedOn.setIndex(currentIndex + 1);
+						}
+					}
+					else {
+						if (currentIndex == static_cast<std::size_t>(-1)) {
+							clickedOn.setIndex(Ground::tileCount() - 1);
+						}
+						else {
+							clickedOn.setIndex(currentIndex - 1);
+						}
+					}
 				}
 				mouseDebounce = true;
 			}
@@ -178,7 +196,7 @@ bool LevelEditor::handleInput() {
 				currentEntity = levelEntities.begin();
 				SDL_Rect mousePos{ mouseX, mouseY, 16, 16 };
 				while (currentEntity != levelEntities.end()) {
-					SDL_Rect relativePos(currentEntity->pos);
+					SDL_Rect relativePos(currentEntity->position);
 
 					//Divide positions by 2 because we are at 1/2 scale to get screen coordinates
 					relativePos.x *= globalObjects::ratio;
@@ -187,15 +205,18 @@ bool LevelEditor::handleInput() {
 					if (SDL_HasIntersection(&relativePos, &mousePos)) {
 						break;
 					}
-					currentEntity++;
+					++currentEntity;
 				}
 				mouseDebounce = true;
 			}
 		}
 	}
 	else if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE)) {
-		if (!mouseDebounce && (mouseX / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio)) < levelBlocks.size() && (mouseY / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio)) < levelBlocks[0].size()) {
-			levelBlocks[(mouseX / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio))][(mouseY / (TILE_WIDTH * GROUND_WIDTH * globalObjects::ratio))].flip ^= 0x1;
+		if (!mouseDebounce && mouseTileX < levelBlocks.size() && mouseTileY < levelBlocks[0].size()) {
+			Ground& clickedOn = levelBlocks[mouseTileX][mouseTileY];
+
+			bool newFlip = clickedOn.getFlip() ^ 0x1;
+			clickedOn.setFlip(newFlip);
 		}
 		mouseDebounce = true;
 	}
@@ -205,40 +226,35 @@ bool LevelEditor::handleInput() {
 
 	if (mode == ENTITY) {
 		if (globalObjects::input.GetKeyPress(InputComponent::N)) {
-			PhysStructInit newEntity{ SDL_Rect{ static_cast < int >(mouseX / globalObjects::ratio), static_cast < int >(mouseY / globalObjects::ratio), 16, 16 }, std::vector < char >(), std::string("RING") };
-			levelEntities.push_back(newEntity);
-			currentEntity = levelEntities.end() - 1;
+			SDL_Rect newPosition{ static_cast<int>(mouseX / globalObjects::ratio), static_cast<int>(mouseY / globalObjects::ratio), 16, 16 };
+			PhysStruct newEntity{ "RING", {}, newPosition, false };
+			levelEntities.push_back(std::move(newEntity));
+			currentEntity = std::prev(levelEntities.end());
 		}
 		else if(globalObjects::input.GetKeyPress(InputComponent::X) && currentEntity != levelEntities.end()) {
 			levelEntities.erase(currentEntity);
 			currentEntity = levelEntities.end();
 		}
-		if ((globalObjects::input.GetKeyPress(InputComponent::LBRACKET) || globalObjects::input.GetKeyPress(InputComponent::RBRACKET)) && currentEntity != levelEntities.end()) {
-			std::vector < std::string >::iterator current = entityTypes->begin();
-			while (current != entityTypes->end()) {
-				if (*current == currentEntity->prop) {
-					break;
-				}
-				++current;
-			}
+		if (currentEntity != levelEntities.end()) {
+			using namespace entity_property_data;
+			const auto entityType = std::find_if(entityTypes.begin(), entityTypes.end(), [&](const auto& a){ return currentEntity->typeId == a.first; });
 			if (globalObjects::input.GetKeyPress(InputComponent::LBRACKET)) {
-				if (current == entityTypes->begin()) {
-					current = entityTypes->end() - 1;
+				if (entityType == entityTypes.begin()) {
+					currentEntity->typeId = std::prev(entityTypes.end())->first;
 				}
 				else {
-					--current;
+					currentEntity->typeId = std::next(entityType)->first;
 				}
-				
 			}
-			else {
-				if (current == entityTypes->end() - 1) {
-					current = entityTypes->begin();
+			else if (globalObjects::input.GetKeyPress(InputComponent::RBRACKET)) {
+				if (entityType == entityTypes.end()) {
+					currentEntity->typeId = entityTypes.begin()->first;
 				}
 				else {
-					++current;
+					currentEntity->typeId = std::next(entityType)->first;
 				}
 			}
-			currentEntity->prop = *current;
+			
 		}
 		if (globalObjects::input.GetKeyPress(InputComponent::F)) {
 			std::cout << "Enter flags: ";
@@ -273,47 +289,77 @@ bool LevelEditor::handleInput() {
 			std::cin >> newSize.x >> newSize.y;
 			newSize.x = (newSize.x == -1) ? levelBlocks.size() : newSize.x;
 			newSize.y = (newSize.y == -1) ? levelBlocks[0].size() : newSize.y;
-			for (std::vector < groundData >& vec : levelBlocks) {
-				vec.resize(newSize.y, groundData{ -1, false });
+
+			if (newSize.x > levelBlocks.size()) {
+				std::size_t previousSize = levelBlocks.size();
+				levelBlocks.resize(newSize.x);
+				std::generate(levelBlocks.begin() + previousSize, levelBlocks.end(),
+						[&newSize, x = (int)previousSize]() mutable {
+							std::vector < Ground > g(newSize.y);
+							std::generate(g.begin(), g.end(),
+									[&newSize, &x, y = 0]() mutable {
+										return Ground(-1, { x, y++ }, false);
+									});
+							++x;
+							return g;
+						});
 			}
-			levelBlocks.resize(newSize.x, std::vector < groundData >(newSize.y, groundData{ -1, false }));
+			else {
+				levelBlocks.resize(newSize.x);
+			}
+
+			if (newSize.y > levelBlocks[0].size()) {
+				std::size_t previousSize = levelBlocks[0].size();
+				int x = 0;
+				for (auto& g : levelBlocks) {
+					g.resize(newSize.y);
+					std::generate(g.begin() + previousSize, g.end(),
+							[&newSize, &x, y = (int)previousSize]() mutable {
+								return Ground { -1u, SDL_Point { x, y++ }, false };
+							});
+					++x;
+				}
+			}
+			else {
+				for (auto& g : levelBlocks) {
+					g.resize(newSize.y);
+				}
+			}
 		}
 	}
 
-	return globalObjects::input.GetKeyState(InputComponent::J);
+	return globalObjects::input.GetKeyState(InputComponent::J) || globalObjects::input.GetKeyState(InputComponent::X);
 }
 
 std::string LevelEditor::convertToString(int levelNumber, std::string levelName) {
 	std::string current(std::to_string(levelNumber) + levelName + "\n");
-	std::cout << current.max_size() << "\n";
-	for (PhysStructInit& i : levelEntities) {
-		current += std::to_string(i.pos.x) + " ";
-		current += std::to_string(i.pos.y) + " ";
-		current += i.prop;
+	for (PhysStruct& i : levelEntities) {
+		current += std::to_string(i.position.x) + " ";
+		current += std::to_string(i.position.y) + " ";
+		current += i.typeId;
 		for (char& c : i.flags) {
 			current += " " + std::string(1, c);
 		}
 		current += '\n';
 	}
-	current += "E E E\n";
+	current += "E\n";
 	current += "1000000 -500 100 3000\n"; //Figure out win area later
 	current += "NORMAL\n";
-	current += Ground::getMapPath() + '\n';
-	std::vector < DataReader::groundData > groundData;
-	for (int x = 0; x < levelBlocks.size(); x++) {
-		for (int y = 0; y < levelBlocks[x].size(); y++) {
-			if (levelBlocks[x][y].index != -1) {
-				groundData.push_back(DataReader::groundData{ x, y, levelBlocks[x][y].index, levelBlocks[x][y].flip });
+	current += Ground::getMapPath().substr(std::string(ASSET).length()) + '\n';
+	std::vector < Ground > groundData;
+	for (int x = 0; x < levelBlocks.size(); ++x) {
+		for (int y = 0; y < levelBlocks[x].size(); ++y) {
+			if (levelBlocks[x][y].getIndex() != std::size_t(-1)) {
+				groundData.push_back(levelBlocks[x][y]);
 			}
 		}
 	}
 	current += std::to_string(groundData.size()) + '\n';
 	current += std::to_string(levelBlocks.size()) + " " + std::to_string(levelBlocks[0].size()) + "\n";
-	for (DataReader::groundData& i : groundData) {
-		current += std::to_string(i.x) + " " + std::to_string(i.y) + " " + std::to_string(i.index);
-		if (i.flip)
-			current += " 1";
-		current += "\n";
+	for (Ground& i : groundData) {
+		std::stringstream temp;
+		temp << i;
+		current += temp.str() + '\n';
 	}
 	current.pop_back(); //Remove trailing newline
 	return current;

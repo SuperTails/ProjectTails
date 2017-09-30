@@ -28,7 +28,7 @@ CollisionTile::~CollisionTile()
 {
 }
 
-void CollisionTile::setHeights(std::vector < int >& heights) {
+void CollisionTile::setHeights(const std::vector < int >& heights) {
 	std::memcpy(heightMap, &(heights[0]), 16 * sizeof(int));
 }
 

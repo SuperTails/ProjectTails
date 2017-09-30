@@ -1,0 +1,137 @@
+tails 'center' standing (cx, cy): x + 25, y + 11
+horizontal (wall) sensors:
+	N: cx - 10 to cx + 10, cy + 4
+vertical (falling) sensors:
+	A: cx - 9, cy to cy + 36
+	B: cx + 9, cy to cy + 36
+
+index = tile x - sensor x
+
+IF THE HEIGHT VALUE IS 10, THE SENSOR HAS TO CHECK FOR ANOTHER TILE!
+
+if no tile found, foot level (y + 20) is returned.
+
+Hex angles are from 0 to 256, start at normal position, are CLOCKWISE.
+
+Normal = (256 - Hex) * 1.40625
+Hex = 256 - (Normal / 1.40625)
+
+f(normal) = 180 normal - normal angle
+
+f(hex) = hex(180 - normal(hex)) = 384 - hex
+
+tile index = row * 20
+
+walking width is 42
+center is 25
+
+42-26
+
+json["layers"][0]["tiles"][ ITERATE HERE ]
+"tile" goes into array
+
+if("rot" == 180){
+	Flip Y
+	if("flipX"){
+		do nothing
+	} else {
+		FlipX
+	}
+} else {
+	if("flipX"){
+		FlipX
+	} else {
+		do nothing
+	}
+}
+
+if(flipY){
+	rot = 180;
+	if(flipX){
+		"flipX" = false
+	} else {
+		"flipX" = true
+	}
+} else {
+	if(flipX){
+		"flipX" = true
+	} else {
+		"flipX" = false
+	}
+}
+
+"flipX" = flipX ^ flipY
+
+less than angle means more counterclockwise
+
+angle = E0 floor <-> right wall   	
+angle = A0 right wall <-> ceiling	
+angle = 60 ceiling <-> left wall	
+angle = 20 left wall <-> floor		
+
+floor(((angle + 0x20) % 0x100) / 0x40)
+
+0 = floor
+1 = left wall
+2 = ceiling
+3 = right wall
+
+To resize dynamic array:
+int* smallerArray = new int[SIZE]	//First array
+int* biggerArray = new int[BIGGERSIZE]	//Allocate new array
+memcpy(biggerArray, smallerArray, SIZE * sizeof(int))	//Copy memory
+delete[] smallerArray;		//Free old memory
+smallerArray = biggerArray;
+
+
+
+If not looking in either direction
+	do normal stuff
+	if down is pressed
+		if stationary
+			look down
+		else
+			roll
+otherwise if looking down
+	if spindashing
+		do spindash stuff
+	else
+		
+
+crouch offset is -26, -2
+spindash offset is -47, -12
+
+
+ceiling line is at y - 25
+
+ehz block 1, 2, 4:
+
+0 1 2 3 4 5 6 7 8 9 A B C D E F
+o o o c c o o c o o o c c c o o
+
+0 1 2 3 4 5 6 7 8 9 A B C D E F
+o o o c c o o c o o o c c c c o
+
+0 1 2 3 4 5 6 7 8 9 A B C D E F
+o o c o o c c o c o c c c o o o
+
+300%
+
+Pathswitch flags:
+	i inverse
+	u unset
+	s set
+
+theadventurecontinues length: 3m 42s 42696 samples
+
+
+player collisions:
+	Player::handleCollisions takes a functor
+
+	Act: add collisions to queue to be processed
+	Player: resolve collisions with entities then remove from queue
+		if entitiy is a platform
+			collideGround(..., platform)
+		else
+			collideGround(..., nullptr)
+		

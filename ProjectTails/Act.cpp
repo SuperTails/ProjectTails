@@ -1,8 +1,10 @@
 #include "stdafx.h"
 #include "Act.h"
 
-std::vector < PhysProp > Act::props = std::vector < PhysProp >();
-std::unordered_map < std::string, PhysProp* > Act::entityKeys = std::unordered_map < std::string, PhysProp* >();
+//std::vector < PhysProp > Act::props = std::vector < PhysProp >();
+//std::unordered_map < std::string, PhysProp* > Act::entityKeys = std::unordered_map < std::string, PhysProp* >();
+
+//enum class ActType : unsigned char { TITLE, NORMAL, TORNADO };
 
 bool operator== (const SDL_Rect& a, const SDL_Rect& b) {
 	return (a.x == b.x) && (a.y == b.y) && (a.w == b.w) && (a.h == b.h);
@@ -29,14 +31,12 @@ Act::Act(Act&& other) :
 	cam(std::move(other.cam)),
 	renderer(std::move(other.renderer)),
 	solidTiles(std::move(other.solidTiles)),
-	time(std::move(other.time)),
-	last_time(std::move(other.time)),
 	debounce(std::move(other.debounce)),
 	background(std::move(other.background))
 {
 	for (int x = 0; x < solidTiles.size(); x++) {
 		for (int y = 0; y < solidTiles[x].size(); y++) {
-			if (solidTiles[x][y].getPosition().x != -1) {
+			if (solidTiles[x][y].getIndex() != -1) {
 				solidTileRender.push_back(&solidTiles[x][y]);
 			}
 		}
@@ -44,10 +44,8 @@ Act::Act(Act&& other) :
 	std::cout << "Act move constructor was called.\n";
 }
 
-Act::Act(const int& num, const std::string& name1, const std::vector < PhysStructInit >& ent, const SDL_Rect& w, const ActType& a, const double& screenRatio, const SDL_Point& levelSize, const std::vector < std::vector < Animation > >& backgnd, std::vector < Ground >&& ground) :
+Act::Act(const int& num, const std::string& name1, const std::vector < PhysStruct >& ent, const SDL_Rect& w, const ActType& a, double screenRatio, const SDL_Point& levelSize, const std::vector < std::vector < Animation > >& backgnd, std::vector < Ground >& ground) :
 	solidTiles(levelSize.x, std::vector < Ground >(levelSize.y, Ground())),
-	time(SDL_GetTicks()),
-	last_time(time),
 	number(num),
 	name(name1),
 	loaded_entities(0),
@@ -56,16 +54,14 @@ Act::Act(const int& num, const std::string& name1, const std::vector < PhysStruc
 	ratio(screenRatio),
 	frame(0),
 	debounce(false),
-	background(backgnd)
+	background(backgnd),
+	phys_paths(ent.begin(), ent.end())
 {
-	for (int i = 0; i != ent.size(); i++) {
-		phys_paths.emplace_back(ent[i].pos, *entityKeys.find(ent[i].prop)->second, i, ent[i].flags);
-	}
-	SDL_Rect pos;
 	for (int i = 0; i != ground.size(); i++) {
+		SDL_Point pos;
 		pos = ground[i].getPosition();
-		solidTiles[pos.x / (TILE_WIDTH * GROUND_WIDTH)][pos.y / (TILE_WIDTH * GROUND_WIDTH)] = std::move(ground[i]);
-		solidTileRender.push_back(&solidTiles[pos.x / (TILE_WIDTH * GROUND_WIDTH)][pos.y / (TILE_WIDTH * GROUND_WIDTH)]);
+		solidTiles[pos.x][pos.y] = ground[i];
+		solidTileRender.push_back(&solidTiles[pos.x][pos.y]);
 	}
 	
 }
@@ -74,11 +70,12 @@ void Act::initialize() {
 	std::cout << "Initializing act " << number << "!\n";
 	std::cout << "Loading entities...\n";
 	std::vector<PhysStruct>::iterator i = phys_paths.begin(); 
+	SDL_Rect cameraView = (cam->getCollisionRect());
 	while (i != phys_paths.end()) {
-		if (SDL_HasIntersection(&(i->pos), &(cam->getCollisionRect()))) {
-			std::cout << "Loading entity at position " << i->pos.x << " " << i->pos.y << "\n";
-			loaded_entities++;
-			entities.emplace_back(new PhysicsEntity(*i));
+		if (SDL_HasIntersection(&(i->position), &cameraView)) {
+			std::cout << "Loading entity at position " << i->position.x << " " << i->position.y << "\n";
+			++loaded_entities;
+			entities.emplace_back(std::make_unique<PhysicsEntity>(*i));
 			i = phys_paths.erase(i);
 			continue;
 		}
@@ -90,21 +87,16 @@ void Act::initialize() {
 
 //Unload offscreen entities and update onscreen ones
 void Act::updateEntities(Player& player) {
-	last_time = time;
-	time = SDL_GetTicks();
-	Animation::setTimeDifference(time - last_time);
-
 	// Load new entities
 	entityLoadIterator load = phys_paths.begin();
+	SDL_Rect cameraView = (cam->getCollisionRect());
 	while (load != phys_paths.end()) {
-		if (SDL_HasIntersection(&(load->pos), &(cam->getCollisionRect()))) {
-			std::cout << "Loading entity at position " << load->pos.x << " " << load->pos.y << "\n";
+		if (SDL_HasIntersection(&(load->position), &cameraView)) {
+			std::cout << "Loading entity at position " << load->position.x << " " << load->position.y << "\n";
 			entities.emplace_back(new PhysicsEntity(*load));
-			entities.back()->setTime(SDL_GetTicks());
-			entities.back()->loaded = true;
 			entities.back()->shouldSave = true;
 			load = phys_paths.erase(load);
-			loaded_entities++;
+			++loaded_entities;
 			continue;
 		}
 		
@@ -114,9 +106,10 @@ void Act::updateEntities(Player& player) {
 	entityListIterator i = entities.begin();
 	// Unload offscreen entities
 	while (i != entities.end()) {
-		if (!SDL_HasIntersection(&(*i)->getPosition(), &(cam->getCollisionRect())) && (*i)->loaded) {
+		SDL_Rect position = (*i)->getPosition();
+		if (!SDL_HasIntersection(&position, &cameraView)) {
 			if ((*i)->shouldSave) {
-				phys_paths.emplace_back((*i)->getPosition(), (*i)->GetProp(), true, (*i)->getFlags());
+				phys_paths.push_back((*i)->toPhysStruct());
 				i = entities.erase(i);
 				continue;
 			}
@@ -124,18 +117,12 @@ void Act::updateEntities(Player& player) {
 		++i;
 	}
 
-	i = entities.begin();
-
 	// Update entities
 	std::vector < bool > toDestroy(entities.size(), false);
 	std::vector < std::unique_ptr < PhysicsEntity > > toAdd;
 	EntityManager manager(entities, toDestroy, toAdd);
-	while (i != entities.end()) {
-
-		(*i)->loaded = true;
-		(*i)->update(true, &player, &manager);
-
-		++i;
+	for (auto& entity : entities) {
+		entity->update(&player, &manager);
 	}
 
 	updateCollisions(player, toDestroy, toAdd);
@@ -156,33 +143,17 @@ void Act::updateEntities(Player& player) {
 	}
 
 	// Add entities created by other entities
-	i = toAdd.begin();
-	while (i != toAdd.end()) {
-		entities.push_back(std::move(*i));
+	for (auto& entityToAdd : toAdd) {
+		entities.push_back(std::move(entityToAdd));
 	}
 }
 
 void Act::updateCollisions(Player& player, std::vector < bool >& toDestroy, std::vector < std::unique_ptr < PhysicsEntity > >& toAdd) {
-	bool destroyed = false;
-	bool hurt = false;
-	entityListIterator i = entities.begin();
-	SDL_Point center{ -1, -1 };
-	while (i != entities.end()) {
-		destroyed = false;
-		EntType collideType;
-		SDL_Rect playerCollide = player.getCollisionRect();
-		SDL_Rect objCollide = (*i)->getCollisionRect();
-		if (SDL_HasIntersection(&playerCollide, &objCollide) && (*i)->canCollide) {
-			debounce = false;
-			collideType = (*i)->getType();
-
-			player.addCollision(&(*i));
-		}
-		else if ((*i)->getType() == PATHSWITCH) {
-			(*i)->setCustom(1, static_cast <double> (false));
-		}
-		if (!destroyed) {
-			i++;
+	for (auto& entity : entities) {
+		const SDL_Rect playerCollide = player.getCollisionRect();
+		const SDL_Rect objCollide = entity->getCollisionRect();
+		if (SDL_HasIntersection(&playerCollide, &objCollide) && entity->canCollide) {
+			player.addCollision(entity);
 		}
 	}
 }
@@ -201,35 +172,36 @@ void Act::setCamera(Camera* c) {
 
 void Act::renderObjects(Player& player) {
 	SDL_Rect pos = cam->getPosition();
+	SDL_Rect cameraView = cam->getCollisionRect();
 
 	globalObjects::renderBackground(background, pos.x - cam->GetOffset().x, ratio);
 
-	solidRenderListIterator solidLayer = solidTileRender.begin();
-	while (solidLayer != solidTileRender.end()) {
-		if (SDL_HasIntersection(&(*solidLayer)->getPosition(), &cam->getCollisionRect())) {
-			(*solidLayer)->Render(pos, ratio, nullptr, 1);
+	for (const Ground* ground : solidTileRender) {
+		SDL_Point gridPos = ground->getPosition();
+		SDL_Rect position{ static_cast<int>(gridPos.x * GROUND_PIXEL_WIDTH), static_cast<int>(gridPos.y * GROUND_PIXEL_WIDTH), GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH };
+		if (SDL_HasIntersection(&position, &cameraView)) {
+			ground->Render(pos, ratio, nullptr, 1);
 		}
-		solidLayer++;
 	}
 
 	if (player.getOnGround()) {
 		player.render(pos, ratio);
 	}
 
-	solidLayer = solidTileRender.begin();
-	while (solidLayer != solidTileRender.end()) {
-		if (SDL_HasIntersection(&(*solidLayer)->getPosition(), &cam->getCollisionRect())) {
-			(*solidLayer)->Render(pos, ratio, nullptr, 0);
+	for (const auto& entity : entities) {
+		entity->Render(pos, ratio);
+	}
+
+	for (const Ground* ground : solidTileRender) {
+		SDL_Point gridPos = ground->getPosition();
+		SDL_Rect position{ static_cast<int>(gridPos.x * GROUND_PIXEL_WIDTH), static_cast<int>(gridPos.y * GROUND_PIXEL_WIDTH), GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH };
+		if (SDL_HasIntersection(&position, &cameraView)) {
+			ground->Render(pos, ratio, nullptr, 0);
 		}
-		solidLayer++;
 	}
 
 	if (!player.getOnGround()) {
 		player.render(pos, ratio);
-	}
-
-	for (auto i = entities.begin(); i != entities.end(); ++i) {
-		(*i)->Render(pos, ratio);
 	}
 }
 
@@ -237,13 +209,12 @@ void Act::loadNextAct(std::list<Act>& acts, std::vector<std::string>& actPaths, 
 	current++;
 	int actNum;
 	std::string actName;
-	std::vector < PhysStructInit > entities;
+	std::vector < PhysStruct > entities;
 	SDL_Rect winArea;
 	ActType actType;
 	std::vector < Ground > ground;
-	std::vector < DataReader::groundData > groundIndices;
 	SDL_Point levelSize;
-	DataReader::LoadActData(actPaths[current], actNum, actName, entities, winArea, actType, &ground, &arrayData, &groundIndices, &levelSize);
-	acts.emplace_back(actNum, actName, entities, winArea, actType, globalObjects::ratio, levelSize, background, std::move(ground));
+	DataReader::LoadActData(actPaths[current], actNum, actName, entities, winArea, actType, ground, levelSize);
+	acts.emplace_back(actNum, actName, entities, winArea, actType, globalObjects::ratio, levelSize, background, ground);
 	acts.pop_front();
 }

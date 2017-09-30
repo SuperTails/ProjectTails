@@ -5,8 +5,9 @@
 #include "Animation.h"
 #define WINDOW_HORIZONTAL_SIZE 1024
 #define WINDOW_VERTICAL_SIZE 512
-#define ASSET "..\\..\\asset\\"
-#define BADNIK ASSET"Badnik\\"
+#define ASSET "/home/super-tails/Documents/ProjectTails/asset/"
+#define BADNIK ASSET"Badnik/"
+#define TAILS_PATH ASSET"Tails/"
 
 namespace constants {
 	const std::size_t TILE_WIDTH = 16;

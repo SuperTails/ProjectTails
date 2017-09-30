@@ -8,7 +8,7 @@ public:
 	CollisionTile(int ind, std::vector < int > heights, double ang, bool collide);
 	CollisionTile();
 
-	void setHeights(std::vector < int >& heights);
+	void setHeights(const std::vector < int >& heights);
 	void setHeight(int height, int index) { heightMap[index] = height; };
 	void setAngle(double ang) { angle = ang; };
 	void setIndex(int ind) { index = ind; };

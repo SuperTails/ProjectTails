@@ -1,26 +1,20 @@
 #pragma once
-#include <string>
-#include "Act.h"
-#include "Ground.h"
-#include <fstream>
-#include <json.hpp>
-#include <iomanip>
-#include <unordered_map>
 #include "Typedefs.h"
+#include "PhysicsEntity.h"
+#include <string>
+#include <json.hpp>
 #include <experimental/filesystem>
 
 using json = nlohmann::json;
 
-enum ActType;
+enum class ActType : unsigned char;
+
+class Ground;
+class CollisionTile;
 
 namespace DataReader
 {
-	struct groundData {
-		int x;
-		int y;
-		int index;
-		bool flip;
-	};
+	using namespace std::experimental;
 	/*
 	Path, act number, name,
 	entities, winArea,
@@ -30,15 +24,14 @@ namespace DataReader
 	*groundIndices, *levelSize
 	*/
 
-	void LoadActData(std::string path, int& n, std::string& name1, std::vector < PhysStructInit >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >* ground, std::vector < Ground::groundArrayData >* = nullptr, std::vector < groundData >* groundIndices = nullptr, SDL_Point* levelSize = nullptr);
-	void LoadEntityData(std::string path, std::vector < PhysProp >& prop, std::unordered_map < std::string, PhysProp* >& entityKeys, std::vector < std::string >& Types);
-	void LoadTileData(std::string path, std::vector < CollisionTile >& tiles);
+	void LoadActData(const std::string& path, int& n, std::string& name1, std::vector < PhysStruct >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >& ground, SDL_Point& levelSize);
+	void LoadEntityData(const std::string& path);
+	void LoadTileData(const std::string& path, std::vector < CollisionTile >& tiles);
 	void LoadTileData(std::vector < CollisionTile >& tiles, matrix < int >& heights, std::vector < double >& angles);
-	void LoadJSONBlock(std::string path, Ground::groundArrayData& arrayData);
-	void LoadCollisionsFromImage(std::string path, matrix < int >& heights, std::vector < double >& angles);
-	void LoadBackground(std::string path, std::vector < std::vector < Animation > >& background, int numTiles);
-	void LoadLevelBlocks(std::string path, std::vector < Ground::groundArrayData >& arrayData);
-
+	void LoadJSONBlock(const std::string& path);
+	void LoadCollisionsFromImage(const std::string& path, matrix < int >& heights, std::vector < double >& angles);
+	void LoadBackground(const filesystem::path& directory, std::vector < std::vector < Animation > >& background);
+	void LoadLevelBlocks(const std::string& path); 
 	/**
 	* Tile data (height and angle) is loaded from a file into a vector < CollisionTile >
 	* Tiles are arranged into GROUND_PIXEL_WIDTH x GROUND_PIXEL_WIDTH pixel 'blocks' (vector < int > referring to the indices)
