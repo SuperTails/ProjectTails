@@ -28,12 +28,30 @@ struct PRHS_Rect {
 	int w; //holds the width of the entity
 	int h; //holds the height of the entity
 	int r; //holds the rotation of the entity in degrees
+
+	operator SDL_Rect() { return { x, y, w, h }; };
 };
 
-namespace {
-	bool wasInit;
-	bool init();
-}
+class SDLInit {
+	struct SDL {
+		SDL();
+		~SDL();
+		bool success = true;
+	} sdl;
+	struct Mixer {
+		Mixer();
+		~Mixer();
+		bool success = true;
+	} mixer;
+	struct Image {
+		Image();
+		~Image();
+		bool success = true;
+	} image;
+public:
+	bool success = sdl.success && mixer.success && image.success;
+};
+extern SDLInit sdlStatus;
 
 class PRHS_Window {
 private:
@@ -57,16 +75,16 @@ public:
 
 	void render(SDL_Texture* source, PRHS_Rect location); //renders a texture on the screen at a given location with a given rotation.
 
-	void render(PRHS_Entity* sourceEntity); //renders an entity based on its internal skin, position, and rotation variables.
+	//void render(PRHS_Entity* sourceEntity); //renders an entity based on its internal skin, position, and rotation variables.
 												   //NOTE: the renderSurface() method will not cause images to be displayed on the screen. To accomplish this use the updateDisplay() method.
 
 	void updateDisplay(); //Draws rendered images onto the screen. Recommended to only call as often as the screen refresh rate (e.g. 60 times/second) in order to maximize efficiency.
 
-	void refreshBackground(); //Redraws the entire background. Erases all images drawn on screen and fills it with the background image file.
+	/*void refreshBackground(); //Redraws the entire background. Erases all images drawn on screen and fills it with the background image file.
 
 	void refreshBackground(PRHS_Rect location); //Redraws the background in only a specified area.
 
-	void refreshBackground(PRHS_Entity* sourceEntity); //Redraws the background around an entity based on its location and rotation variables.
+	void refreshBackground(PRHS_Entity* sourceEntity); //Redraws the background around an entity based on its location and rotation variables.*/
 
 	void setBackground(std::string pathToImage); //Sets the background image of the window. Generally called immediately after the constructor.
 
@@ -96,35 +114,18 @@ class PRHS_Entity {
 	friend class PRHS_Window;
 private:
 	static void setRenderer(SDL_Renderer* windowRenderer); //A one time method to set the renderer used by the window. This is automatically called by the PRHS_Window constructor
-protected:
-	static SDL_Renderer* renderer; //holds a pointer to the SDL_Renderer used to load image files
-	SDL_Texture* skin; //holds a pointer to the image associated with the given entity
-
-	PRHS_Rect position; //holds the current position and rotation of the entity
-	PRHS_Rect previousPosition;
 public:
-	PRHS_Entity(); //Creates an empty entity object.
-	PRHS_Entity(std::string pathToImage, PRHS_Rect location); //creates an entity object with the given parameters
-	PRHS_Entity(PRHS_Entity&& other);
-	PRHS_Entity(const PRHS_Entity& other);
+	PRHS_Entity() noexcept; //Creates an empty entity object.
+	PRHS_Entity(SDL_Point location) noexcept; 
+	PRHS_Entity(PRHS_Entity&& other) noexcept = default;
+	PRHS_Entity(const PRHS_Entity& other) noexcept = default;
 
-	virtual ~PRHS_Entity(); //Cleans up when an entity is destroyed.
-
-	void updatePosition(PRHS_Rect location, PRHS_ENTITY_UPDATE_PARAMS updateParameters); //updates the current position of the entity based on the given SDL_Rect and PRHS_UPDATE_PARAMS
-
-	bool checkCollision(PRHS_Entity* inputEntity); //Returns TRUE of the entity is overlapping with the inputEntity
-
-	void setSkin(std::string pathToImage); //Sets the image associated with the PRHS_Entity; the image that will be rendered when Window::renderSurface(Entity*) is called.
-
-	void setSkinWithDimensions(std::string pathToImage); //Sets the image associated with the PRHS_Entity. Also changes the width and height of the enemy to match the width and height (in pixels) of the new image.
-
-	SDL_Texture* getSkin(); //Returns a pointer to the texture associated with an entity.
-
-	PRHS_Rect getPosition(); //Returns the position of an Entity.
-
-	PRHS_Rect getPreviousPosition();
+	virtual ~PRHS_Entity() = default; //Cleans up when an entity is destroyed.
 
 	friend void swap(PRHS_Entity& lhs, PRHS_Entity& rhs) noexcept;
+
+	SDL_Point position{ 0, 0 }; //holds the current position
+	SDL_Point previousPosition{ 0, 0 };
 };
 
 
@@ -145,11 +146,12 @@ struct PRHS_Effect {
 		All sounds that will be added using the setMainTrack() method or in the constructor must be .mp3 files
 */
 class PRHS_SoundManager {
-private:
+public:
 	static const int sampleRate = 44100; //How much data will be read per second. More data = higher quality but lower performance
 	static const int sampleSize = 4096; //How much of the sound file will be loaded into RAM at a time.
 	static const int channels = 4; //Number of different sounds able to be played at a time
 
+private:
 	static bool wasInit; //Is TRUE if the PRHS_SoundManager has been initialized.
 	static std::vector<PRHS_Effect> globalEffects; //Sound effects accessible from all PRHS_SoundManager objects.
 

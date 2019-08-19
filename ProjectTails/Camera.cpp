@@ -4,41 +4,44 @@
 #include "Player.h"
 
 
-Camera::Camera(const SDL_Rect& collision)
+Camera::Camera(const SDL_Rect& collision) :
+	scale{ 2.0 },
+	offset{ 0, 0 },
+	frameCount{ 0 },
+	currentLookOffset{ 0 }
 {
-	position = { 0,0,0,0 };
 	collisionRect = collision;
-	currentLookOffset = 0;
-	frameCount = 0;
 }
-
 
 Camera::~Camera()
 {
 }
 
+// Player position + offset -> camera position
 void Camera::updatePos(const Player& player) {
-	const int left = -8;
+	doublePoint velocity = player.getVelocity();
+	const int left = -8 + static_cast< int >(velocity.x);
 	const int right = left + 16;
 	const int top = -16;
 	const int bottom = top + 48;
 	const int lookDirection = player.lookDirection();
-	SDL_Point playerPos = getXY(player.getPosition());
-	playerPos.x += offset.x;
-	playerPos.y += offset.y + player.getYRadius();
-	if (playerPos.x - position.x < left) {
-		position.x += std::max(playerPos.x - position.x - left, -16);
+	const SDL_Point error = getXY(player.getPosition()) + SDL_Point{ offset.x, offset.y + player.getYRadius() } - position;
+	if (error.x < left) {
+		position.x += std::max(error.x - left, -16);
 	}
-	if (playerPos.x - position.x > right) {
-		position.x += std::min(playerPos.x - position.x - right, 16);
+	if (error.x > right) {
+		position.x += std::min(error.x - right, 16);
 	}
-	if (playerPos.y - position.y < top) {
-		position.y += std::max(playerPos.y - position.y - top, -16);
+	if (error.y < top) {
+		position.y += std::max(error.y - top, -16);
 	}
-	if (playerPos.y - position.y > bottom) {
-		position.y += std::min(playerPos.y - position.y - bottom, 16);
+	if (error.y > bottom) {
+		position.y += std::min(error.y - bottom, 16);
 	}
-	position.x = std::max(int(WINDOW_HORIZONTAL_SIZE * globalObjects::ratio / 2), position.x - offset.x) + offset.x;
+
+	// Prevent going past the left edge of the screen
+	position.x = std::max(int(WINDOW_HORIZONTAL_SIZE / (2.0 * scale)), position.x - offset.x) + offset.x;
+
 	const double thisFrames = (Timer::getFrameTime().count() / (1000.0 / 60.0));
 	if (lookDirection != 0 && (currentLookOffset == 0 || (lookDirection > 0) == (currentLookOffset < 0))) {
 		frameCount = std::min(thisFrames + frameCount, 120.0);
@@ -66,10 +69,10 @@ void Camera::updatePos(const Player& player) {
 	}
 }
 
-SDL_Rect Camera::getPosition() {
-	return SDL_Rect{ position.x, int(position.y + currentLookOffset), position.w, position.h };
+SDL_Point Camera::getPosition() const {
+	return { position.x, int(position.y + currentLookOffset) };
 }
 
-SDL_Rect Camera::getCollisionRect() {
+SDL_Rect Camera::getCollisionRect() const {
 	return SDL_Rect{ position.x + collisionRect.x, int(position.y + collisionRect.y + currentLookOffset), collisionRect.w, collisionRect.h };
 }

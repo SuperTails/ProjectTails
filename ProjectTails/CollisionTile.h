@@ -1,17 +1,18 @@
 #pragma once
-#include <vector>
+#include <array>
 #include <json.hpp>
 
 class CollisionTile
 {
 public:
-	CollisionTile(int ind, std::vector < int > heights, double ang, bool collide);
-	CollisionTile();
+	static const std::size_t heightMapSize = 16;
 
-	void setHeights(const std::vector < int >& heights);
-	void setHeight(int height, int index) { heightMap[index] = height; };
+	CollisionTile(const std::array< int, heightMapSize >& heights, double ang) noexcept;
+	CollisionTile() noexcept = default;
+
+	void setHeights(const std::array< int, heightMapSize >& heights) noexcept;
+	void setHeight(int index, int height) { heightMap[index] = height; };
 	void setAngle(double ang) { angle = ang; };
-	void setIndex(int ind) { index = ind; };
 	void setCollide(bool collide) { canCollide = collide; };
 
 	int getSideHeight(int ind) const { return heightMapSide[ind]; };
@@ -21,14 +22,9 @@ public:
 
 	void calculateSideMap();
 
-	int getIndex() const { return index; };
-
-	~CollisionTile();
 private:
-	enum { heightMapSize = 16 };
-	int heightMap[heightMapSize];
-	int heightMapSide[heightMapSize];
+	std::array < int, heightMapSize > heightMap{};
+	std::array < int, heightMapSize > heightMapSide{};
 	double angle;
-	int index;
 	bool canCollide;
 };

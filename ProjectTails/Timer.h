@@ -7,16 +7,16 @@ class Timer {
 public:
 	typedef std::chrono::milliseconds DurationType;
 
-	Timer(const DurationType& d);
+	Timer(const DurationType& d) noexcept;
 	
-	Timer(int d);
+	explicit Timer(int d) noexcept;
 
-	Timer() = default;
-	Timer(const Timer&) = default;
-	Timer(Timer&&) = default;
+	Timer() noexcept = default;
+	Timer(const Timer&) noexcept = default;
+	Timer(Timer&&) noexcept = default;
 
-	Timer& operator= (const Timer& rhs) = default;
-	Timer& operator= (int) = delete;
+	Timer& operator= (const Timer& rhs) noexcept = default;
+	Timer& operator= (int) noexcept = delete;
 	
 	bool update();
 
@@ -33,13 +33,22 @@ public:
 
 	static DurationType getFrameTime();
 
+	static DurationType getTime();
+
 	static void updateFrameTime();
+
+	static bool slowMotion;
+	static bool paused;
+
+	static void frameAdvance();
 
 	friend void swap(Timer& a, Timer& b) noexcept;
 private:
 	std::uint32_t lastTick;
 
 	bool timing;
+
+	static bool singleFrame;
 
 	static std::uint32_t time;
 	static std::uint32_t lastTime;

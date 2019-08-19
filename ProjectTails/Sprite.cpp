@@ -55,6 +55,7 @@ Surface::Surface(const Surface& s) :
 		surface = SDL_ConvertSurface(s.surface, s.surface->format, 0);
 		if (surface == nullptr) {
 			std::cerr << "Could not copy surface! Error: " << SDL_GetError() << "\n";
+			throw std::runtime_error("Could not copy surface!");
 		}
 		else {
 			setFlags();
@@ -69,11 +70,11 @@ Surface::Surface(Surface&& s) noexcept :
 }
 
 Surface::Surface(const std::string& path) :
-	surface(IMG_Load(path.c_str())) {
+	surface(IMG_Load(path.data())) {
 	
 	if (surface == nullptr) {
-		std::cerr << "Could not load surface from filepath " << std::quoted(path) << "! Error: " << SDL_GetError() << "\n";
-		throw std::runtime_error("Could not load surface from file!");
+		std::cerr << "Could not load surface from filepath " << std::quoted(std::string{ path }) << "! Error: " << SDL_GetError() << "\n";
+		throw std::runtime_error("Could not load surface from file " + std::string{ path });
 	}
 	setFlags();
 }
@@ -118,7 +119,7 @@ Surface& Surface::operator= (Surface&& s) noexcept {
 
 void Surface::release() {
 	if (surface != nullptr) {
-		std::default_delete<SDL_Surface> deleter;
+		std::default_delete< SDL_Surface > deleter;
 		deleter(surface);
 		surface = nullptr;
 	}
@@ -212,8 +213,7 @@ bool operator== (std::nullptr_t, const Texture& texture) {
 	return texture.get() == nullptr;
 }
 
-Sprite::Sprite(const Sprite& sprite) :
-	spriteSheet(sprite.spriteSheet),
+Sprite::Sprite(const Sprite& sprite) : spriteSheet(sprite.spriteSheet),
 	texture(spriteSheet) {
 
 	if (sprite.spriteSheet != nullptr && (spriteSheet == nullptr || texture == nullptr)) {
@@ -231,6 +231,14 @@ Sprite::Sprite(const std::string& path) :
 }
 
 Sprite::Sprite(const Surface& s) :
+	spriteSheet(s),
+	texture(spriteSheet) {
+	if (spriteSheet == nullptr || texture == nullptr) {
+		std::cerr << "Could not create sprite from surface!\n";
+	}
+}
+
+Sprite::Sprite(Surface&& s) :
 	spriteSheet(s),
 	texture(spriteSheet) {
 	if (spriteSheet == nullptr || texture == nullptr) {
@@ -278,6 +286,10 @@ bool Sprite::empty() const {
 	return (spriteSheet == nullptr);
 }
 
+void Sprite::render(SDL_Rect position) const {
+	SDL_RenderCopy(globalObjects::renderer, texture.get(), nullptr, &position);
+}
+
 Sprite& Sprite::operator= (const Sprite& sprite) {
 	*this = Sprite{ sprite };
 
@@ -299,4 +311,20 @@ void swap(Sprite& lhs, Sprite& rhs) noexcept {
 
 SDL_Point getSize(const Sprite& sprite) {
 	return { sprite.getSpriteSheet().get()->w, sprite.getSpriteSheet().get()->h };
+}
+
+Uint32* begin(SDL_Surface* surface) {
+	return static_cast< Uint32* >(surface->pixels);
+}
+
+Uint32* end(SDL_Surface* surface) {
+	return static_cast< Uint32* >(surface->pixels) + surface->w * surface->h;
+}
+
+Uint32* begin(Surface& surface) {
+	return begin(surface.get());
+}
+
+Uint32* end(Surface& surface) {
+	return end(surface.get());
 }

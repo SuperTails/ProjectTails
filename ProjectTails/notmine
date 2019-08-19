@@ -1,0 +1,9 @@
+json.hpp
+ProjectTails.rc
+ProjectTails.vcxproj
+ProjectTails.vcxproj.filters
+ReadMe.txt
+targetver.h
+SDL_image.h
+SDL_mixer.h
+TypeViews.natvis

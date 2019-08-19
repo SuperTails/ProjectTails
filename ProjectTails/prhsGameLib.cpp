@@ -10,32 +10,79 @@
 #include "stdafx.h"
 #include "prhsGameLib.h"
 
-//bool PRHS_Init::wasInit = false;
-bool init() {
-	if (!wasInit) {
-		if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER) < 0) { //check if SDL_Init succeeded
-			std::cout << "Could not initialize SDL" << std::endl << SDL_GetError() << std::endl; //print error message
-			return false; //exit
-		}
+SDLInit sdlStatus;
 
-		int flags = IMG_INIT_JPG || IMG_INIT_PNG;
-		if (IMG_Init(flags) != flags) {
-			std::cout << "Could not initialize SDL_image." << std::endl << IMG_GetError() << std::endl;
-			return false;
-		}
+SDLInit::SDL::SDL() {
+	if (const int flags = SDL_INIT_EVERYTHING; SDL_Init(flags) < 0) { 
+		std::cout << "Could not initialize SDL." << std::endl << SDL_GetError() << std::endl; 
+		success = false;
 	}
-	wasInit = true;
-	return true;
 }
+SDLInit::SDL::~SDL() {
+	if (success) {
+		SDL_Quit();
+	}
+}
+SDLInit::Mixer::Mixer() {
+	//TODO: Fix
+	if (const int flags = /*MIX_INIT_MP3*/0; (Mix_Init(flags) & flags) != flags) {
+		std::cout << "Could not initialize SDL_mixer." << std::endl << Mix_GetError() << std::endl;
+		success = false;
+		return;
+	}
+
+	if (Mix_OpenAudio(PRHS_SoundManager::sampleRate, MIX_DEFAULT_FORMAT, 2, PRHS_SoundManager::sampleSize) == -1) {
+		std::cout << "Could not open audio." << std::endl << Mix_GetError() << std::endl;
+		success = false;
+		return;
+	}
+}
+SDLInit::Mixer::~Mixer() {
+	if (success) {
+		Mix_Quit();
+	}
+}
+SDLInit::Image::Image() {
+	if (const int flags = IMG_INIT_JPG | IMG_INIT_PNG; (IMG_Init(flags) & flags) != flags) {
+		std::cout << "Could not initialize SDL_image." << std::endl << IMG_GetError() << std::endl;
+		success = false;
+		return;
+	}
+}
+SDLInit::Image::~Image() {
+	if (success) {
+		IMG_Quit();
+	}
+}
+
+
+bool initStatus = []() {
+	if (const int flags = SDL_INIT_EVERYTHING; SDL_Init(flags) < 0) { 
+		std::cout << "Could not initialize SDL." << std::endl << SDL_GetError() << std::endl; 
+		return false; 
+	}
+
+	if (const int flags = IMG_INIT_JPG | IMG_INIT_PNG; (IMG_Init(flags) & flags) != flags) {
+		std::cout << "Could not initialize SDL_image." << std::endl << IMG_GetError() << std::endl;
+		return false;
+	}
+
+	if (const int flags = MIX_INIT_MP3; (Mix_Init(flags) & flags) != flags) {
+		std::cout << "Could not initialize SDL_mixer." << std::endl << Mix_GetError() << std::endl;
+		return false;
+	}
+
+	if (Mix_OpenAudio(PRHS_SoundManager::sampleRate, MIX_DEFAULT_FORMAT, 1, PRHS_SoundManager::sampleSize) == -1) {
+		std::cout << "Could not open audio." << std::endl << Mix_GetError() << std::endl;
+		return false;
+	}
+
+	return true;
+}();
 
 SDL_Window* PRHS_Window::window = NULL;
 SDL_Renderer* PRHS_Window::renderer = NULL;
 PRHS_Window::PRHS_Window(const char *title, int width, int height, bool fullscreen) {
-
-	if (!wasInit) {
-		::init();
-	}
-
 	//set window parameters
 	this->windowWidth = width;
 	this->windowHeight = height;
@@ -77,8 +124,6 @@ PRHS_Window::PRHS_Window(const char *title, int width, int height, bool fullscre
 	backgroundScaleFactorX = 1;
 	backgroundScaleFactorY = 1;
 
-	PRHS_Entity::setRenderer(renderer);
-
 	//clear window and render
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, background, NULL, NULL);
@@ -102,8 +147,7 @@ SDL_Window* PRHS_Window::getWindow() {
 }
 
 void PRHS_Window::render(SDL_Texture* texture, PRHS_Rect destRect) {
-
-	SDL_Rect conversionRect = convertRect(destRect);
+	SDL_Rect conversionRect = destRect;
 
 	//handle scaling the image correctly
 	conversionRect.x *= scaleFactorX;
@@ -115,16 +159,16 @@ void PRHS_Window::render(SDL_Texture* texture, PRHS_Rect destRect) {
 	SDL_RenderCopyEx(renderer, texture, NULL, &conversionRect, destRect.r, NULL, SDL_FLIP_NONE);
 }
 
-void PRHS_Window::render(PRHS_Entity* entity) {
+/*void PRHS_Window::render(PRHS_Entity* entity) {
 	render(entity->getSkin(), entity->getPosition());
-}
+}*/
 
 void PRHS_Window::updateDisplay() {
 	//update screen with all previous renders
 	SDL_RenderPresent(renderer);
 }
 
-void PRHS_Window::refreshBackground() {
+/*void PRHS_Window::refreshBackground() {
 	//redraw entire background image
 	SDL_RenderCopy(renderer, background, NULL, NULL);
 }
@@ -177,7 +221,7 @@ void PRHS_Window::refreshBackground(PRHS_Rect destRect) {
 void PRHS_Window::refreshBackground(PRHS_Entity* entity) {
 	//refresh the background around an entity
 	refreshBackground(entity->getPosition());
-}
+}*/
 
 void PRHS_Window::setBackground(std::string pathToImage) {
 	backgroundSet = true;
@@ -216,167 +260,19 @@ SDL_Renderer* PRHS_Window::getRenderer() {
 	return renderer;
 }
 
-SDL_Texture* PRHS_Window::createTexture(std::string pathToImage) {
-	if (!wasInit) {
-		::init();
-	}
+PRHS_Entity::PRHS_Entity() noexcept : position{ 0, 0 }, previousPosition{ 0, 0 } {}
 
-	SDL_Texture* output = SDL_CreateTextureFromSurface(renderer, IMG_Load(pathToImage.c_str()));
-
-	if (output == NULL) {
-		std::cout << "Could not load image at " << pathToImage << std::endl << IMG_GetError() << std::endl;
-		return NULL;
-	}
-	else {
-		return output;
-	}
-}
-
-
-SDL_Renderer* PRHS_Entity::renderer = NULL;
-PRHS_Entity::PRHS_Entity() :
-	skin(NULL) {
-
-	if (!wasInit) {
-		::init();
-	}
-
-	position = { 0,0,0,0,0 };
-}
-
-PRHS_Entity::PRHS_Entity(std::string pathToImage, PRHS_Rect position) {
-
-	if (!wasInit) {
-		::init();
-	}
-
-	this->position = position;
-
-	if (renderer) {
-		SDL_Texture* temp = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP(pathToImage.c_str()));
-
-		if (temp) {
-			skin = temp;
-		}
-		else {
-			std::cout << "Could not load image at " << pathToImage << std::endl << SDL_GetError() << std::endl;
-		}
-	}
-	else {
-		std::cout << "Entity::renderer was not initialized." << std::endl;
-	}
-
-}
-
-PRHS_Entity::PRHS_Entity(PRHS_Entity&& other) :
-	position(std::move(other.position)),
-	previousPosition(std::move(other.previousPosition)),
-	skin(std::move(other.skin))
-{
-
-};
-
-PRHS_Entity::PRHS_Entity(const PRHS_Entity& other) : 
-	position(other.position),
-	previousPosition(other.previousPosition),
-	skin(other.skin)
-{
-
-}
-
-PRHS_Entity::~PRHS_Entity() {
-	SDL_DestroyTexture(skin);
-}
-
-bool PRHS_Entity::checkCollision(PRHS_Entity* entity) {
-	SDL_Rect temp = convertRect(entity->getPosition());
-	SDL_Rect sdlPosition = convertRect(position);
-	return SDL_HasIntersection(&sdlPosition, &temp);
-}
-
-void PRHS_Entity::updatePosition(PRHS_Rect update, PRHS_ENTITY_UPDATE_PARAMS updateParams) {
-	if (updateParams) {
-		position.x += update.x;
-		position.y += update.y;
-		position.w += update.w;
-		position.h += update.h;
-		position.r += update.r;
-	}
-	else {
-		position = update;
-	}
-}
-
-void PRHS_Entity::setRenderer(SDL_Renderer* inputRenderer) {
-	renderer = inputRenderer;
-}
-
-void PRHS_Entity::setSkin(std::string pathToImage) {
-	skin = SDL_CreateTextureFromSurface(renderer, IMG_Load(pathToImage.c_str()));
-}
-
-void PRHS_Entity::setSkinWithDimensions(std::string pathToImage) {
-	setSkin(pathToImage);
-
-	int width;
-	int height;
-	SDL_QueryTexture(skin, NULL, NULL, &width, &height);
-
-	position.w = width;
-	position.h = height;
-}
-
-SDL_Texture* PRHS_Entity::getSkin() {
-	return skin;
-}
-
-PRHS_Rect PRHS_Entity::getPosition() {
-	return position;
-}
-
-PRHS_Rect PRHS_Entity::getPreviousPosition() {
-	return previousPosition;
-}
+PRHS_Entity::PRHS_Entity(SDL_Point pos) noexcept : position{ pos }, previousPosition{ pos } {}
 
 void swap(PRHS_Entity& lhs, PRHS_Entity& rhs) noexcept {
 	using std::swap;
 
-	swap(lhs.skin, rhs.skin);
 	swap(lhs.position, rhs.position);
 	swap(lhs.previousPosition, rhs.previousPosition);
 }
 
-bool PRHS_SoundManager::wasInit = false;
 std::vector<PRHS_Effect> PRHS_SoundManager::globalEffects;
 PRHS_SoundManager::PRHS_SoundManager() {
-
-	if (!wasInit) {
-
-		std::cout << "Initializing SDL audio" << std::endl;
-
-		if (SDL_Init(SDL_INIT_AUDIO) != 0) {
-			std::cout << "Could not initialize SDL." << std::endl << SDL_GetError() << std::endl;
-			SDL_Quit();
-		}
-
-		int flags = MIX_INIT_MP3;
-		if ((Mix_Init(flags) & flags) != flags) {
-			std::cout << "Could not initialize SDL_mixer." << std::endl << Mix_GetError() << std::endl;
-			Mix_Quit();
-			SDL_Quit();
-		}
-
-		if (Mix_OpenAudio(sampleRate, MIX_DEFAULT_FORMAT, 1, sampleSize) == -1) {
-			std::cout << "Could not open audio." << std::endl << Mix_GetError() << std::endl;
-			Mix_CloseAudio();
-			Mix_Quit();
-			SDL_Quit();
-		}
-
-		Mix_ReserveChannels(channels);
-		globalEffects.reserve(10);
-		wasInit = true;
-	}
 
 	effects.reserve(10);
 }
@@ -399,7 +295,6 @@ PRHS_SoundManager::~PRHS_SoundManager() {
 void PRHS_SoundManager::cleanUp() {
 	Mix_CloseAudio();
 	Mix_Quit();
-	wasInit = false;
 }
 
 int PRHS_SoundManager::addEffect(std::string input) {
@@ -524,11 +419,6 @@ void PRHS_SoundManager::stopMainTrack() {
 
 
 PRHS_Controls PRHS_GetControlState() {
-
-	if (!wasInit) {
-		::init();
-	}
-
 	SDL_Event event;
 	while (SDL_PollEvent(&event) != 0) {
 	}
@@ -555,11 +445,6 @@ SDL_Rect convertRect(PRHS_Rect inputRect) {
 }
 
 SDL_Texture* PRHS_CreateTexture(std::string pathToImage, SDL_Renderer* renderer) {
-
-	if (!wasInit) {
-		::init();
-	}
-
 	SDL_Texture* output = SDL_CreateTextureFromSurface(renderer, IMG_Load(pathToImage.c_str()));
 
 	if (output == NULL) {

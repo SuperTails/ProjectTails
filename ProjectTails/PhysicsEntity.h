@@ -2,6 +2,7 @@
 #include "prhsGameLib.h"
 #include "EntityTypes.h"
 #include "Functions.h"
+#include "Animation.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -13,11 +14,17 @@ class Animation;
 struct doublePoint {
 	double x;
 	double y;
+	doublePoint(const std::pair< int, int >& point) : x(point.first), y(point.second) {};
+	doublePoint(double x_, double y_) : x{ x_ }, y{ y_ } {};
+	doublePoint() = default;
+	doublePoint(const doublePoint&) = default;
+	doublePoint(doublePoint&&) = default;
+	doublePoint& operator= (const doublePoint&) = default;
 };
 
 struct PhysStruct {
 	entity_property_data::EntityTypeId typeId;
-	std::vector < char > flags;
+	std::vector< char > flags;
 	SDL_Rect position;
 	bool temporary;
 };
@@ -27,6 +34,8 @@ struct EntityManager;
 
 class PhysicsEntity : public PRHS_Entity
 {
+	std::string dataKey;
+
 public:
 	typedef const std::unique_ptr < PhysicsEntity >* entityPtrType;
 	typedef std::vector < std::unique_ptr < PhysicsEntity > >* entityListPtr;
@@ -36,19 +45,20 @@ public:
 	PhysicsEntity(const PhysStruct& p);
 	PhysicsEntity(const PhysicsEntity& arg);
 	PhysicsEntity(PhysicsEntity&& other);
-	PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize = { 16, 16 });
+	PhysicsEntity(SDL_Point pos, bool multi, SDL_Point tileSize = { 16, 16 });
 	virtual ~PhysicsEntity() = default;
 
 	void update(Player* player = nullptr, EntityManager* manager = nullptr);
 
-	std::unique_ptr < Animation >& getAnim(int index);
-	const std::unique_ptr < Animation >& getAnim(int index) const;
-	std::unique_ptr < Animation >& getAnim();
-	const std::unique_ptr < Animation >& getAnim() const;
-	std::size_t currentAnimIndex() const noexcept;
-	void AddAnim(AnimStruct);
+	std::unique_ptr < Animation >& getAnim(std::size_t index);
+	const std::unique_ptr < Animation >& getAnim(std::size_t index) const;
+	//std::unique_ptr < Animation >& getAnim();
+	//const std::unique_ptr < Animation >& getAnim() const;
 
-	void Render(SDL_Rect& camPos, double ratio);
+	template < typename... Args >
+	void AddAnim(const Args&...);
+
+	void Render(const Camera& camera);
 
 	void destroy();
 
@@ -70,11 +80,16 @@ public:
 
 	entity_property_data::CustomData& getCustom() { return customData; };
 
+	const entity_property_data::CustomData& getCustom() const { return customData; };
+
+	template < typename T >
+	T& getCustom() { return std::get<T>(getCustom()); };
+
 	void customInit();
 
-	const std::vector < char >& getFlags() const { return flags; };
+	const std::vector< char >& getFlags() const { return flags; };
 
-	doublePoint getVelocity() { return velocity; };
+	doublePoint getVelocity() const { return velocity; };
 
 	bool isInvisible() { return invis; };
 
@@ -82,13 +97,11 @@ public:
 
 	doublePoint& getPosError() { return posError; };
 
-	void setAnim(int a);
+	void setAnim(const std::vector< std::size_t >& a);
 
-	void renderRaw(const SDL_Rect& cameraPosition) const;
+	void renderRaw(const Camera& camera) const;
 
 	SDL_Point calcRectDirection(SDL_Rect& objCollide);
-
-	virtual entityPtrType& platformPtr();
 
 	PhysStruct toPhysStruct() const;
 
@@ -101,49 +114,21 @@ public:
 	bool canCollide;
 
 	static SDL_Point xyPoint(SDL_Rect rect) { return SDL_Point{ rect.x, rect.y }; };
-	
-	template < typename F >
-	auto applyToCurrentAnimations(F&& f) const -> 
-	typename std::enable_if_t< decltype(entity_property_data::isConstAnimationFunction(f))::value, void > {
-		if (animations.empty()) {
-			return;
-		}
-		int temp = currentAnim;
-		do {
-			f(animations[temp % animations.size()]);
-			temp /= animations.size();
-		} while (temp != 0);
-	}
 
-	template < typename F >
-	auto applyToCurrentAnimations(F&& f) ->
-	typename std::enable_if_t< !decltype(entity_property_data::isConstAnimationFunction(f))::value, void > {
-		if (animations.empty()) {
-			return;
-		}
-		int temp = currentAnim;
-		do {
-			f(animations[temp % animations.size()]);
-			temp /= animations.size();
-		} while (temp != 0);
-	}
+	std::vector< std::size_t > currentAnim; 
 	
 	static entity_property_data::CustomData createCustomData(const PhysStruct& physStruct);
 private:
-
-	entityPtrType self;
-	std::string dataKey;
 	bool destroyAfterLoop;
 
 protected:
 	entity_property_data::CustomData customData;
 	std::vector < std::unique_ptr < Animation > > animations;
-	SDL_Rect collisionRect;
-	std::vector < char > flags;
-	int currentAnim;
-	bool invis;
-	double gravity;
-	doublePoint posError;
+	SDL_Rect collisionRect{ 0, 0, 0, 0 };
+	std::vector< char > flags;
+	bool invis = false;
+	double gravity = 0.0;
+	doublePoint posError = { 0.0, 0.0 };
 };
 
 struct EntityManager {
@@ -164,18 +149,6 @@ private:
 	std::vector < bool >& toDestroy;
 	std::vector < std::unique_ptr < PhysicsEntity > >& toAdd;
 };
-
-template < typename Custom > auto renderWithDefaultImpl(const PhysicsEntity& entity, const SDL_Rect& cameraPosition, const Custom& custom)
--> typename std::enable_if_t<decltype(entity_property_data::hasRender(custom))::value, void> {
-	custom.render(entity, cameraPosition);
-}
-
-template < typename Custom > auto renderWithDefaultImpl(const PhysicsEntity& entity, const SDL_Rect& cameraPosition, const Custom& custom)
--> typename std::enable_if_t<!decltype(entity_property_data::hasRender(custom))::value, void> {
-	entity.renderRaw(cameraPosition);
-}
-
-void renderWithDefault(const PhysicsEntity& entity, const SDL_Rect& cameraPosition);
 
 SDL_Point getCenterDifference(const SDL_Rect& r1, const SDL_Rect& r2);
 

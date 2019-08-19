@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cassert>
+#include <sstream>
+#include "Camera.h"
 #include "EntityTypes.h"
 #include "PhysicsEntity.h"
 #include "Player.h"
@@ -10,12 +12,6 @@
 Ring::Ring(const FlagList& list) :
 	Ring() {
 	assert(list.size() == requiredFlags);
-}
-
-Ring::Ring() :
-	timeUntilDespawn(256.0 * 1000.0 / 60.0), 
-	pickedUp(false) {
-
 }
 
 void Ring::update(PhysicsEntity& parent, EntityManager& manager, const Player& player) {
@@ -32,21 +28,24 @@ void Ring::update(PhysicsEntity& parent, EntityManager& manager, const Player& p
 	}
 }
 
+void Ring::onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player) {
+	if (player.addRing()) {
+		pickedUp = true;
+	}
+}
+
 Spring::Spring(const FlagList& list) :
 	Spring() {
-	if (list.front() == 'u') {
-		direction = Direction::UP;
-	}
-	else if (list.front() == 'd') {
-		direction = Direction::DOWN;
-	}
-	else if (list.front() == 'l') {
-		direction = Direction::LEFT;
-	}
-	else if (list.front() == 'r') {
-		direction = Direction::RIGHT;
-	}
 	assert(list.size() == requiredFlags);
+#define DIRECTION(flag, value) case flag: direction = Direction::value; break
+	switch (list.front()) {
+	DIRECTION('u', UP);
+	DIRECTION('d', DOWN);
+	DIRECTION('l', LEFT);
+	DIRECTION('r', RIGHT);
+	default:
+		throw std::invalid_argument(std::string{ "Invalid direction for spring " } + list.front());
+	}
 }
 
 Spring::Spring() :
@@ -57,13 +56,23 @@ Spring::Spring() :
 void Spring::update(PhysicsEntity& parent, EntityManager& manager, const Player& player) {
 	bool stopExtending = extendedTime.update();
 	if (extendedTime.isTiming()) {
-		parent.setAnim(1);
+		parent.setAnim({ 1 });
 	}
 	else {
-		parent.setAnim(0);
+		parent.setAnim({ 0 });
 	}
 	if (stopExtending) {
 		extendedTime.stop();
+	}
+}
+
+void Spring::onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player) {
+	SDL_Rect springHitbox = getHitbox(parent);
+	SDL_Rect playerCollide = player.getCollisionRect();
+	if (SDL_HasIntersection(&springHitbox, &playerCollide)) {
+		player.setOnGround(false);
+		player.setCorkscrew(true);
+		bounceEntity(parent, static_cast< PhysicsEntity& >(player));
 	}
 }
 
@@ -85,30 +94,40 @@ void Spring::bounceEntity(const PhysicsEntity& parent, PhysicsEntity& entity) {
 	entity.setVelocity(vel);
 }
 
+SDL_Rect Spring::getHitbox(const PhysicsEntity& parent) const {
+	const SDL_Rect position = parent.getPosition();
+	const int rot = (__builtin_ctz(static_cast<int>(direction)) + 1) % 4;
+	return rotate90(rot, SDL_Rect{ position.x + 1, position.y, position.w - 2, 1 }, { position.x + position.w / 2 });
+}
+
 BeeBadnik::BeeBadnik(const FlagList& list) :
 	BeeBadnik() {
 	assert(list.size() == requiredFlags);
 }
 
 BeeBadnik::BeeBadnik() :
-	timeUntilMove(120.0 * 1000.0 / 60.0),
+	timeUntilMove(60.0 * 1000.0 / 60.0),
 	hasFired(false) {
 
 }
 
 void BeeBadnik::update(PhysicsEntity& parent, EntityManager& manager, const Player& player) {
-	bool startMoving = timeUntilMove.update();
-	if (startMoving) {
+	if (timeUntilMove.update()) {
+		// Start moving
 		timeUntilMove.stop();
+		parent.setAnim({ 0 });
 	}
-	if (parent.currentAnimIndex() == 0 || !timeUntilMove.isTiming()) {
+
+	if (!timeUntilMove.isTiming()) {
+		// Flying animation
 		const SDL_Rect playerPosition = player.getPosition();
 		parent.velocity.x = -2.0;
-		parent.setAnim(0);
+		parent.setAnim({ 0 });
 		if (playerPosition.x != parent.getPosition().x) {
 			const double slope = std::abs(double(parent.getPosition().y - playerPosition.y) / (playerPosition.x - parent.getPosition().x));
-			if (slope >= 0.9 && slope <= 1.1) {
-				parent.setAnim(1);
+			if (0.9 <= slope && slope <= 1.1) {
+				// Player found
+				parent.setAnim({ 1 });
 				timeUntilMove.start();
 				parent.velocity.x = 0.0;
 				hasFired = false;
@@ -116,20 +135,24 @@ void BeeBadnik::update(PhysicsEntity& parent, EntityManager& manager, const Play
 		}
 	}
 	else {
-		if (timeUntilMove.timeRemaining().count() < 60.0 && !hasFired) {
+		if (timeUntilMove.timeRemaining().count() < 30.0 && !hasFired) {
 			hasFired = true;
 
-			SDL_Rect newPos{ parent.getPosition() };
+			SDL_Rect newPos = parent.getPosition();
 			newPos.x += 30;
 			newPos.y += 25;
 
 			PhysStruct temp{ "BEEPROJECTILE", {}, newPos, true };
 			auto entity = std::make_unique< PhysicsEntity >(temp);
-			entity->setVelocity({-2.0, 2.0});
+			entity->setVelocity({ -2.0, 2.0 });
 			manager.AddEntity(std::move(entity));
 		}
 		parent.velocity.x = 0;
 	}
+}
+
+void BeeBadnik::onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player) {
+	player.hitEnemy(manager, parent);
 }
 
 CrabBadnik::CrabBadnik(const FlagList& list) :
@@ -151,7 +174,7 @@ void CrabBadnik::update(PhysicsEntity& parent, EntityManager& manager, const Pla
 		timeUntilStop.stop();
 		timeUntilWalk.start();
 		parent.velocity.x = 0;
-		parent.setAnim(0);
+		parent.setAnim({ 0 });
 		if (doneStanding) {
 			currentDirection *= -1;
 			timeUntilWalk.stop();
@@ -161,14 +184,17 @@ void CrabBadnik::update(PhysicsEntity& parent, EntityManager& manager, const Pla
 	else {
 		timeUntilWalk.stop();
 		timeUntilStop.start();
-		parent.setAnim(1);
+		parent.setAnim({ 1 });
 		parent.velocity.x = currentDirection;
 	}
 }
 
+void CrabBadnik::onPlayerTouch(PhysicsEntity &parent, EntityManager &manager, Player &player) {
+	player.hitEnemy(manager, parent);
+}
+
 Bridge::Bridge(const FlagList& list) :
 	bridgeWidth(list.front()),
-	playerPosition(0),
 	transition(0.0),
 	segmentOffsets(bridgeWidth, 0.0) {
 	assert(list.size() == requiredFlags);
@@ -176,9 +202,12 @@ Bridge::Bridge(const FlagList& list) :
 
 Bridge::Bridge() :
 	bridgeWidth(16),
-	playerPosition(0),
 	transition(0.0) {
 
+}
+
+void Bridge::onPlayerTouch(PhysicsEntity &parent, EntityManager &manager, Player &player) {
+	
 }
 
 void Bridge::update(PhysicsEntity& parent, EntityManager& manager, const Player& player) {
@@ -189,33 +218,30 @@ void Bridge::update(PhysicsEntity& parent, EntityManager& manager, const Player&
 		transition = std::min(1.0, transition + (Timer::getFrameTime().count() / (1000.0 / 60.0)) / 30);
 
 		//Player index
-		playerPosition = (player.getPosition().x - parent.getPosition().x) / 16.0;
-		SDL_Rect newCollisionRect;
-		newCollisionRect.x = std::min(std::max(playerPosition * 16, 0), int(bridgeWidth) - 1 * 16);
-		newCollisionRect.y = 0;
-		newCollisionRect.w = 16;
-		newCollisionRect.h = 16;
-		parent.setCollisionRect(newCollisionRect);
+		int playerPosition = (player.getPosition().x - parent.getPosition().x) / 16.0;
 
-		auto getMaxDepression = [size = static_cast<std::size_t>(bridgeWidth)](std::size_t index) {
-			if (index < size / 2) {
-				return 2 * (index + 1);
+		parent.setCollisionRect({ std::min(std::max(playerPosition * 16, 0), (int(bridgeWidth) - 1) * 16), 0, 16, 16 });
+
+		const auto playerIndex = std::min< std::size_t>(playerPosition, bridgeWidth - 1.0);
+
+		int maxDepression = [&,this]() {
+			const auto size = static_cast< std::size_t >(bridgeWidth);
+			if (playerIndex < size / 2) {
+				return 2 * (playerIndex + 1);
 			}
-			else if (index > size / 2) {
-				return 2 * (size - index);
+			else if (playerIndex > size / 2) {
+				return 2 * (size - playerIndex);
 			}
 			else {
 				return size;
 			}
-		};
-		std::size_t playerIndex = std::min<std::size_t>(playerPosition, bridgeWidth - 1.0);
-		int thisMax = getMaxDepression(playerIndex);
+		}();
 
-		for (int i = 0; i < std::min<std::size_t>(playerPosition + 1, bridgeWidth - 1); ++i) {
-			segmentOffsets[i] = transition * thisMax * sin(M_PI / 2 * (1 + i) / (1 + playerPosition));
+		for (int i = 0; i < std::min< std::size_t >(playerPosition + 1, bridgeWidth - 1); ++i) {
+			segmentOffsets[i] = transition * maxDepression * sin(M_PI / 2 * (1 + i) / (1 + playerPosition));
 		}
 		for (int i = playerPosition + 1; i < bridgeWidth; ++i) {
-			segmentOffsets[i] = transition * thisMax * sin(M_PI / 2 * (bridgeWidth - i) / (bridgeWidth - playerPosition));
+			segmentOffsets[i] = transition * maxDepression * sin(M_PI / 2 * (bridgeWidth - i) / (bridgeWidth - playerPosition));
 		}
 		if (playerPosition < segmentOffsets.size()) {
 			SDL_Rect oldCollision = parent.getCollisionRect();
@@ -225,21 +251,22 @@ void Bridge::update(PhysicsEntity& parent, EntityManager& manager, const Player&
 	}
 	else {
 		transition = std::max(0.0, transition - (Timer::getFrameTime().count() / (1000.0 / 60.0)) / 120);
-		playerPosition = -1;
 		for (auto& offset : segmentOffsets) {
 			offset *= sqrt(transition);
 		}
 	}
 }
 
-void Bridge::render(const PhysicsEntity& parent, const SDL_Rect& cameraPosition) const {
-	SDL_Rect relativePos = PhysicsEntity::getRelativePos(parent.getPosition(), cameraPosition);
+void Bridge::render(const PhysicsEntity& parent, const Camera& camera) const {
+	SDL_Rect relativePos = parent.getPosition() - camera.getPosition();
 	int xStart = relativePos.x;
 	int yStart = relativePos.y;
 	for (std::size_t segment = 0; segment < bridgeWidth; ++segment) {
 		relativePos.x = xStart + 16 * segment;
 		relativePos.y = yStart + segmentOffsets[segment];
-		parent.getAnim()->Render(getXY(relativePos), 0, NULL, 1.0 / globalObjects::ratio);
+		for (auto index : parent.currentAnim) {
+			parent.getAnim(index)->Render(getXY(relativePos), 0, NULL, camera.scale);
+		}
 	}
 }
 
@@ -268,22 +295,15 @@ void Goalpost::update(PhysicsEntity& parent, EntityManager& manager, const Playe
 	}
 }
 
+void Goalpost::onPlayerTouch(PhysicsEntity &parent, EntityManager &manager, Player &player) {
+	player.setActCleared(true);
+}
+
 Pathswitch::Pathswitch(const FlagList& list) :
 	debounce(0) {
 	assert(list.size() == requiredFlags);
-	switch(list.front()) {
-	case 'u':
-		mode = Mode::UNSET;
-		break;
-	case 's':
-		mode = Mode::SET;
-		break;
-	case 'i':
-		mode = Mode::INVERT;
-		break;
-	default:
-		throw std::invalid_argument("Invalid pathswitch flag: " + std::string(list.front(), 1));
-	}
+	static const std::unordered_map< char, Mode > flagMap{ { 'u', Mode::UNSET }, { 's', Mode::SET }, { 'i', Mode::INVERT } };
+	mode = flagMap.at(list[0]);
 }
 
 Pathswitch::Pathswitch() :
@@ -296,6 +316,12 @@ void Pathswitch::update(PhysicsEntity& parent, EntityManager& manager, const Pla
 	if (debounce != 0) {
 		--debounce;
 	}
+}
+
+void Pathswitch::onPlayerTouch(PhysicsEntity &parent, EntityManager &manager, Player &player) {
+	bool path = player.getPath();
+	setPath(path);
+	player.setPath(path);
 }
 
 void Pathswitch::setPath(bool& i) {
@@ -324,30 +350,11 @@ NoCustomData::NoCustomData(const FlagList& list) {
 }
 
 bool entity_property_data::isEnemy(const entity_property_data::EntityTypeId& key) {
-	static const std::array < const char*, 2 > enemyList{ "BEEBADNIK", "CRABBADNIK" };
+	static constexpr const std::array< const char*, 2 > enemyList{ "BEEBADNIK", "CRABBADNIK" };
 
 	return std::find(enemyList.begin(), enemyList.end(), key) != enemyList.end();
 }
 
-std::array < std::string, 8 > entity_property_data::keyStrings{
-	"RING", "SPRING", "BEEBADNIK", "CRABBADNIK", "BRIDGE", "PATHSWITCH", "GOALPOST", "NOCUSTOM"
-};
-
-static_assert(entity_property_data::keyStrings.size() == static_cast<std::size_t>(entity_property_data::Keys::NO_CUSTOM) + 1, "");
-
-const std::string& keyToString(const entity_property_data::Keys& key) {
-	return entity_property_data::keyStrings[static_cast<int>(key)];
-}
-
-entity_property_data::Keys entity_property_data::stringToKey(const std::string& keyString) {
-	const auto key = std::find(keyStrings.begin(), keyStrings.end(), keyString);
-	if (key == keyStrings.end()) {
-		return Keys::NO_CUSTOM;
-	}
-	else {
-		return static_cast<Keys>(std::distance(keyStrings.begin(), key));
-	}
-}
 
 std::unordered_map < std::string, entity_property_data::EntityType > entity_property_data::entityTypes;
 
@@ -361,21 +368,65 @@ const entity_property_data::EntityType& entity_property_data::getEntityTypeData(
 	}
 }
 
+static std::array < std::string, 8 > keyStrings{
+	"RING", "SPRING", "BEEBADNIK", "CRABBADNIK", "BRIDGE", "PATHSWITCH", "GOALPOST", "NOCUSTOM"
+};
+
+static_assert(keyStrings.size() == static_cast<std::size_t>(entity_property_data::Key::NO_CUSTOM) + 1, "");
+
+std::istream& entity_property_data::operator>> (std::istream& stream, Key& key) {
+	std::string in;
+	stream >> in;
+	if (const auto foundKey = std::find(keyStrings.begin(), keyStrings.end(), in); foundKey == keyStrings.end()) {
+		stream.setstate(std::istream::failbit);
+	}
+	else {
+		key = static_cast< Key >(std::distance(keyStrings.begin(), foundKey));
+	}
+	return stream;
+}
+
+std::ostream& entity_property_data::operator<< (std::ostream& stream, Key key) {
+	stream << keyStrings[static_cast< std::size_t >(key)];
+	return stream;
+}
+
+std::string entity_property_data::to_string(entity_property_data::Key key) {
+	return keyStrings[static_cast< std::size_t >(key)];
+}
+
+entity_property_data::Key entity_property_data::stringToKey(const std::string& keyString) {
+	std::istringstream str{ keyString };
+	Key key;
+	str >> key;
+	if (str.fail()) {
+		throw std::invalid_argument("Invalid key string " + keyString);
+	}
+	return key;
+}
+
+entity_property_data::Key entity_property_data::behaviorKeyFromId(const std::string& entityId) {
+	std::istringstream str{ entityId };
+	Key key;
+	str >> key;
+	return (str.fail() ? Key::NO_CUSTOM : key);
+}
+
 bool entity_property_data::isHazard(const entity_property_data::EntityTypeId& id) {
 	static const std::array < EntityTypeId, 3 > hazardList { "SPIKES", "BEEPROJECTILE" };
 
 	return isEnemy(id) || std::find(hazardList.begin(), hazardList.end(), id) != hazardList.end();
 }
 
-entity_property_data::CustomData entity_property_data::createCustomFromKey(entity_property_data::Keys key, const FlagList& flags) {
+entity_property_data::CustomData entity_property_data::createCustomFromKey(entity_property_data::Key key, const FlagList& flags) {
 	using namespace entity_property_data;
 	const std::size_t keyValue = static_cast< std::size_t > (key);
-	return helpers::getOne<CustomData>([&](auto& custom) { return CustomData{ std::decay_t<decltype(custom)>{ flags } }; }, keyValue);
+	return helpers::getOne< CustomData >([&](auto& custom) { return CustomData{ std::decay_t<decltype(custom)>{ flags } }; }, keyValue);
 }
 
-std::size_t entity_property_data::requiredFlagCount(entity_property_data::Keys behaviorKey) {
+std::size_t entity_property_data::requiredFlagCount(entity_property_data::Key behaviorKey) {
 	const std::size_t keyValue = static_cast< std::size_t > (behaviorKey);
-	return helpers::getOne<std::size_t>([](auto& custom) { return custom.requiredFlags; }, keyValue);
+	return helpers::getOne< std::size_t >([](auto& custom) { return custom.requiredFlags; }, keyValue);
 
 }
 

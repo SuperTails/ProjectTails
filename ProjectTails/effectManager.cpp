@@ -54,10 +54,10 @@ void effectManager::updateFade() {
 }
 
 void effectManager::loadEHZRain() {
-	int pixelWidth = WINDOW_HORIZONTAL_SIZE * globalObjects::ratio;
-	int pixelHeight = WINDOW_VERTICAL_SIZE * globalObjects::ratio;
+	int pixelWidth = WINDOW_HORIZONTAL_SIZE;
+	int pixelHeight = WINDOW_VERTICAL_SIZE;
 
-	Surface rainFile("..\\..\\asset\\Rain.png");
+	Surface rainFile(ASSET"Rain.png");
 
 	Surface rainSrf(SDL_Point{ pixelWidth * 2, pixelHeight });
 

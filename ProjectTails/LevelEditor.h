@@ -1,59 +1,65 @@
 #pragma once
+#include "Miscellaneous.h"
+#include "Text.h"
+#include "Typedefs.h"
+#include "Act.h"
 #include <fstream>
 #include <string>
 #include <SDL.h>
 #include <unordered_map>
-#include "Ground.h"
-#include "Camera.h"
-#include "PhysicsEntity.h"
-#include "Act.h"
-#include "DataReader.h"
-#include "Camera.h"
-#include "Miscellaneous.h"
-#include "Text.h"
-#include "Typedefs.h"
+#include <experimental/filesystem>
 
-namespace LevelEditor {
+class Ground;
+class PhysStruct;
+
+class LevelEditor {
+public:
 	enum editMode { TILE, ENTITY };
 
-	extern bool levelEditing;
+	//LevelEditor(const std::vector< Ground >& levelGround, SDL_Point levelSize, Camera* camera, const std::vector< PhysStruct >& entities);
+	LevelEditor(Act act, Camera* camera);
 
-	extern std::string levelPath;
+	static bool levelEditing;
 
-	//Contains indices into groundList, organized by levelBlocks[x][y]
-	extern std::vector < std::vector < Ground > > levelBlocks;
+	std::string levelPath;
+	
+	Act level;
 
-	//Maps entity key to image for rendering
-	extern std::unordered_map < std::string, Animation > entityView;
+	// Maps entity key to image for rendering
+	std::unordered_map< std::string, Animation > entityView;
 
-	//Stores data about one entity object
-	extern std::vector < PhysStruct > levelEntities;
+	std::vector< PhysStruct >::iterator currentEntity;
 
-	extern std::vector < PhysStruct >::iterator currentEntity;
+	editMode mode = editMode::TILE;
 
-	extern bool mouseDebounce;
+	double mouseWheelValue = 0.0;
 
-	extern editMode mode;
-
-	extern SDL_Surface* Sky;
-
-	extern SDL_Texture* SkyTexture;
-
-	extern Camera* cam;
-
-	extern double mouseWheelValue;
-
-	void init(std::vector < Ground >& levelGround, SDL_Point levelSize);
+	void render();
 
 	void renderTiles();
 
-	void renderEntities();
-
-	void renderText();
-
 	bool handleInput();
 
-	std::string convertToString(int levelNumber, std::string levelName);
+	void save(const std::experimental::filesystem::path& path) const;
 
-	std::string mtos(editMode m);
-}
+	std::string convertToString(int levelNumber, const std::string& levelName, const std::string& blockPrefix, const std::string& backgroundFolder) const;
+
+private:
+	Camera* cam = nullptr;
+
+	Sprite sky{};
+
+	std::optional< std::pair< SDL_Point, std::size_t > > mouseDrag{};
+
+	void renderEntities() const;
+
+	void renderText() const;
+
+	std::vector< char > parseFlags(const std::string& s) const;
+
+	std::size_t addGroundIndex(std::size_t current, int addend);
+};
+
+std::string to_string(LevelEditor::editMode m);
+
+std::vector< std::vector< Ground > > organizeBlocks(const std::vector< Ground >& blocks, SDL_Point levelSize);

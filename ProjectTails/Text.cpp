@@ -4,116 +4,102 @@
 
 const std::vector < int > Text::widths{ /*0*/7, 4, 7, 7, 7, 7, 7, 7, 7, 7,/*10*/3, 7, 7, 7, 7, 7, 7, 7, 7, 3,/*20*/7, 8, 6, 10, 9, 7, 7, 7, 7, 7,/*30*/7, 7, 7, 10, 9, 7, 8, 3 };
 
-void Text::Render(const SDL_Rect& position) {
-	SDL_RenderCopy(globalObjects::renderer, textTexture, nullptr, &position);
-}
-
-void Text::Render(const SDL_Point& point) {
-	if(text != nullptr) {
-		Render(SDL_Rect { point.x, point.y, text->w, text->h });
+void Text::Render(const SDL_Rect& position) const {
+	if (!text.empty()) {
+		text.render(position);
 	}
 }
 
-std::vector < int > Text::StringToIndex(const std::string& str) {
-	std::vector < char > txt(str.begin(), str.end());
-	std::vector < int > indexes;
-	for (int i = 0; i < txt.size(); i++) {
-		int v = tolower(txt[i]);
+void Text::Render(const SDL_Point& point) const {
+	if (!text.empty()) {
+		Render(SDL_Rect{ point.x, point.y, text.size().x, text.size().y });
+	}
+}
+
+std::vector< int > Text::StringToIndex(const std::string& str) {
+	std::vector< int > indexes;
+	for (char c : str) {
+		int v = tolower(c);
 		if (v == '-') {
-			indexes.push_back(24);
+			indexes.push_back(24); // N, for negative
 		} 
 		else if (v == '.') {
-			indexes.push_back(14);
+			indexes.push_back(14); // D, for decimal
 		}
 		else if (v == ' ') {
-			indexes.push_back(v + 5);
+			indexes.push_back(37); // Space
 		} 
-		else if (v < ';') {
-			indexes.push_back(v - 48);
+		else if (v == ':') {
+			indexes.push_back(10); // Colon
 		}
-		else {
-			indexes.push_back(v - 86);
+		else if (v == '\n') {
+			indexes.push_back(widths.size());
+		}
+		else if (std::isdigit(v)) {
+			indexes.push_back(v - '0');
+		}
+		else if (std::isalpha(v)) {
+			indexes.push_back(v - 'a' + 11);
 		}
 	}
 	return indexes;
 };
 
 Text::Text(const std::string& font_path) :
-	lastStr(""),
-	text(nullptr),
-	textTexture(nullptr),
-	font(nullptr)
-{
-	font = IMG_Load(font_path.c_str());
-
+	font(font_path) {
 	if (font == nullptr) {
 		std::cerr << "Could not load font. Error:\n" << SDL_GetError() << "\n";
 	}
+}
 
-	totalWidth = 0;
+void Text::setText(const std::string& text) {
+	StringToText(text);
 }
  
-Text::~Text()
-{
-	SDL_DestroyTexture(textTexture);
-	SDL_FreeSurface(text);
-	SDL_FreeSurface(font);
-}
-
-std::vector < SDL_Rect > Text::IndicesToWindows(std::vector < int > ind) {
-	//10 by 11
+std::vector< SDL_Rect > Text::IndicesToWindows(const std::vector < int >& indices) {
 	totalWidth = 0;
-	int w = 0;
-	SDL_Rect s;
+	totalHeight = 12;
+	int y = 0;
+	const int letterHeight = 11;
+
 	std::vector < SDL_Rect > r;
-	r.clear();
-	for (int i = 0; i < ind.size(); i++) {
-		w = widths[ind[i]];
-		s.x = ind[i] * 10 + 9 - w;
-		s.y = 0;
-		s.w = w + 1;
-		s.h = 11;
-
-		r.push_back(s);
-
-		totalWidth += w + 1;
+	for (const auto& ind : indices) {
+		if (ind == widths.size()) {
+			totalHeight += letterHeight + 1;
+			r.push_back({ 0, 0, 0, 0 });
+			continue;
+		}
+		else {
+			const int w = widths[ind];
+			r.push_back({ ind * 10 + 9 - w, 0, w + 1, letterHeight });
+			totalWidth += w + 1;
+		}
 	}
 	return r;
 }
 
-void Text::WindowsToText(std::vector < SDL_Rect > win) {
+void Text::WindowsToText(const std::vector < SDL_Rect >& win) {
+	Surface temp(SDL_Point{ totalWidth, totalHeight });
+
 	int x = 0;
-	SDL_Rect dest;
-	SDL_Surface* temp = SDL_CreateRGBSurface(0, totalWidth, 11, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
-	SDL_FreeSurface(text);
-	text = SDL_ConvertSurface(temp, SDL_GetWindowSurface(globalObjects::window)->format, 0);
-	SDL_FreeSurface(temp);
-	SDL_SetColorKey(text, SDL_TRUE, SDL_MapRGBA(text->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
-	SDL_FillRect(text, NULL, SDL_MapRGBA(text->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
-	for (int i = 0; i < win.size(); i++) {
-		dest = { x, 0, win[i].w, 11 };
-		SDL_BlitSurface(font, &(win[i]), text, &dest);
-		x += win[i].w;
+	int y = 0;
+	for (const auto& window : win) {
+		if (window.x == 0 && window.y == 0 && window.w == 0 && window.h == 0) {
+			y += 12;
+			x = 0;
+		}
+		else {
+			SDL_Rect dest = { x, y, window.w, 11 };
+			SDL_BlitSurface(font.get(), &window, temp.get(), &dest);
+			x += window.w;
+		}
 	}
-	SDL_DestroyTexture(textTexture);
-	textTexture = SDL_CreateTextureFromSurface(globalObjects::renderer, text);
+	text.setSpriteSheet(temp);
 }
 
-const SDL_Surface* Text::getText() {
+const Sprite Text::getText() {
 	return text;
 }
-
-/*void Text::WindowsToText(std::vector < SDL_Rect > win, SDL_Surface* text) {
-	int x = 0;
-	SDL_Rect dest;
-	SDL_SetColorKey(text, SDL_TRUE, SDL_MapRGBA(text->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
-	SDL_FillRect(text, NULL, SDL_MapRGBA(text->format, 1, 2, 3, SDL_ALPHA_OPAQUE));
-	for (int i = 0; i < win.size(); i++) {
-		dest = { x, 0, win[i].w, 11 };
-		SDL_BlitSurface(font, &(win[i]), text, &dest);
-		x += win[i].w;
-	}
-}*/
 
 void Text::StringToText(const std::string& str) {
 	if (str == lastStr)
@@ -122,11 +108,3 @@ void Text::StringToText(const std::string& str) {
 		lastStr = str;
 	WindowsToText(IndicesToWindows(StringToIndex(str)));
 }
-
-/*void Text::StringToText(const std::string& str, SDL_Surface* surface) {
-	if (str == lastStr)
-		return;
-	else
-		lastStr = str;
-	WindowsToText(IndicesToWindows(StringToIndex(str)), surface);
-}*/
