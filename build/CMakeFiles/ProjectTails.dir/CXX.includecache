@@ -245,6 +245,8 @@ close_code.h
 ../ProjectTails/include/close_code.h
 
 ../ProjectTails/include/Shapes.h
+SDL.h
+-
 
 ../ProjectTails/include/SoundHandler.h
 SDL.h
@@ -401,6 +403,8 @@ Constants.h
 /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Constants.h
 Ground.h
 /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Ground.h
+Hitbox.h
+/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Hitbox.h
 fstream
 -
 
@@ -527,6 +531,10 @@ json.hpp
 /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Hitbox.cpp
 Hitbox.h
 /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Hitbox.h
+Miscellaneous.h
+/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Miscellaneous.h
+Camera.h
+/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Camera.h
 
 /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/InputComponent.cpp
 stdafx.h
