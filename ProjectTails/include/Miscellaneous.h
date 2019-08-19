@@ -8,6 +8,7 @@ class Animation;
 class InputComponent;
 class SDL_Window;
 class SDL_Renderer;
+class Camera;
 
 namespace globalObjects {
 	struct loadData {
@@ -18,20 +19,19 @@ namespace globalObjects {
 	};
 	extern InputComponent input;
 	extern SDL_Window* window;
-	extern double ratio;
 	extern SDL_Renderer* renderer;
 	extern std::vector < loadData > loadProgress;
 	extern std::vector < Animation > titleScreen;
-	extern int titleScreenOffset;
 	extern std::uint32_t titleScreenHoverBegin;
 	extern int gameState;
 	extern double titleScreenFlash;
+	extern bool debug;
 
-	void renderBackground(std::vector < std::vector < Animation > >& background, const int& cameraCenterX, const double& ratio);
-	void renderTitleScreen(std::vector < std::vector < Animation > >& background, const int& centerX);
+	void renderBackground(std::vector< std::vector< Animation > >& background, const Camera& camera);
+	void renderTitleScreen(std::vector< std::vector< Animation > >& background, const Camera& camera);
 	void renderTitleFlash();
 	void unloadTitleScreen();
-	void updateLoading(const double& incr);
-	double lerp(const double& x, const double& y, const double& t);
+	void updateLoading(double incr);
+	double lerp(double x, double y, double t);
 	std::uint32_t lerp(const std::uint32_t& x, const std::uint32_t& y, const double& t);
 };

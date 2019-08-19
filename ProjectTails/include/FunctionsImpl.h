@@ -1,5 +1,7 @@
 #pragma once
 #include <SDL.h>
+#include <optional>
+#include <functional>
 #include <type_traits>
 
 template < typename F, typename T >
@@ -31,6 +33,13 @@ auto& invoke_all_members(F&& func, SDL_Rect& lhs, const SDL_Rect& rhs) {
 	func(lhs.y, rhs.y);
 	func(lhs.w, rhs.w);
 	func(lhs.h, rhs.h);
+	return lhs;
+}
+
+template < typename F >
+auto& invoke_all_members(F&& func, SDL_Rect& lhs, const SDL_Point& rhs) {
+	func(lhs.x, rhs.x);
+	func(lhs.y, rhs.y);
 	return lhs;
 }
 
@@ -72,5 +81,17 @@ SDL_Point operator/ (SDL_Point lhs, const T& rhs) {
 template < typename T >
 SDL_Rect operator/ (SDL_Rect lhs, const T& rhs) {
 	return (lhs /= rhs);
+}
+
+template < typename F, typename... Args >
+std::optional < std::invoke_result_t< F, Args... > > applyOptionalConst(F&& f, const std::optional<Args...>& t) {
+	typedef std::optional < std::invoke_result_t< F, Args... > > R;
+	return (t ? std::apply(f,*t) : std::nullopt);
+}
+
+template < typename F, typename... Args >
+std::optional < std::invoke_result_t< F, Args... > > applyOptional(F&& f, std::optional<Args...>& t) {
+	typedef std::optional < std::invoke_result_t< F, Args... > > R;
+	return (t ? std::apply(f,*t) : std::nullopt);
 }
 

@@ -2,6 +2,7 @@
 #include "Functions.h"
 #include "Constants.h"
 #include <SDL.h>
+#include <cstring>
 #include <iostream>
 #include <cassert>
 #include <fstream>
@@ -80,7 +81,7 @@ Animation::Animation(const AnimStruct& a) :
 Animation::Animation(SDL_Point tileSize) :
 	numFrames(1),
 	currentFrame(0),
-	sprite(SDL_CreateRGBSurface(0, constants::GROUND_PIXEL_WIDTH, constants::GROUND_PIXEL_WIDTH, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF)) {
+	sprite(Surface{ tileSize }) {
 
 };
 
@@ -99,24 +100,20 @@ void Animation::Update() {
 	}
 }
 
-Surface animation_effects::apply(const PaletteSwap& effect, Surface srf) {
+std::pair< Surface, SDL_Point > animation_effects::apply(const PaletteSwap& effect, Surface srf) {
 	for (int i = 0; i < effect.oldColors.size(); ++i) {
-		for (int x = 0; x < srf.size().x; ++x) {
-			for (int y = 0; y < srf.size().y; ++y) {
-				auto srcColor = getPixel(srf.get(), x, y);
-				if (srcColor == effect.oldColors[i]) {
-					srcColor = effect.newColors[i];
-				}
-				setPixel(srf.get(), x, y, srcColor);
+		for (Uint32& pixel : srf.get()) {
+			if (pixel == effect.oldColors[i]) {
+				pixel = effect.newColors[i];
 			}
 		}
 	}
 
-	return srf;
+	return { srf, { 0, 0 } };
 
 };
 
-std::pair < Surface, SDL_Point > animation_effects::rotateSprite(const Rotation& effect, Surface srf) {
+std::pair < Surface, SDL_Point > animation_effects::rotateSprite(const Rotation& effect, Surface& srf) {
 	if (effect.degrees == 0) {
 		return { srf, { 0, 0 } }; 
 	} 
@@ -131,7 +128,7 @@ std::pair < Surface, SDL_Point > animation_effects::rotateSprite(const Rotation&
 		return result;
 	};
 	
-	std::vector < std::pair < double, double > > corners{ { 0, 0 }, { srf.size().x - 1, 0 }, { 0, srf.size().y - 1 }, { srf.size().x - 1, srf.size().y - 1 } };
+	std::array< std::pair< double, double >, 4 > corners{ std::make_pair(0, 0), { srf.size().x - 1, 0 }, { 0, srf.size().y - 1 }, { srf.size().x - 1, srf.size().y - 1 } };
 	std::transform(corners.begin(), corners.end(), corners.begin(), rotate);
 
 	auto xLess = [](FloatPoint a, FloatPoint b) { return a.first < b.first; };
@@ -159,6 +156,40 @@ std::pair < Surface, SDL_Point > animation_effects::rotateSprite(const Rotation&
 	return { retSurface, { int(xMin), int(yMin) } };
 }
 
+std::pair< Surface, SDL_Point > animation_effects::rippleSprite(const animation_effects::Ripple& effect, Surface& srf) {
+	int minOffset = 0;
+	int maxOffset = 0;
+	for (int i = 0; i < (effect.vertical ? srf.size().y : srf.size().x); ++i) {
+		minOffset = std::min(minOffset, effect.transform(i));
+		maxOffset = std::max(maxOffset, effect.transform(i));
+	}
+	const auto newSize = (effect.vertical ? SDL_Point{ maxOffset - minOffset + srf.size().x, srf.size().y } : 
+						SDL_Point{ srf.size().x, maxOffset - minOffset + srf.size().y });
+	Surface dst{ newSize };
+	SDL_FillRect(dst.get(), nullptr, SDL_MapRGBA(&imageFormat, 0, 0, 0, SDL_ALPHA_TRANSPARENT));
+	Surface::PixelLock srfLock{ srf };
+	Surface::PixelLock dstLock{ dst };
+
+	if (effect.vertical) {
+		// Moves x positions of pixels
+		for (int i = 0; i < srf.size().y; ++i) {
+			auto* dstPtr = &pixelAt(dst.get(), effect.transform(i) - minOffset, i);
+			std::memmove(dstPtr, &pixelAt(srf.get(), 0, i), srf.size().x * sizeof(Uint32));
+		}
+	}
+	else {
+		// Moves y positions of pixels
+		for (int i = 0; i < srf.size().x; ++i) {
+			for (int j = 0; j < srf.size().y; ++j) {
+				pixelAt(dst.get(), i, std::clamp(effect.transform(i) + j, 0, 10000)) = pixelAt(srf.get(), i, j);
+			}
+		}
+	}
+
+	const auto newCorner = (effect.vertical ? SDL_Point{ minOffset, 0 } : SDL_Point{ 0, minOffset });
+	return { dst, newCorner };
+}
+
 std::tuple < SDL_Point, SDL_Point, int > animation_effects::getPrincipalRect(SDL_Point offset, SDL_Point size, int angle) {
 	angle %= 360;
 	switch (angle / 90) {
@@ -174,7 +205,7 @@ std::tuple < SDL_Point, SDL_Point, int > animation_effects::getPrincipalRect(SDL
 }
 
 SDL_Point animation_effects::getLeftmostPoint(SDL_Point offset, SDL_Point size, int angle) {
-	angle = (angle % 360);
+	angle %= 360;
 	switch (3 - angle / 90) {
 	case 0:
 		return rotate({ -offset.x, -offset.y }, angle);
@@ -215,24 +246,34 @@ SDL_Point animation_effects::getRotatedOffset(SDL_Point oldOffset, SDL_Point old
 	}
 }
 
-Surface animation_effects::apply(const Rotation& effect, Surface srf) {
-	return rotateSprite(effect, srf).first;
+std::pair< Surface, SDL_Point > animation_effects::apply(const Rotation& effect, Surface& srf) {
+	return rotateSprite(effect, srf);
 }
 
-std::optional<SDL_Point> Animation::getOffset() {
+std::pair< Surface, SDL_Point > animation_effects::apply(const Ripple& effect, Surface& srf) {
+	return rippleSprite(effect, srf);
+}
+
+void Animation::setOffset(std::optional< SDL_Point> newOffset) {
+	offset = newOffset;
+}
+std::optional<SDL_Point> Animation::getOffset() const {
 	return offset;
 }
 
-Surface applyEffectList(Surface surface, const AnimationEffectList& effects) {
+std::pair< Surface, SDL_Point > applyEffectList(Surface surface, const AnimationEffectList& effects) {
+	SDL_Point corner{ 0, 0 };
 	for (const AnimationEffect& effect : effects) {
 		auto apply_any = [&surface](const auto& arg) {
 			using namespace animation_effects;
 			return apply(arg, surface);
 		};
-		surface = std::visit(apply_any, effect);
+		SDL_Point displacement{ 0, 0 };
+		std::tie(surface, displacement) = std::visit(apply_any, effect);
+		corner += displacement;
 	}
 
-	return surface;
+	return { surface, corner };
 }
 
 SDL_Rect getFrameWindow(SDL_Point size, int frame) {
@@ -272,7 +313,7 @@ Surface expandSurface(const Surface& surface, SDL_Point moveTo) {
 	return temp;
 }
 
-void Animation::Render(SDL_Point dest, int rot, const SDL_Point* center, double ratio, SDL_RendererFlip flip, AnimationEffectList effects) const {
+void Animation::Render(SDL_Point dest, int rot, const SDL_Point* center, double scale, SDL_RendererFlip flip, AnimationEffectList effects) const {
 	if (sprite.empty()) {
 		std::cout << "\nSpritesheet is null\n";
 		throw "Animation Render Exception: Spritesheet Is Null!";
@@ -287,8 +328,7 @@ void Animation::Render(SDL_Point dest, int rot, const SDL_Point* center, double 
 	if (effects.empty()) {
 		dest -= offset.value_or(SDL_Point{ 0, 0 });
 
-		SDL_Rect screenDest = { dest.x, dest.y, thisFrame.w, thisFrame.h };
-		screenDest *= ratio;
+		const auto screenDest = SDL_Rect{ dest.x, dest.y, thisFrame.w, thisFrame.h } * scale;
 
 		RenderExact(sprite, thisFrame, screenDest, flip, rot, center);
 	}
@@ -302,9 +342,9 @@ void Animation::Render(SDL_Point dest, int rot, const SDL_Point* center, double 
 
 		dest -= newOffset.value_or(SDL_Point{ 0, 0 });
 
-		SDL_Rect screenDst = SDL_Rect{ dest.x, dest.y, tempSprite.size().x, tempSprite.size().y } * ratio;
+		const auto screenDest = SDL_Rect{ dest.x, dest.y, tempSprite.size().x, tempSprite.size().y } * scale;
 
-		RenderExact(tempSprite, src, screenDst, flip, rot, center);
+		RenderExact(tempSprite, src, screenDest, flip, rot, center);
 	}
 }
 
@@ -316,8 +356,8 @@ void Animation::transform(Sprite& sprite, AnimationEffectList effects, std::opti
 	SDL_Point oldSize = sprite.size();
 
 	for (AnimationEffect& effect : effects) {
-		if (std::holds_alternative<animation_effects::Rotation>(effect)) {
-			auto& rotation = std::get<animation_effects::Rotation>(effect);
+		if (std::holds_alternative< animation_effects::Rotation >(effect)) {
+			auto& rotation = std::get< animation_effects::Rotation >(effect);
 			if (flip == SDL_FLIP_NONE) {
 				rotation.center += offset.value_or(SDL_Point{ 0, 0 });
 			}
@@ -333,27 +373,21 @@ void Animation::transform(Sprite& sprite, AnimationEffectList effects, std::opti
 				flip = SDL_FLIP_NONE;
 			}
 
-			if (offset) {
-				*offset = animation_effects::getRotatedOffset(*offset, sprite.size(), rotation.degrees);
-			}
+			//if (offset) {
+			//	*offset = animation_effects::getRotatedOffset(*offset, sprite.size(), rotation.degrees);
+			//}
 		}
 	}
 
-	sprite.setSpriteSheet(applyEffectList(sprite.getSpriteSheet(), effects));
+	auto [result, displacement] = applyEffectList(sprite.getSpriteSheet(), effects);
+	if (offset) {
+		*offset -= displacement;
+	}
+	sprite.setSpriteSheet(result);
 }
 
 void Animation::RenderExact(const Sprite& sprite, const SDL_Rect& src, const SDL_Rect& dst, SDL_RendererFlip flip, int degrees, const SDL_Point* center) {
 	SDL_RenderCopyEx(globalObjects::renderer, sprite.getTexture().get(), &src, &dst, degrees, center, flip);
-}
-
-Uint32 getPixel(const SDL_Surface* surface, const int& x, const int& y) {
-	return (static_cast < Uint32 * >(surface->pixels))[x + y * surface->w];
-}
-
-void setPixel(SDL_Surface* surface, int x, int y, Uint32 pixel) {
-	Uint32* pixels = (Uint32 *)surface->pixels;
-
-	pixels[x + y * surface->w] = pixel;
 }
 
 void Animation::addStaticEffects(const std::vector < AnimationEffectList >& effects) {
@@ -364,7 +398,7 @@ void Animation::addStaticEffects(const std::vector < AnimationEffectList >& effe
 		SDL_Rect dst{ 0, 0, sprite.size().x, sprite.size().y };
 		for (int frame = 0; frame < effects.size(); ++frame) {
 			SDL_Rect destination = getFrameWindow({ width, height }, frame);
-			SDL_BlitSurface(applyEffectList(sprite.getSpriteSheet(), effects[frame]).get(), nullptr, newSheet.get(), &destination);
+			SDL_BlitSurface(applyEffectList(sprite.getSpriteSheet(), effects[frame]).first.get(), nullptr, newSheet.get(), &destination);
 		}
 		numFrames *= effects.size();
 		sprite.setSpriteSheet(newSheet);
@@ -383,7 +417,7 @@ void Animation::addStaticEffects(const std::vector < AnimationEffectList >& effe
 	for (int frame = 0; frame < effects.size(); ++frame) {
 		Surface current = getSurfaceFrame(frame);
 
-		current = applyEffectList(current, effects[frame]);
+		current = applyEffectList(current, effects[frame]).first;
 
 		SDL_Rect tempFrame = getFrameWindow({ width, height }, frame);
 		SDL_BlitSurface(current.get(), nullptr, sprite.getSpriteSheet().get(), &tempFrame);
@@ -393,36 +427,51 @@ void Animation::addStaticEffects(const std::vector < AnimationEffectList >& effe
 }
 
 Surface Animation::FlipSurface(const Surface& srf, SDL_RendererFlip flip) {
-	SDL_Surface* surface = srf.get();
+	flip = static_cast< SDL_RendererFlip >(flip & (SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL));
 	if (flip == SDL_FLIP_NONE) {
 		return srf;
 	}
-	Surface outputSrf(SDL_Point { surface->w, surface->h }); 
+
+	SDL_Surface* surface = srf.get();
+
+	Surface outputSrf(SDL_Point{ surface->w, surface->h });
 	SDL_Surface* outputSurface = outputSrf.get();
+
+	assert(surface->w == outputSurface->w && surface->h == outputSurface->h);
+
 	if (SDL_MUSTLOCK(surface)) {
 		SDL_LockSurface(surface);
 	}
 
-	for (int x = 0, rx = outputSurface->w - 1; x < outputSurface->w; x++, rx--) {
-		for (int y = 0, ry = outputSurface->h - 1; y < outputSurface->h; y++, ry--) {
+	if (SDL_MUSTLOCK(outputSurface)) {
+		SDL_LockSurface(outputSurface);
+	}
+
+	for (int y = 0; y < surface->h; ++y) {
+		for (int x = 0; x < surface->w; ++x) {
+			const int rx = surface->w - 1 - x;
+			const int ry = surface->h - 1 - y;
 			Uint32 pixel = ::getPixel(surface, x, y);
-			if ((flip & SDL_FLIP_HORIZONTAL) && (flip & SDL_FLIP_VERTICAL)) {
-				//Horizontal and vertical
+			switch (static_cast< int >(flip)) {
+			case SDL_FLIP_HORIZONTAL:
+				setPixel(outputSurface, rx,  y, pixel);
+				break;
+			case SDL_FLIP_VERTICAL:
+				setPixel(outputSurface,  x, ry, pixel);
+				break;
+			case SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL:
 				setPixel(outputSurface, rx, ry, pixel);
-			}
-			else if (flip & SDL_FLIP_HORIZONTAL) {
-				//Only horizontal
-				setPixel(outputSurface, rx, y, pixel);
-			}
-			else {
-				//Only vertical
-				setPixel(outputSurface, x, ry, pixel);
+				break;
 			}
 		}
 	}
 
 	if (SDL_MUSTLOCK(surface)) {
 		SDL_UnlockSurface(surface);
+	}
+
+	if (SDL_MUSTLOCK(outputSurface)) {
+		SDL_UnlockSurface(outputSurface);
 	}
 
 	return outputSrf;
@@ -436,8 +485,8 @@ Uint32 Animation::getPixel(const int& x, const int& y) const {
 	return ::getPixel(sprite.getSpriteSheet().get(), x, y);
 }
 
-SDL_Surface* Animation::getSpriteSheet() {
-	return sprite.getSpriteSheet().get();
+Surface& Animation::getSpriteSheet() {
+	return sprite.getSpriteSheet();
 }
 
 Surface Animation::getSurfaceFrame(int frame) {

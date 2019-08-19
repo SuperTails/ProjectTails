@@ -1,4 +1,5 @@
 #pragma once
+#include <experimental/type_traits>
 #include <variant>
 #include <chrono>
 #include <memory>
@@ -19,18 +20,20 @@ typedef std::vector < char > FlagList;
 
 struct Ring {
 	static const std::size_t requiredFlags = 0;
-	Timer timeUntilDespawn;
-	bool pickedUp;
+	Timer timeUntilDespawn{ static_cast< long >(256.0 * 1000.0 / 60.0) };
+	bool pickedUp = false;
 
 	Ring(const FlagList& list);
 
-	Ring();
+	Ring() noexcept = default;
 	Ring(const Ring&) noexcept = default;
 	Ring(Ring&&) noexcept = default;
 
-	Ring& operator= (const Ring& rhs) = default;
+	Ring& operator= (const Ring& rhs) noexcept = default;
 
 	void update(PhysicsEntity& parent, EntityManager& manager, const Player& player);
+
+	void onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player);
 };
 
 struct Spring {
@@ -50,6 +53,10 @@ struct Spring {
 	void update(PhysicsEntity& parent, EntityManager& manager, const Player& player);
 
 	void bounceEntity(const PhysicsEntity& parent, PhysicsEntity& entity);
+
+	SDL_Rect getHitbox(const PhysicsEntity& parent) const;
+
+	void onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player);
 };
 
 struct BeeBadnik {
@@ -66,6 +73,8 @@ struct BeeBadnik {
 	BeeBadnik& operator= (const BeeBadnik& rhs) = default;
 
 	void update(PhysicsEntity& parent, EntityManager& manager, const Player& player);
+
+	void onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player);
 };
 
 struct CrabBadnik {
@@ -83,12 +92,13 @@ struct CrabBadnik {
 	CrabBadnik& operator= (const CrabBadnik& rhs) = default;
 
 	void update(PhysicsEntity& parent, EntityManager& manager, const Player& player);
+
+	void onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player);
 };
 
 struct Bridge {
 	static const std::size_t requiredFlags = 1;
 	std::size_t bridgeWidth;
-	int playerPosition;
 	double transition;
 	std::vector < double > segmentOffsets;
 
@@ -102,7 +112,9 @@ struct Bridge {
 
 	void update(PhysicsEntity& parent, EntityManager& manager, const Player& player);
 
-	void render(const PhysicsEntity& parent, const SDL_Rect& cameraPosition) const;
+	void render(const PhysicsEntity& parent, const Camera& camera) const;
+
+	void onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player);
 };
 
 struct Goalpost {
@@ -119,13 +131,15 @@ struct Goalpost {
 	Goalpost& operator= (const Goalpost& rhs) = default;
 
 	void update(PhysicsEntity& parent, EntityManager& manager, const Player& player);
+
+	void onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player);
 };
 
 struct Pathswitch {
 	static const std::size_t requiredFlags = 1;
-	int debounce;
 	enum class Mode { UNSET, SET, INVERT };
 	Mode mode;
+	int debounce;
 
 	Pathswitch(const FlagList& list);
 
@@ -140,6 +154,8 @@ struct Pathswitch {
 	void setPath(bool& i);
 
 	void triggerDebounce();
+
+	void onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player);
 };
 
 struct NoCustomData {
@@ -153,42 +169,44 @@ struct NoCustomData {
 
 	static const std::size_t requiredFlags = 0;
 	void update(PhysicsEntity& parent, EntityManager& manager, const Player& player) {}
+	
+	void onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player) {}
 };
-
-template < typename T >
-struct IsValidImpl {
-private:
-	template < typename Param > constexpr auto isValid(int)
-	-> decltype(std::declval<T>()(std::declval<Param>()), std::true_type()) {
-		return std::true_type{};
-	}
-
-	template < typename Param > constexpr std::false_type isValid(...) {
-		return std::false_type{};
-	}
-public:
-
-	template < typename Param > constexpr auto operator()(const Param& p) {
-		return isValid<Param>(int{});
-	}
-};
-
-template < typename T > constexpr auto isValid(const T& t) {
-	return IsValidImpl<T>{};
-}
 
 namespace entity_property_data {
-	enum class Keys { RING, SPRING, BEE_BADNIK, CRAB_BADNIK, BRIDGE, PATHSWITCH, GOALPOST, NO_CUSTOM };
-	extern std::array < std::string, 8 > keyStrings;
+	enum class Key { RING, SPRING, BEE_BADNIK, CRAB_BADNIK, BRIDGE, PATHSWITCH, GOALPOST, NO_CUSTOM };
 
-	const std::string& keyToString(const Keys& key);
-	Keys stringToKey(const std::string& keyString);
+	std::istream& operator>> (std::istream& stream, Key& key);
 
-	auto hasRender = isValid([](const auto& x) constexpr -> decltype(x.render(std::declval<PhysicsEntity>(), std::declval<SDL_Rect>())){});
+	std::ostream& operator<< (std::ostream& stream, Key key);
 
-	auto isConstAnimationFunction = isValid([](const auto& x) constexpr -> decltype(x(std::declval<const std::unique_ptr<Animation>&>())){});
+	std::string to_string(Key key);
 
-	typedef std::variant < Ring, Spring, BeeBadnik, CrabBadnik, Bridge, Pathswitch, Goalpost, NoCustomData > CustomData;
+	Key stringToKey(const std::string& keyString);
+
+	Key behaviorKeyFromId(const std::string& entityId);
+
+	template < typename T >
+	using hasRenderT = decltype(std::declval< T >().render(std::declval< PhysicsEntity >(), std::declval< SDL_Rect >()));
+
+	template < typename T >
+	using isConstAnimationFunctionT = decltype(std::declval< T >()(std::declval< const std::unique_ptr< Animation >& >()));
+
+#ifdef __clang__
+	template < typename T >
+	constexpr const bool hasRender = std::experimental::is_detected< hasRenderT, T >();
+
+	template < typename T >
+	constexpr const bool isConstAnimationFunction = std::experimental::is_detected< isConstAnimationFunctionT, T >();
+#else
+	template < typename T >
+	concept bool Renderable = std::experimental::is_detected< hasRenderT, T >::value;
+
+	template < typename T >
+	concept bool isConstAnimationFunction = std::experimental::is_detected< isConstAnimationFunctionT, T >();
+#endif
+
+	typedef std::variant< Ring, Spring, BeeBadnik, CrabBadnik, Bridge, Pathswitch, Goalpost, NoCustomData > CustomData;
 
 	struct EntityType {
 		double defaultGravity = 0.0;
@@ -196,7 +214,7 @@ namespace entity_property_data {
 		bool isHazard;
 		std::vector < AnimStruct > animationTypes;
 		SDL_Rect collisionRect;
-		Keys behaviorKey;
+		Key behaviorKey;
 	};
 
 	typedef std::string EntityTypeId;
@@ -212,35 +230,64 @@ namespace entity_property_data {
 	namespace helpers {
 		template < typename F, std::size_t... I >
 		void forAllCustomImpl(F&& f, std::index_sequence<I...>) {
-			int ignored[] = { 0, (std::invoke(f, std::variant_alternative_t<I, CustomData>{}, I), 0)... };
+			int ignored = (std::invoke(f, std::variant_alternative_t< I, CustomData >{}, I), ..., 0);
 			(void)ignored;
 		}
 
 		template < typename F >
 		void forAllCustom(F&& f) {
-			forAllCustomImpl(f, std::make_index_sequence<std::variant_size_v<CustomData>>());
+			forAllCustomImpl(f, std::make_index_sequence< std::variant_size_v< CustomData > >{});
 		}
-		
+
 		template < typename R, typename F >
 		R getOne(F&& f, std::size_t i) {
+			if (i >= std::variant_size_v< CustomData >) {
+				throw std::invalid_argument("Invalid custom index!");
+			}
+
 			R r;
-			bool found = false;
 			forAllCustom([&](auto p, std::size_t j) {
 				if (i == j) {
 					r = f(p);
-					found = true;
 				}
 			});
-			if (!found) {
+			return r;
+		}
+
+		template < typename R, typename F >
+		R getOne(F&& f, CustomData& data, std::size_t i) {
+			if (i >= std::variant_size_v< CustomData >) {
 				throw std::invalid_argument("Invalid custom index!");
 			}
+			
+			R r;
+			forAllCustom([&](auto p, std::size_t j) {
+				if (i == j) {
+					r = f(std::get< decltype(p) >(data));
+				}
+			});
+			return r;
+		}
+
+		template < typename R, typename F >
+		R getOne(F&& f, const CustomData& data, std::size_t i) {
+			if (i >= std::variant_size_v< CustomData >) {
+				throw std::invalid_argument("Invalid custom index!");
+			}
+			
+			R r;
+			forAllCustom([&](auto p, std::size_t j) {
+				if (i == j) {
+					r = f(std::get< decltype(p) >(data));
+				}
+			});
 			return r;
 		}
 	}
 
-	CustomData createCustomFromKey(Keys key, const FlagList& flags);
+	CustomData createCustomFromKey(Key key, const FlagList& flags);
 
-	std::size_t requiredFlagCount(Keys behaviorKey);
+	std::size_t requiredFlagCount(Key behaviorKey);
 
 	std::size_t requiredFlagCount(const std::string& behaviorKey);
 }

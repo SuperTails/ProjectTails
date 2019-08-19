@@ -26,6 +26,6 @@ set (CMAKE_BUILD_TYPE Debug)
 
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set (GCC_COVERAGE_COMPILE_FLAGS "-std=c++1z")
+set (GCC_COVERAGE_COMPILE_FLAGS "-std=c++1z -march=native -mtune=native -fconcepts")
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})

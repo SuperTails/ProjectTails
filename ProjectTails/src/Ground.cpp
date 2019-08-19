@@ -3,30 +3,30 @@
 #include "Functions.h"
 #include "Animation.h"
 #include "CollisionTile.h"
+#include "Camera.h"
+#include "json.hpp"
 
 Surface Ground::map;
-std::vector < CollisionTile > Ground::tileList;
+std::vector< CollisionTile > Ground::tileList;
 std::string Ground::mPath;
-std::vector < Ground::GroundData > Ground::data;
+std::vector< Ground::GroundData > Ground::data;
+
+bool Ground::showCollision = false;
+
+const std::size_t Ground::NO_TILE = static_cast< std::size_t >(-1);
 
 void Ground::setMap(const std::string& mapPath) {
 	mPath = mapPath;
-	Surface newMap(mapPath);
+	Surface newMap(ASSET + mapPath);
 	if (newMap == nullptr) {
 		std::cerr << "Could not set tilemap for Ground! Error: " << SDL_GetError() << "\n";
+		throw std::invalid_argument("Could not set tilemap for ground!");
 	}
 	map = std::move(newMap);
 }
 
-void Ground::setCollisionList(std::vector < CollisionTile > list) {
+void Ground::setCollisionList(const std::vector < CollisionTile >& list) {
 	tileList = list;
-}
-
-Ground::Ground() :
-	dataIndex(-1),
-	flip(false),
-	position{ -1, -1 }
-{
 }
 
 Ground::Ground(std::size_t index, SDL_Point pos, bool pFlip) :
@@ -36,35 +36,37 @@ Ground::Ground(std::size_t index, SDL_Point pos, bool pFlip) :
 {
 }
 
-void Ground::Render(const SDL_Rect& camPos, const double& ratio, const SDL_Rect* position, int layer, bool doFlip) const {
-	SDL_Rect rectPos = SDL_Rect { static_cast<int>(this->position.x * GROUND_PIXEL_WIDTH), static_cast<int>(this->position.y * GROUND_PIXEL_WIDTH), GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH };
-	SDL_Point pos = getXY((position != nullptr) ? *position : getRelativePosition(rectPos, camPos));
-		
+void Ground::Render(const Camera& camera, const SDL_Point* position, int layer, bool doFlip) const {
+	const SDL_Point rectPos = (this->position) - camera.getPosition();
+	const SDL_Point pos = (position ? *position : rectPos);
+
 	if (layer == 2) {
-		data[dataIndex].layers[1].Render(pos, 0, NULL, 1.0 / ratio, SDL_RendererFlip(flip || doFlip));
-		data[dataIndex].layers[0].Render(pos, 0, NULL, 1.0 / ratio, SDL_RendererFlip(flip || doFlip));
+		data[dataIndex].layers[1].Render(pos, 0, NULL, camera.scale, SDL_RendererFlip(flip || doFlip));
+		data[dataIndex].layers[0].Render(pos, 0, NULL, camera.scale, SDL_RendererFlip(flip || doFlip));
 	}
 	else {
-		data[dataIndex].layers[layer].Render(pos, 0, NULL, 1.0 / ratio, SDL_RendererFlip(flip || doFlip));
+		data[dataIndex].layers[layer].Render(pos, 0, NULL, camera.scale, SDL_RendererFlip(flip || doFlip));
 	}
+
 }
 
 const CollisionTile& Ground::getTile(int tileX, int tileY, bool path) const {
 	path &= data[dataIndex].getMultiPath();
 
-	if(flip) {
-		return tileList[data[dataIndex].getCollision()[path][tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX)].index];
+	if (flip) {
+		return tileList[data[dataIndex].collision[path].at(tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX)).index];
 	}
-	return tileList[data[dataIndex].getCollision()[path][tileX + tileY * GROUND_WIDTH].index];
+	return tileList[data[dataIndex].collision[path].at(tileX + tileY * GROUND_WIDTH).index];
 }
 
 int Ground::getFlag(int tileX, int tileY, bool path) const {
 	path &= data[dataIndex].getMultiPath();
+	const auto& collisionLayer = data[dataIndex].collision[path];
 
 	if (flip) {
-		return data[dataIndex].getCollision()[path][tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX)].flags ^ SDL_FLIP_HORIZONTAL;
+		return collisionLayer[tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX)].flags ^ SDL_FLIP_HORIZONTAL;
 	}
-	return data[dataIndex].getCollision()[path][tileX + tileY * GROUND_WIDTH].flags;
+	return collisionLayer[tileX + tileY * GROUND_WIDTH].flags;
 }
 
 Ground& Ground::operator= (Ground arg) {
@@ -123,6 +125,11 @@ bool Ground::getFlip() const {
 	return flip;
 }
 
+Surface& Ground::getCollisionDebugMap() {
+	static Surface srf = Surface(ASSET"CollisionTiles.png");
+	return srf;
+}
+
 void swap(Ground& lhs, Ground& rhs) noexcept {
 	using std::swap;
 
@@ -133,75 +140,216 @@ void swap(Ground& lhs, Ground& rhs) noexcept {
 
 Ground::GroundData::GroundData(const Ground::groundArrayData& arrayData) : 
 	collision(arrayData.collision),
-	layers { Animation(SDL_Point{GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH}), Animation(SDL_Point{GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH}) } {
-	
-	SDL_Rect current = { 0, 0, TILE_WIDTH, TILE_WIDTH };
-	SDL_Rect dest = { 0, 0, TILE_WIDTH, TILE_WIDTH };
+	graphics(arrayData.graphics) {
+
+	updateTileGraphics();
+}	
+
+std::array< Animation, 2 > Ground::GroundData::convertTileGraphics(const DataType& graphics, Surface& map) {
+	assert(map != nullptr);
 
 	Surface flipHoriz = Animation::FlipSurface(map, SDL_FLIP_HORIZONTAL);
 	Surface flipVertical = Animation::FlipSurface(map, SDL_FLIP_VERTICAL);
-	Surface flipBoth = Animation::FlipSurface(flipHoriz, SDL_FLIP_VERTICAL);
-
-	const int mapWidth = map.size().x;
-	const int mapTileWidth = mapWidth / TILE_WIDTH;
-	const int mapHeight = map.size().y;
+	Surface flipBoth = Animation::FlipSurface(map, SDL_RendererFlip(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL));
 	
-	for (int layer = 0; layer < arrayData.graphics.size(); ++layer) {
-		const auto& currentLayer = arrayData.graphics[layer];
-		for (int tile = 0; tile < arrayData.graphics[layer].size(); ++tile) {
-			const int index = currentLayer[tile].index;
+	std::array< Animation, 2 > layers{ Animation{{ GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH }}, Animation{{ GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH}} };
+
+	for (int layer = 0; layer < graphics.size(); ++layer) {
+
+		const auto& currentLayer = graphics[layer];
+		for (int tile = 0; tile < currentLayer.size(); ++tile) {
+			const int index = ((currentLayer[tile].index == 220) ? 251 : currentLayer[tile].index);
 			const int tileFlip = currentLayer[tile].flags & (SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
-			auto current = SDL_Rect{ index % mapTileWidth, index / mapTileWidth, 1, 1 } * TILE_WIDTH;
-			if (tileFlip & SDL_FLIP_HORIZONTAL) {
-				current.x = mapWidth - TILE_WIDTH - current.x;
-			}
-			if (tileFlip & SDL_FLIP_VERTICAL) {
-				current.y = mapHeight - TILE_WIDTH - current.y;
-			}
+			
+			auto [surfaceFlipped, source] = getTileFromMap({ index, tileFlip }, map, flipHoriz, flipVertical, flipBoth); 
 
-			const auto dest = SDL_Rect{ int(tile % GROUND_WIDTH), int(tile / GROUND_WIDTH), 1, 1 } * TILE_WIDTH;
+			auto dest = SDL_Rect{ int(tile % GROUND_WIDTH), int(tile / GROUND_WIDTH), 1, 1 } * TILE_WIDTH;
 
-			SDL_Surface* surfaceFlipped = [&]() {
-				switch(static_cast<int>(tileFlip)) {
-				case SDL_FLIP_NONE:
-					return map.get();
-				case SDL_FLIP_HORIZONTAL:
-					return flipHoriz.get();
-				case SDL_FLIP_VERTICAL:
-					return flipVertical.get();
-				case SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL:
-					return flipBoth.get();
-				}	
-			}();
-			//0 is rendered in front of the player
-			//1 is rendered behind the player
-			SDL_Rect tempDest = dest;
-			if (getMultiPath() && arrayData.graphics.size() == 1) {
-				const int tilePathFront = arrayData.collision[0][tile].index;
-				const int tilePathBack = arrayData.collision[1][tile].index;
-				SDL_Rect blank{ 0, 0, TILE_WIDTH, TILE_WIDTH };
-				if (tilePathBack && !tilePathFront) {
-					SDL_BlitSurface(surfaceFlipped, &current, layers[1].getSpriteSheet(), &tempDest);
-					SDL_BlitSurface(map.get(), &blank, layers[0].getSpriteSheet(), &tempDest);
-				}
-				else {
-					SDL_BlitSurface(surfaceFlipped, &current, layers[0].getSpriteSheet(), &tempDest); 
-					SDL_BlitSurface(map.get(), &current, layers[1].getSpriteSheet(), &tempDest);
-				}
-			}
-			else if (arrayData.graphics.size() == 2) {
-				SDL_BlitSurface(surfaceFlipped, &current, layers[layer].getSpriteSheet(), &tempDest);
-			}
-			else {
-				SDL_BlitSurface(surfaceFlipped, &current, layers[layer].getSpriteSheet(), &tempDest); //src, srcrect, dst, dstrect
-			}	
+			SDL_BlitSurface(surfaceFlipped.get(), &source, layers[layer].getSpriteSheet().get(), &dest);
 		}
 	}
 
 	for (Animation& i : layers) {
 		i.updateTexture();
 	}
-};
+
+	return layers;
+}
+
+std::pair< Surface&, SDL_Rect > Ground::GroundData::getTileFromMap(Tile tile, Surface& flipNone, Surface& flipH, Surface& flipV, Surface& flipHV) {
+	const auto [mapWidth, mapHeight] = flipNone.size();
+	const int mapTileWidth = mapWidth / TILE_WIDTH;
+
+	tile.flags &= SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL;
+
+	auto source = SDL_Rect{ tile.index % mapTileWidth, tile.index / mapTileWidth, 1, 1 } * TILE_WIDTH;
+	if (tile.flags & SDL_FLIP_HORIZONTAL) {
+		source.x = mapWidth - TILE_WIDTH - source.x;
+	}
+	if (tile.flags & SDL_FLIP_VERTICAL) {
+		source.y = mapHeight - TILE_WIDTH - source.y;
+	}
+
+	auto& surfaceFlipped = [&]() -> Surface& {
+		switch(static_cast< int >(tile.flags)) {
+		case SDL_FLIP_NONE:
+			return flipNone;
+		case SDL_FLIP_HORIZONTAL:
+			return flipH;
+		case SDL_FLIP_VERTICAL:
+			return flipV;
+		case SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL:
+			return flipHV;
+		}	
+	}();
+
+	return { surfaceFlipped, source };
+}
+
+void Ground::GroundData::updateTileGraphics() {
+	if (showCollision) {
+		layers = convertTileGraphics(collision, getCollisionDebugMap());
+	}
+	else {
+		layers = convertTileGraphics(graphics, Ground::map);
+	}
+}
+
+using json = nlohmann::json;
+
+void to_json(json& j, const Ground::Tile& t) {
+	const int flip = t.flags & (SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+	const bool flipX = (flip == SDL_FLIP_HORIZONTAL) || (flip == SDL_FLIP_VERTICAL);
+	const int rot = 2 * bool(flip & SDL_FLIP_VERTICAL);
+	
+	j = json{ { "rot", rot }, { "flipX", flipX }, { "tile", t.index } };
+}
+
+void from_json(const json& j, Ground::Tile& t) {
+	t.index = j["tile"].get<int>();
+	t.flags = 0;
+	if (j["rot"].get<int>() == 2) {
+		t.flags |= SDL_FLIP_VERTICAL;
+		t.flags |= (!j["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+	}
+	else {
+		t.flags |= j["flipX"].get<bool>() * SDL_FLIP_HORIZONTAL;
+	}
+}
+
+void to_json(json& j, Ground::groundArrayData arrayData) {
+	// Output graphics tiles
+	for (int i = 0; i < arrayData.graphics.size(); ++i) {
+		auto& output = j["layers"][i];
+		output["name"] = "Graphics " + std::to_string(i);
+		output["tiles"] = arrayData.graphics[i];
+	}
+
+	// Transform physics tiles to the correct format (numbered starting at 340)
+	for (auto& layer : arrayData.collision) {
+		if (std::any_of(layer.begin(), layer.end(), [](auto a) { return a.index >= 340; })) {
+			continue;
+		}
+		std::transform(layer.begin(), layer.end(), layer.begin(), [](auto a) {
+				a.index += 340;
+			return Ground::Tile{ (a.index == 560 ? 591 : a.index), a.flags };
+		});
+	}
+
+	for (int i = 0; i < arrayData.collision.size(); ++i) {
+		auto& output = j["layers"][i + arrayData.graphics.size()];
+		output["name"] = "Collision " + std::to_string(i);
+		output["tiles"] = arrayData.collision[i];
+	}
+
+	for (int i = 0; i < arrayData.collision.size(); ++i) {
+		if (auto& collision = arrayData.collision[i]; std::none_of(collision.begin(), collision.end(), [](auto a){ return a.flags & int(Ground::Flags::TOP_SOLID); })) {
+			continue;
+		}
+		else {
+			auto& output = j["layers"][arrayData.graphics.size() + arrayData.collision.size()];
+			output["name"] = "AdditionalFlags";
+			for (int tile = 0; tile < collision.size(); ++tile) {
+				if (output["tiles"][tile].is_null()) {
+					bool topOnly = collision[tile].flags & int(Ground::Flags::TOP_SOLID);
+					output["tiles"][tile] = Ground::Tile{ topOnly ? 592 : 0, 0 };
+				}
+			}
+		}
+	}
+
+	j["layers"][0]["name"] = "Graphics 0";
+	j["tilewidth"] = TILE_WIDTH;
+	j["tileswide"] = GROUND_SIZE;
+	j["tileheight"] = TILE_WIDTH;
+	j["tileshigh"] = GROUND_SIZE;
+}
+
+void from_json(const json& j, Ground::groundArrayData& arrayData) {
+	const auto& layers = j["layers"];
+
+	const int numLayers = layers.size();
+	bool isDoubleLayer = false;
+
+	const int MAX_GRAPHICS_TILE_INDEX = 339;
+
+	auto loadGraphicsLayer = [&](const json& dataLayer) {
+		Ground::Layer layer{};
+		std::copy(dataLayer.begin(), dataLayer.end(), layer.begin());
+		arrayData.graphics.push_back(layer);
+	};
+
+	// Load image data
+	loadGraphicsLayer(layers[0]["tiles"]);
+
+	if (numLayers >= 2 && layers[1]["tiles"][0]["tile"].get<int>() <= MAX_GRAPHICS_TILE_INDEX && layers[1]["name"].front() != 'C') {
+		isDoubleLayer = true;
+
+		// Load image data for layer 2
+		loadGraphicsLayer(layers[1]["tiles"]);
+	}
+
+	const bool hasAnimatedLayer = (layers[isDoubleLayer]["name"] == "Animation");
+
+	// Handle animation
+	if (hasAnimatedLayer) {
+		
+	}
+
+	const bool hasAdditionalFlags = (layers.back()["name"] == "AdditionalFlags");
+
+	const std::size_t collisionLayerStart = 1 + isDoubleLayer + hasAnimatedLayer;
+	const std::size_t collisionLayerCount = numLayers - collisionLayerStart - hasAdditionalFlags;
+
+	arrayData.collision.resize(numLayers - collisionLayerStart - hasAdditionalFlags, { MAX_GRAPHICS_TILE_INDEX + 1, 0 });
+
+	for (int l = 0; l < numLayers - collisionLayerStart - hasAdditionalFlags; ++l) {
+		// Load collision data
+		const auto& layerTiles = layers[l + collisionLayerStart]["tiles"];
+		const bool doOffset = layerTiles[0]["tile"].get<int>() >= 340;
+		std::transform(layerTiles.begin(), layerTiles.end(), arrayData.collision[l].begin(),
+			[doOffset](const json& tile) {
+				int current = tile["tile"].get<int>() - 340 * doOffset;
+				Ground::Tile result{ current, 0 };
+				if (tile["rot"].get<int>() == 2) {
+					result.flags |= SDL_FLIP_VERTICAL;
+					result.flags |= (!tile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+				}
+				else {
+					result.flags |= (tile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
+				}
+				return result;
+			});
+	}
+
+	if (hasAdditionalFlags) {
+		for (int i = 0; i < GROUND_SIZE; ++i) {
+			if (layers.back()["tiles"][i]["tile"].get<int>() == 592) {
+				arrayData.collision[0][i].flags |= static_cast < int >(Ground::Flags::TOP_SOLID);
+			}
+		}
+	}
+}
 
 std::istream& operator>> (std::istream& stream, Ground& g) {
 	SDL_Point pos;
@@ -213,7 +361,8 @@ std::istream& operator>> (std::istream& stream, Ground& g) {
 	assert(index != -1);
 
 	bool flip = false;
-	if (stream.get() == ' ') {
+	if (stream.peek() == ' ') {
+		stream.get();
 		flip = stream.get() - '0';
 	}
 
@@ -223,9 +372,8 @@ std::istream& operator>> (std::istream& stream, Ground& g) {
 
 std::ostream& operator<< (std::ostream& stream, const Ground& g) {
 	assert(g.getPosition().x != -1 && g.getPosition().y != -1);
-	assert(g.getIndex() != -1);
-	stream << g.getPosition().x << " " << g.getPosition().y
-		<< " " << g.getIndex();
+	assert(g.getIndex() != Ground::NO_TILE);
+	stream << g.getPosition().x << " " << g.getPosition().y << " " << g.getIndex();
 	if(g.getFlip()) {
 		stream << " 1";
 	}

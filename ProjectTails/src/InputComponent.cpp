@@ -1,97 +1,50 @@
 #include "stdafx.h"
 #include "InputComponent.h"
+#include <iostream>
 
 
-InputComponent::InputComponent()
+InputComponent::InputComponent() :
+	KeyStates(0),
+	KeyPress(0),
+	mouseWheel(0)
 {
-	KeyStates.resize(KEYS_SIZE);
-	KeyPress.resize(KEYS_SIZE);
-	for (int i = 0; i < KeyStates.size(); i++) {
-		KeyStates[i] = false;
-		KeyPress[i] = false;
-	}
-	mouseWheel = 0;
 }
 
 //Updates the KeyStates array values
 void InputComponent::UpdateKeys() {
-	for (int i = 0; i < KeyPress.size(); i++) {
-		KeyPress[i] = false;
-	}
+	KeyPress = 0;
 	bool mouseWheelEvent = false;
 	while (SDL_PollEvent(&KeyEvent)) {
 		switch (KeyEvent.type) {
 
+		#define KEY(key) \
+			KeyPress[key] = !KeyStates[key]; \
+			KeyStates[key] = true; \
+			break;
+
 		case SDL_KEYDOWN:
 			switch (KeyEvent.key.keysym.sym) {
-			case SDLK_w:
-				KeyStates[W] = true;
-				KeyPress[W] = true;
-				break;
-			case SDLK_a:
-				KeyStates[A] = true;
-				KeyPress[A] = true;
-				break;
-			case SDLK_s:
-				KeyStates[S] = true;
-				KeyPress[S] = true;
-				break;
-			case SDLK_d:
-				KeyStates[D] = true;
-				KeyPress[D] = true;
-				break;
-			case SDLK_j:
-				KeyStates[J] = true;
-				KeyPress[J] = true;
-				break;
-			case SDLK_m:
-				KeyStates[M] = true;
-				KeyPress[M] = true;
-				break;
-			case SDLK_UP:
-				KeyStates[UARROW] = true;
-				KeyPress[UARROW] = true;
-				break;
-			case SDLK_LEFT:
-				KeyStates[LARROW] = true;
-				KeyPress[LARROW] = true;
-				break;
-			case SDLK_RIGHT:
-				KeyStates[RARROW] = true;
-				KeyPress[RARROW] = true;
-				break;
-			case SDLK_DOWN:
-				KeyStates[DARROW] = true;
-				KeyPress[DARROW] = true;
-				break;
-			case SDLK_n:
-				KeyStates[N] = true;
-				KeyPress[N] = true;
-				break;
-			case SDLK_x:
-				KeyStates[X] = true;
-				KeyPress[X] = true;
-				break;
-			case SDLK_LEFTBRACKET:
-				KeyStates[LBRACKET] = true;
-				KeyPress[LBRACKET] = true;
-				break;
-			case SDLK_RIGHTBRACKET:
-				KeyStates[RBRACKET] = true;
-				KeyPress[RBRACKET] = true;
-				break;
-			case SDLK_f:
-				KeyStates[F] = true;
-				KeyPress[F] = true;
-				break;
-			case SDLK_r:
-				KeyStates[R] = true;
-				KeyPress[R] = true;
-			default:
-				break;
+			case SDLK_w: KEY(W)
+			case SDLK_a: KEY(A)
+			case SDLK_s: KEY(S)
+			case SDLK_d: KEY(D)
+			case SDLK_j: KEY(J)
+			case SDLK_m: KEY(M)
+			case SDLK_UP: KEY(UP)
+			case SDLK_LEFT: KEY(LEFT)
+			case SDLK_RIGHT: KEY(RIGHT)
+			case SDLK_DOWN: KEY(DOWN)
+			case SDLK_n: KEY(N)
+			case SDLK_x: KEY(X)
+			case SDLK_LEFTBRACKET: KEY(LBRACKET)
+			case SDLK_RIGHTBRACKET: KEY(RBRACKET)
+			case SDLK_f: KEY(F)
+			case SDLK_r: KEY(R)
 			}
 			break;
 			
+		#undef KEY
+
 		case SDL_KEYUP:
 			switch (KeyEvent.key.keysym.sym) {
 			case SDLK_w:
@@ -119,6 +72,7 @@ void InputComponent::UpdateKeys() {
 				KeyStates[LARROW] = false;
 				break;
 			case SDLK_RIGHT:
+				std::cout << "r up\n";
 				KeyStates[RARROW] = false;
 				break;
 			case SDLK_DOWN:

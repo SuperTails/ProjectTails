@@ -1,43 +1,21 @@
 #include "CollisionTile.h"
 
-CollisionTile::CollisionTile()
-{
-}
-
-
-CollisionTile::CollisionTile(int ind, std::vector < int > heights, double ang, bool collide) :
-	index(ind),
+CollisionTile::CollisionTile(const std::array< int, heightMapSize >& heights, double ang) noexcept :
 	angle(ang),
-	canCollide(collide)
+	heightMap(heights),
+	canCollide(std::any_of(heights.begin(), heights.end(), [](int a) { return a; }))
 {
-	//Note that index 0 on the sideways map is at the top
-	std::memcpy(heightMap, &(heights[0]), 16 * sizeof(int));
-	std::memset(heightMapSide, 0, 16 * sizeof(int));
-	for (int i = 0; i < 16; i++) {
-		for (int j = 0; j < 16; j++) {
-			if (heightMap[j] >= i) {
-				++heightMapSide[i];
-			}
-		}
-	}
+	calculateSideMap();
 }
 
 
-CollisionTile::~CollisionTile()
-{
-}
-
-void CollisionTile::setHeights(const std::vector < int >& heights) {
-	std::memcpy(heightMap, &(heights[0]), 16 * sizeof(int));
+void CollisionTile::setHeights(const std::array< int, heightMapSize >& heights) noexcept {
+	std::copy(heights.begin(), heights.end(), heightMap.begin());
+	calculateSideMap();
 }
 
 void CollisionTile::calculateSideMap() {
-	for (int i = 0; i < 16; i++) {
-		heightMapSide[i] = 0;
-		for (int j = 0; j < 16; j++) {
-			if (heightMap[j] >= 16 - i) {
-				++heightMapSide[i];
-			}
-		}
+	for (int i = 0; i < heightMapSize; ++i) {
+		heightMapSide[i] = std::count_if(heightMap.begin(), heightMap.end(), [&](auto height) { return height >= heightMapSize - i; });
 	}
 }

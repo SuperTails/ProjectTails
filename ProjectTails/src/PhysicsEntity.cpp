@@ -4,14 +4,16 @@
 #include "Functions.h"
 #include "Animation.h"
 #include "Timer.h"
+#include "Camera.h"
 #include <cmath>
 #include <algorithm>
 
+void renderWithDefault(const PhysicsEntity& entity, const Camera& camera);
+
 PhysicsEntity::PhysicsEntity()
 {
-	position = { 0,0,0,0 };
-	velocity = { 0,0 };
-	self = nullptr;
+	position = { 0  , 0   };
+	velocity = { 0.0, 0.0 };
 	destroyAfterLoop = false;
 }
 
@@ -36,11 +38,10 @@ PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
 	destroyAfterLoop(arg.destroyAfterLoop),
 	gravity(arg.gravity),
 	flags(arg.flags),
-	customData(arg.customData),
-	self(nullptr)
+	customData(arg.customData)
 {
 	for (const auto& animation : arg.animations) {
-		animations.emplace_back(std::make_unique<Animation>(*animation));
+		AddAnim(*animation);
 	}
 
 	position = arg.position;
@@ -50,43 +51,44 @@ PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
 PhysicsEntity::PhysicsEntity(const PhysStruct& p) :
 	invis(false),
 	shouldSave(!p.temporary),
-	currentAnim(0),
 	canCollide(true),
 	destroyAfterLoop(false),
-	self(nullptr),
 	flags(p.flags),
 	posError{ 0.0, 0.0 },
 	dataKey(p.typeId),
+	velocity(entity_property_data::getEntityTypeData(dataKey).defaultVelocity),
+	gravity(entity_property_data::getEntityTypeData(dataKey).defaultGravity),
 	collisionRect(entity_property_data::getEntityTypeData(dataKey).collisionRect),
 	customData(createCustomData(p))
 {
 	const auto& entityTypeData = entity_property_data::getEntityTypeData(dataKey);
 	for (const auto& animData : entityTypeData.animationTypes) {
-		animations.emplace_back(std::make_unique<Animation>(animData));
+		animations.emplace_back(std::make_unique< Animation >(animData));
 		animations.back()->stop();
 	}
-
+	
 	if (!animations.empty()) {
-		animations[currentAnim % animations.size()]->start();
+		currentAnim.push_back(0);
 	}
 
-	position.w = collisionRect.w;
-	position.h = collisionRect.h;
+	for (auto index : currentAnim) {
+		animations[index]->start();
+	}
 
-	previousPosition = convertRect(p.position);
-	position = convertRect(p.position);
+	position = { p.position.x, p.position.y };
+	previousPosition = position;
 }
 
-PhysicsEntity::PhysicsEntity(SDL_Rect pos, bool multi, SDL_Point tileSize) :
-	self(nullptr),
+PhysicsEntity::PhysicsEntity(SDL_Point pos, bool multi, SDL_Point tileSize) :
 	velocity{ 0.0, 0.0 },
 	posError{ 0.0, 0.0 },
 	currentAnim(0)
 {
-	position = convertRect(pos);
-	animations.emplace_back(new Animation(tileSize));
-	if (multi)
-		animations.emplace_back(new Animation(tileSize));
+	position = pos;
+	AddAnim(tileSize);
+	if (multi) {
+		AddAnim(tileSize);
+	}
 };
  
 void PhysicsEntity::update(Player* player, EntityManager* manager) {
@@ -105,31 +107,36 @@ void PhysicsEntity::update(Player* player, EntityManager* manager) {
 
 	velocity.y += gravity * frameTime / (1000.0 / 60.0);
 
-	if (player != nullptr && manager != nullptr ) {
+	if (player && manager) {
 		custom(*player, *manager);
 	}
 
-	applyToCurrentAnimations([](auto& animation) { animation->Update(); });
-	if (!animations.empty() && animations[currentAnim % animations.size()]->GetLooped() && destroyAfterLoop && manager != nullptr) {
-		manager->MarkAsDestroyed(this);
+	for (auto index : currentAnim) {
+		animations[index]->Update();
+	}
+	
+	if (destroyAfterLoop && manager) {
+		for (auto index : currentAnim) {
+			if (animations[index]->GetLooped()) {
+				manager->MarkAsDestroyed(this);
+			}
+		}
 	}
 }
 
-std::size_t PhysicsEntity::currentAnimIndex() const noexcept {
-	return currentAnim;
-}
-
-PhysicsEntity::entityPtrType& PhysicsEntity::platformPtr() {
-	return self;
-}
-
-void PhysicsEntity::AddAnim(AnimStruct n) {
-	animations.emplace_back(new Animation(n));
+template < typename... Args >
+void PhysicsEntity::AddAnim(const Args&... args) {
+	animations.emplace_back(std::make_unique< Animation >(args...));
 	animations.back()->stop();
 }
 
-void PhysicsEntity::Render(SDL_Rect& camPos, double ratio) {
-	renderWithDefault(*this, camPos);
+void PhysicsEntity::Render(const Camera& camera) {
+	renderWithDefault(*this, camera);
+	if (globalObjects::debug) {
+		SDL_Rect collision = (getCollisionRect() - camera.getPosition()) * camera.scale;
+		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+		SDL_RenderDrawRect(globalObjects::renderer, &collision);
+	}
 }
 
 SDL_Rect PhysicsEntity::getRelativePos(const SDL_Rect& p) const {
@@ -141,34 +148,40 @@ SDL_Rect PhysicsEntity::getRelativePos(const SDL_Rect& a, const SDL_Rect& b) {
 }
 
 void PhysicsEntity::destroy() {
-	velocity.x = 0;
-	velocity.y = 0;
+	velocity = { 0.0, 0.0 };
 	canCollide = false;
-	if (currentAnim != animations.size() - 1) {
-		setAnim(animations.size() - 1);
-		animations[currentAnim]->SetFrame(0);
-		animations[currentAnim]->start();
+	if (currentAnim.size() != 1 || currentAnim.back() != animations.size() - 1) {
+		setAnim({ animations.size() - 1 });
+		animations[currentAnim.back()]->SetFrame(0);
+		animations[currentAnim.back()]->start();
 		destroyAfterLoop = true;
 	}
 }
 
 SDL_Rect PhysicsEntity::getPosition() const {
-	return SDL_Rect{ position.x, position.y,
-		std::max((!animations.empty()) ? animations[currentAnim % animations.size()]->GetSize().x : 0, collisionRect.w),
-		std::max((!animations.empty()) ? animations[currentAnim % animations.size()]->GetSize().y : 0, collisionRect.h) };
-}
-
-void PhysicsEntity::setAnim(int a) {
-	animations[currentAnim % animations.size()]->stop();
-	currentAnim = a;
-	animations[currentAnim % animations.size()]->start();
-}
-
-void PhysicsEntity::renderRaw(const SDL_Rect& cameraPosition) const {
-	SDL_Point relativePosition = getXY(getRelativePos(cameraPosition));
-	applyToCurrentAnimations([&](const auto& animation) {
-		animation->Render(relativePosition, 0, nullptr, 1.0 / globalObjects::ratio);
+	SDL_Point size{ 0, 0 };
+	std::for_each(currentAnim.begin(), currentAnim.end(), [&](auto index) {
+		size.x = std::max({ size.x, animations[index]->GetSize().x, collisionRect.w });	
+		size.y = std::max({ size.y, animations[index]->GetSize().y, collisionRect.h });
 	});
+	return SDL_Rect{ position.x, position.y, size.x, size.y };
+}
+
+void PhysicsEntity::setAnim(const std::vector< std::size_t >& a) {
+	for (auto index : currentAnim) {
+		animations[index]->stop();
+	}
+	currentAnim = a;
+	for (auto index : currentAnim) {
+		animations[index]->start();
+	}
+}
+
+void PhysicsEntity::renderRaw(const Camera& camera) const {
+	const SDL_Point relativePosition = position - camera.getPosition();
+	for (auto index : currentAnim) {
+		animations[index]->Render(relativePosition, 0, nullptr, camera.scale);
+	}
 }
 
 SDL_Rect PhysicsEntity::getCollisionRect() const {
@@ -179,20 +192,12 @@ const std::string& PhysicsEntity::getKey() const {
 	return dataKey;
 }
 
-std::unique_ptr < Animation >& PhysicsEntity::getAnim(int index) {
+std::unique_ptr < Animation >& PhysicsEntity::getAnim(std::size_t index) {
 	return animations[index];
 }
 
-const std::unique_ptr < Animation >& PhysicsEntity::getAnim(int index) const {
+const std::unique_ptr < Animation >& PhysicsEntity::getAnim(std::size_t index) const {
 	return animations[index];
-}
-
-std::unique_ptr < Animation >& PhysicsEntity::getAnim() {
-	return animations[currentAnim % animations.size()];
-}
-
-const std::unique_ptr < Animation >& PhysicsEntity::getAnim() const {
-	return animations[currentAnim % animations.size()];
 }
 
 void PhysicsEntity::custom(Player& player, EntityManager& manager) {
@@ -208,7 +213,7 @@ void PhysicsEntity::setGravity(double g) {
 
 entity_property_data::CustomData PhysicsEntity::createCustomData(const PhysStruct& physStruct) {
 	using namespace entity_property_data;
-	Keys entityDataKey = getEntityTypeData(physStruct.typeId).behaviorKey;
+	Key entityDataKey = getEntityTypeData(physStruct.typeId).behaviorKey;
 	return entity_property_data::createCustomFromKey(entityDataKey, physStruct.flags);
 }
 
@@ -229,7 +234,6 @@ void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept {
 	swap(lhs.velocity, rhs.velocity);
 	swap(lhs.shouldSave, rhs.shouldSave);
 	swap(lhs.canCollide, rhs.canCollide);
-	swap(lhs.self, rhs.self);
 	swap(lhs.dataKey, rhs.dataKey);
 	swap(lhs.destroyAfterLoop, rhs.destroyAfterLoop);
 	swap(lhs.customData, rhs.customData);
@@ -297,21 +301,44 @@ Side getCollisionSide(const SDL_Rect& r1, const SDL_Rect& r2) {
 }
 
 void EntityManager::MarkAsDestroyed(const PhysicsEntity* entity) {
-	const auto& toMark = std::find_if(entityList.begin(), entityList.end(), [&entity](const auto& obj) { return entity == obj.get(); });
+	const auto toMark = std::find_if(entityList.begin(), entityList.end(), [&](const auto& obj) { return entity == obj.get(); });
 
 	if (toMark == entityList.end()) {
-		throw std::logic_error("Attempt to mark invalid entity");
+		throw std::invalid_argument("Attempt to mark invalid entity");
 	}
 
 	toDestroy[std::distance(entityList.begin(), toMark)] = true;
 }
 
-void EntityManager::AddEntity(std::unique_ptr < PhysicsEntity >&& entity) {
+void EntityManager::AddEntity(std::unique_ptr< PhysicsEntity >&& entity) {
 	toAdd.emplace_back(std::move(entity));
 }
 
-void renderWithDefault(const PhysicsEntity& entity, const SDL_Rect& cameraPosition) {
+#ifdef __clang__
+template < typename Custom > auto renderWithDefaultImpl(const PhysicsEntity& entity, const Camera& camera, const Custom& custom)
+-> typename std::enable_if_t<decltype(entity_property_data::hasRender< Custom >)::value, void> {
+	custom.render(entity, camera);
+}
+
+template < typename Custom > auto renderWithDefaultImpl(const PhysicsEntity& entity, const Camera& camera, const Custom& custom)
+-> typename std::enable_if_t<!decltype(entity_property_data::hasRender< Custom >)::value, void> {
+	entity.renderRaw(camera);
+}
+#else 
+template < typename Custom >
+void renderWithDefaultImpl(const PhysicsEntity& entity, const Camera& camera, const Custom& custom)
+requires entity_property_data::Renderable< Custom > {
+	custom.render(entity, camera);
+}
+
+template < typename Custom >
+void renderWithDefaultImpl(const PhysicsEntity& entity, const Camera& camera, const Custom& custom) {
+	entity.renderRaw(camera);
+}
+#endif
+
+void renderWithDefault(const PhysicsEntity& entity, const Camera& camera) {
 	using namespace entity_property_data;
-	auto keyValue = static_cast< std::size_t >(getEntityTypeData(entity.getKey()).behaviorKey);
-	helpers::getOne<int>([&](auto& p) { renderWithDefaultImpl(entity, cameraPosition, p); return int{}; }, keyValue);
+	const std::size_t keyValue = entity.getCustom().index();
+	helpers::getOne<int>([&](const auto& p) { renderWithDefaultImpl(entity, camera, p); return int{}; }, entity.getCustom(), keyValue);
 }

@@ -1,7 +1,6 @@
 #pragma once
 #include <SDL.h>
 #include <memory>
-#include <string>
 
 struct SDL_Window;
 struct SDL_Renderer;
@@ -14,18 +13,6 @@ namespace globalObjects {
 	extern SDL_Renderer* renderer;
 }
 
-namespace std {
-	template <>
-	struct default_delete < SDL_Surface > {
-		constexpr default_delete() noexcept = default;
-		void operator()(SDL_Surface* ptr) const;
-	};
-	template <>
-	struct default_delete < SDL_Texture > {
-		constexpr default_delete() noexcept = default;
-		void operator()(SDL_Texture* ptr) const;
-	};
-}
 
 SDL_PixelFormat getFormat();
 
@@ -34,6 +21,14 @@ const SDL_PixelFormat imageFormat = getFormat();
 class Surface {
 	SDL_Surface* surface;
 public:
+	struct PixelLock {
+		PixelLock(Surface& srf) : surface(srf) { if (SDL_MUSTLOCK(surface.get())) SDL_LockSurface(surface.get()); };
+
+		~PixelLock() { if (SDL_MUSTLOCK(surface.get())) SDL_UnlockSurface(surface.get()); };
+
+		Surface& surface;
+	};
+
 	Surface() noexcept;
 	Surface(const Surface& s);
 	Surface(Surface&& s) noexcept;
@@ -99,10 +94,11 @@ class Sprite {
 public:
 	Sprite() = default;
 	Sprite(Sprite&& sprite) noexcept = default; 
-
 	Sprite(const Sprite& sprite);
+
 	Sprite(const std::string& path);
-	Sprite(const Surface& s);
+	explicit Sprite(const Surface& s);
+	explicit Sprite(Surface&& s);
 	Sprite(SDL_Surface* s);
 
 	const Surface& getSpriteSheet() const;
@@ -119,6 +115,8 @@ public:
 
 	bool empty() const;
 
+	void render(SDL_Rect position) const;
+
 	Sprite& operator= (const Sprite& sprite);
 
 	Sprite& operator= (Sprite&& sprite) noexcept;
@@ -127,3 +125,38 @@ public:
 };
 
 SDL_Point getSize(const Sprite& s);
+
+inline Uint32& pixelAt(SDL_Surface* surface, int x, int y) {
+	return (static_cast< Uint32* >(surface->pixels))[x + y * surface->w];
+}
+
+inline const Uint32& pixelAt(const SDL_Surface* surface, int x, int y) {
+	return (static_cast< const Uint32* >(surface->pixels))[x + y * surface->w];
+}
+
+inline Uint32 getPixel(const SDL_Surface* surface, int x, int y) {
+	return pixelAt(surface, x, y);
+}
+
+inline void setPixel(SDL_Surface* surface, int x, int y, Uint32 pixel) {
+	pixelAt(surface, x, y) = pixel;
+}
+
+Uint32* begin(SDL_Surface* surface);
+Uint32* end(SDL_Surface* surface);
+
+Uint32* begin(Surface& surface);
+Uint32* end(Surface& surface);
+
+namespace std {
+	template <>
+	struct default_delete < SDL_Surface > {
+		constexpr default_delete() noexcept = default;
+		void operator()(SDL_Surface* ptr) const;
+	};
+	template <>
+	struct default_delete < SDL_Texture > {
+		constexpr default_delete() noexcept = default;
+		void operator()(SDL_Texture* ptr) const;
+	};
+}

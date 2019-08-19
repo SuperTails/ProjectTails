@@ -9,13 +9,16 @@ public:
 	Camera(const SDL_Rect& collision);
 	~Camera();
 
-	void SetOffset(SDL_Point pos) { offset = pos; };
-	SDL_Point GetOffset() { return offset;  };
+	void setOffset(SDL_Point pos) { offset = pos; };
+	SDL_Point getOffset() const { return offset; };
 	void updatePos(const Player& player);
-	SDL_Rect getPosition();
-	SDL_Rect getCollisionRect();
+	SDL_Point getPosition() const;
+	SDL_Rect getCollisionRect() const;
+
+	double scale;
 
 private:
+
 	SDL_Point offset; //The position of the camera relative to the player (usually negative)
 	double frameCount;
 	double currentLookOffset;

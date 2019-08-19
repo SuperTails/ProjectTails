@@ -7,7 +7,6 @@
 #include "prhsGameLib.h"
 #include "png.h"
 #include "Animation.h"
-#include <algorithm>
 #include "Constants.h"
 #include "Act.h"
 #include "Player.h"
@@ -15,14 +14,18 @@
 #include "Text.h"
 #include "Ground.h"
 #include "DataReader.h"
-#include <fstream>
-#include <unordered_map>
 #include "Miscellaneous.h"
 #include "LevelEditor.h"
 #include "SoundHandler.h"
 #include "effectManager.h"
 #include "CollisionTile.h"
+#include "Tests.h"
+#include "BlockEditor.h"
+#include <unordered_map>
+#include <fstream>
+#include <algorithm>
 #include <cstring>
+#include <vector>
 
 using namespace std;
 
@@ -31,13 +34,7 @@ const double SCR_RAT_INV = 1.0 / SCREEN_RATIO;
 
 const double stepLength = 1000.0 / 60.0;
 
-const double LOAD_STEPS = 7.0;
-
-void LoadAct(Act* a, Camera* c, SDL_Renderer* r) {
-	a->setCamera(c);
-	a->setRenderer(r);
-	a->initialize();
-}
+const double LOAD_STEPS = 6.0;
 
 #undef main
 
@@ -45,27 +42,55 @@ int mult(int arg1, double arg2) {
 	return (int)((double)arg1 * arg2);
 }
 
-int main( int argc, char* argv[] ) { 
-	Uint32 frame_start_time;
+std::vector< std::string_view >::const_iterator findArg(const std::vector< std::string_view >& args, const std::string_view& arg) {
+	return std::find(args.begin(), args.end(), arg);
+}
 
-	if (argc == 2) {
-		LevelEditor::levelEditing = (std::strcmp(argv[1], "le") == 0);
+using namespace std::string_view_literals;
+
+const std::array< std::pair< std::string_view, bool* >, 4 > options{
+	make_pair("-level"sv, &LevelEditor::levelEditing),
+	make_pair("-test"sv , &Tests::doTests),
+	make_pair("-debug"sv, &globalObjects::debug),
+	make_pair("-block"sv, &BlockEditor::editing),
+};
+
+int main(const int argc, const char* const argv[] ) { 
+	if (!sdlStatus.success) {
+		std::cerr << "Initialization failed.\n";
+		return 1;
 	}
 
-	//Start SDL 
-	SDL_Init( SDL_INIT_EVERYTHING ); 
-	
-	Mix_Init( MIX_INIT_MP3 );
+	const std::vector< std::string_view > args(argv + 1, argv + argc);
 
-	int img_flags = IMG_INIT_PNG;
+	if (findArg(args, "-help") != args.end()) {
+		std::cout <<
+		"Usage: ProjectTails [option]\n"
+		"\tOptions:\n"
+		"\t\t-level   Run level editor\n"
+		"\t\t-test    Run tests\n"
+		"\t\t-debug   Run in debug mode\n"
+		"\t\t-block   Run block editor\n";
+		return 1;
+	}
 
-	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 4, 1024);
+	for (auto& option : options) {
+		*option.second = findArg(args, option.first) != args.end();
+	}
+
+	if (globalObjects::debug) {
+		if (BlockEditor::editing) {
+			std::cerr << "Options '-debug' and '-block' are incompatible!";
+			return 1;
+		}
+
+		Ground::showCollision = true;
+	}
 
 	PRHS_Window window("Project Tails", WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE, false);
 
 	globalObjects::window = window.getWindow();
 	globalObjects::renderer = window.getRenderer();
-	globalObjects::ratio = SCREEN_RATIO;
 
 	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 
@@ -73,12 +98,12 @@ int main( int argc, char* argv[] ) {
 	globalObjects::updateLoading(0.0);
 
 
-	std::vector < std::string > actPaths = { constants::ACT1_DATA_PATH, constants::ACT2_DATA_PATH };
+	const std::array< std::string_view, 2 > actPaths = { constants::ACT1_DATA_PATH, constants::ACT2_DATA_PATH };
 
 	Player Tails;
 
 	Camera cam = Camera({ -32, -8, int(WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO + 64), int(WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 16) });
-	cam.SetOffset({ (int)(-WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO / 2), (int)(-WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 128) });
+	cam.setOffset({ (int)(-WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO / 2), (int)(-WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 128) });
 
 	//Load entities:
 	cout << "Loading entity data...\n";
@@ -86,73 +111,55 @@ int main( int argc, char* argv[] ) {
 	DataReader::LoadEntityData(constants::ENTITY_DATA_PATH);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
-	int actNum;
-	string actName;
-	vector < PhysStruct > entities;
-	SDL_Rect winRect;
-	ActType actType;
-	std::vector < std::vector < Animation > > background;
+	std::vector< std::vector < Animation > > background;
 
-	std::list < Act > acts;
-
-	int currentAct = 0;
+	Ground::setCollisionList(DataReader::LoadCollisionsFromImage(ASSET"SolidGraph.png"));
 	
-	std::vector < CollisionTile > tiles;
-	
-	std::vector < Ground > ground;
-	matrix < int > collides(221);
-	std::vector < double > angles(221);
-	DataReader::LoadCollisionsFromImage(ASSET"SolidGraph.png", collides, angles);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
-	collides[220] = std::vector < int >(16, 16);
-	angles[220] = 0xFF;
+	if (Tests::doTests) {
+		Ground::clearTiles();
+		Tests::runTests();
+		return 0;
+	}
 
-	DataReader::LoadTileData(tiles, collides, angles);
-
-	Ground::setCollisionList(tiles);
-
-	std::vector < Ground::groundArrayData > arrayData;
-	SDL_Point levelSize;
-
-	DataReader::LoadActData(constants::ACT1_DATA_PATH, actNum, actName, entities, winRect, actType, ground, levelSize);
-	globalObjects::updateLoading(1 / LOAD_STEPS);
-
-	DataReader::LoadLevelBlocks(ASSET"EmeraldHillZone/Block");
-	DataReader::LoadBackground(ASSET"EmeraldHillZone/Background", background);
-	globalObjects::updateLoading(1 / LOAD_STEPS);
 
 	SDL_SetRenderDrawColor(globalObjects::renderer, 0, 0, 0, 0);
 
-	LevelEditor::cam = &cam;
-	LevelEditor::levelEntities = entities;
+	Act currentAct{ ASSET"Act1Data.txt" };
 
-	if (LevelEditor::levelEditing) {
-		LevelEditor::init(ground, levelSize);
+	if (LevelEditor editor(currentAct, &cam); LevelEditor::levelEditing) {
 		while (true) {
 			Timer::updateFrameTime();
 			globalObjects::input.UpdateKeys();
-			if (LevelEditor::handleInput())
+			if (editor.handleInput())
 				break;
-			LevelEditor::renderTiles();
-			LevelEditor::renderEntities();
-			LevelEditor::renderText();
+			editor.render();
 			SDL_RenderPresent(globalObjects::renderer);
 		}
 		if (globalObjects::input.GetKeyState(InputComponent::J)) {
-			std::string output = LevelEditor::convertToString(actNum, actName);
-			std::ofstream DataFile(ASSET"Act1Data.txt");
-			DataFile << output;
+			editor.save(ASSET"Act1Data.txt");
 		}
 		return 0;
 	}
 
-	acts.emplace_back(actNum, actName, entities, winRect, actType, SCREEN_RATIO, levelSize, background, ground);
+	if (BlockEditor editor; BlockEditor::editing) {
+		while (!globalObjects::input.GetKeyPress(InputComponent::X)) {
+			Timer::updateFrameTime();
+			globalObjects::input.UpdateKeys();
+
+			editor.update(cam);
+			editor.render(cam);
+			SDL_RenderPresent(globalObjects::renderer);
+			SDL_Delay(5);
+		}
+		return 0;
+	}
+
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
-	Tails.setActType(static_cast < unsigned char > (acts.front().getType()));
+	Tails.setActType(static_cast< unsigned char > (currentAct.getType()));
 
-	LoadAct(&(acts.front()), &cam, globalObjects::renderer);
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
 	int frames = 0;
@@ -169,29 +176,24 @@ int main( int argc, char* argv[] ) {
 	debug_text.StringToText("");
 	debug_text2.StringToText("");
 
-	//Load Surfaces
-	SDL_Surface* Sky = IMG_Load(constants::SKY_PATH.c_str());
-	SDL_Surface* Lives = IMG_Load(constants::LIVES_PATH.c_str());
+	// Sprites
+	Sprite sky{ constants::SKY_PATH };
+	Sprite lives{ constants::LIVES_PATH };
 	 
-	//Others
-	SDL_Texture* Sky_Texture = SDL_CreateTextureFromSurface(window.getRenderer(), Sky);
-	SDL_Texture* Lives_Texture = SDL_CreateTextureFromSurface(window.getRenderer(), Lives);
+	cam.position = { 0, 0 };
+
+	using namespace std::literals::string_literals;
+	background = DataReader::LoadBackground(ASSET + "EmeraldHillZone/Background/"s);
 	
-	cam.updatePosition(PRHS_Rect{ 0, 0, 0, 0, 0 }, PRHS_UPDATE_ABSOLUTE);
-
-	Uint32 last_time = SDL_GetTicks();
-	Uint32 last_time1 = SDL_GetTicks();
-	Uint32 time = SDL_GetTicks();
-
 	SoundHandler::init();
 	while (globalObjects::gameState == 0) {
 		Timer::updateFrameTime();
-		double thisFrames = Timer::getFrameTime().count() / (1000.0 / 60.0);
-		globalObjects::renderTitleScreen(background, cam.getPosition().x);
+		const double thisFrames = Timer::getFrameTime().count() / (1000.0 / 60.0);
+		globalObjects::renderTitleScreen(background, cam);
 		globalObjects::renderTitleFlash();
 		SDL_RenderPresent(globalObjects::renderer);
 		if (globalObjects::titleScreen[2].getFrame() == 10) {
-			cam.updatePosition(PRHS_Rect{ int(thisFrames * 20), 0, 0, 0, 0 }, PRHS_UPDATE_RELATIVE);
+			cam.position.x += thisFrames * 20.0;
 		}
 		globalObjects::input.UpdateKeys();
 		if (globalObjects::input.GetKeyState(InputComponent::JUMP)) {
@@ -201,98 +203,104 @@ int main( int argc, char* argv[] ) {
 		}
 	}
 
-	double avg_fps = 0;
+	double avg_fps = 0.0;
 
 	debug_text.StringToText("nope");
 
 	SoundHandler::setMusic(ASSET"TheAdventureContinues", true);
 
-	cam.updatePosition(PRHS_Rect{ 0, 0, 0, 0, 0 }, PRHS_UPDATE_ABSOLUTE);
+	cam.position = { 0, 0 };
+
+	Timer::updateFrameTime();
+
+	auto fpsCounterStart = Timer::getTime();
 
 	while (true) {
-
 		SoundHandler::updateMusic();
 
-		frame_start_time = SDL_GetTicks();
 		Timer::updateFrameTime();
 		globalObjects::input.UpdateKeys();
 
+		if (globalObjects::debug) {
+			Timer::slowMotion ^= globalObjects::input.GetKeyPress(InputComponent::M);
+			Timer::paused ^= globalObjects::input.GetKeyPress(InputComponent::F);
+			if (globalObjects::input.GetKeyPress(InputComponent::R)) {
+				Timer::frameAdvance();
+			}
+			else if (Timer::paused) {
+				continue;
+			}
+		}
+
 		if (frames % 1000 == 0) {
-			cout << "Average FPS: " << 1000.0 * 1000.0 / (frame_start_time - last_time1) << "\n";
-			avg_fps = 1000.0 * 1000.0 / (frame_start_time - last_time1);
-			last_time1 = frame_start_time;
+			avg_fps = 1000.0 * 1000.0 / (Timer::getTime() - fpsCounterStart).count();
+			cout << "Average FPS: " << avg_fps << "\n";
+			fpsCounterStart = Timer::getTime();
 		}
 
-		if (currentAct >= 0) {
+		currentAct.updateEntities(Tails, cam);
 
-			acts.front().updateEntities(Tails);
+		rings_count_text.setText(to_string(Tails.getRings()));
 
-			rings_count_text.StringToText(to_string(Tails.getRings()));
+		cam.updatePos(Tails);
 
-			cam.updatePos(Tails);
+		sky.render({ 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE });
 
-			window.render(Sky_Texture, { 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE, 0 });
-
-			acts.front().renderObjects(Tails);
-
-			rings_text.Render(SDL_Point { 25, 25 });
-			rings_count_text.Render(SDL_Point { rings_text.getText()->w + 28, 25 });
-
-			debug_text.StringToText("Position: " + std::to_string(Tails.getPosition().x) + " " + std::to_string(Tails.getPosition().y));
-			debug_text.Render(SDL_Point { 25, 40 });
-
-			window.render(Lives_Texture, { 2 * 8, WINDOW_VERTICAL_SIZE - 2 * 24, 2 * Lives->w, 2 * Lives->h, 0 });
-
-			{
-				std::pair < int, int > mousePos;
-				SDL_GetMouseState(&mousePos.first, &mousePos.second);
-				mousePos.first = cam.getPosition().x + mousePos.first * SCREEN_RATIO;
-				mousePos.second = cam.getPosition().y + mousePos.second * SCREEN_RATIO;
-				debug_text2.StringToText("MOUSE: " + std::to_string(mousePos.first) + " " + std::to_string(mousePos.second));
-				debug_text2.Render(SDL_Point { 25, 55 });
-			}
-			
-			effectManager::updateFade();
-
-			window.updateDisplay();
-			
-			acts.front().incrFrame();
-
-			if (SoundHandler::musicState == 0 && effectManager::fadeComplete()) {
-				Act::loadNextAct(acts, actPaths, currentAct, arrayData, background);
-				Tails.updatePosition({ 20, 0, 120, 64, 0 }, PRHS_UPDATE_ABSOLUTE);
-				SDL_Rect camPos = cam.getPosition();
-				camPos.x = 0;
-				camPos.y = 0;
-				cam.updatePosition(convertRect(camPos), PRHS_UPDATE_ABSOLUTE);
-				effectManager::fadeFrom(false, 120.0);
-				Tails.setActCleared(false);
-				Tails.getAnim(13)->SetFrame(0);
-				LoadAct(&acts.front(), &cam, globalObjects::renderer);
-				SoundHandler::setMusic(ASSET"TheAdventureContinues", true);
-			}
+		std::stringstream debugText;
+		debugText << "Position: " << Tails.getPosition().x << " " << Tails.getPosition().y << "\n";
+		debugText << "Velocity: " << setprecision(3) << setw(5) << Tails.getVelocity().x << " " << setw(5) << Tails.getVelocity().y << "\n";
+		debugText << "Angle: " << Tails.getAngle() << " Deg: "  << hexToDeg(Tails.getAngle()) << "\n";
+		debugText << "Spindash: " << Tails.getSpindash() << "\n";
+		{
+			SDL_Point mousePos;
+			SDL_GetMouseState(&mousePos.x, &mousePos.y);
+			mousePos = cam.getPosition() + (mousePos * SCREEN_RATIO);
+			debugText << "PATH: " << std::boolalpha << Tails.getPath() << "\n";
+			debugText << "MOUSE: " << mousePos.x << " " << mousePos.y << "\n";
 		}
 
-		++frames;
+		currentAct.renderObjects(Tails, cam);
+
+		rings_text.Render(SDL_Point{ 25, 25 });
+		rings_count_text.Render(SDL_Point { rings_text.getText().size().x + 28, 25 });
+
+		debug_text.setText(debugText.str());
+		debug_text.Render(SDL_Point{ 25, 40 });
+
+		lives.render({ 2 * 8, WINDOW_VERTICAL_SIZE - 2 * 24, 2 * lives.size().x, 2 * lives.size().y });
+
+		effectManager::updateFade();
+
+		window.updateDisplay();
+		
+		/*if (SoundHandler::musicState == 0 && effectManager::fadeComplete()) {
+			Act::loadNextAct(acts, actPaths, currentAct, arrayData, background);
+			Tails.position = { 20, 0 };
+			cam.position = { 0, 0 };
+			effectManager::fadeFrom(false, 120.0);
+			Tails.setActCleared(false);
+			Tails.getAnim(13)->SetFrame(0);
+			LoadAct(&acts.front(), &cam, globalObjects::renderer);
+			SoundHandler::setMusic(ASSET"TheAdventureContinues", true);
+		}
 
 		SDL_Rect playerPosition = Tails.getPosition();
-		SDL_Rect winArea = acts.front().getWinArea();
-		if ((currentAct >= 0 && SDL_HasIntersection(&playerPosition, &winArea)) || (!Mix_PlayingMusic() && SoundHandler::musicState == 3)) {
-			std::cout << "Level " << currentAct << " complete!";
+		SDL_Rect winArea = currentAct.getWinArea();
+		if (SDL_HasIntersection(&playerPosition, &winArea) || (!Mix_PlayingMusic() && SoundHandler::musicState == 3)) {
+			std::cout << "Level " << currentAct.getNumber() << " complete!";
 			SoundHandler::musicState = 0;
 			effectManager::fadeTo(false, 120.0);
 			Tails.setActCleared(true);
-		}
+		}*/
 
-		if (globalObjects::input.GetKeyState( static_cast<int>(InputComponent::X) ) ) {
+		++frames;
+
+		if (globalObjects::input.GetKeyState(static_cast< int >(InputComponent::X))) {
 			break;
-		}		
+		}
 	};
 
 	Uint32 end = SDL_GetTicks();
 
-	//Quit SDL 
-	SDL_Quit();
-	
 	return 0; 
 }

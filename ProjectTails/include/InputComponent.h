@@ -1,6 +1,7 @@
 #pragma once
 #include "SDL.h"
-#include <vector>
+#include <bitset>
+
 class InputComponent
 {
 public:
@@ -25,8 +26,8 @@ public:
 	~InputComponent();
 
 private:
-	std::vector < bool > KeyStates;
-	std::vector < bool > KeyPress;
+	std::bitset < KEYS_SIZE > KeyStates;
+	std::bitset < KEYS_SIZE > KeyPress;
 	int mouseWheel;
 };
 

@@ -1,13 +1,13 @@
 #pragma once
 #include "Typedefs.h"
+#include "Constants.h"
 #include "PhysicsEntity.h"
-#include <string>
+#include <string_view>
 #include <json.hpp>
 #include <experimental/filesystem>
+#include <iosfwd>
 
 using json = nlohmann::json;
-
-enum class ActType : unsigned char;
 
 class Ground;
 class CollisionTile;
@@ -24,13 +24,12 @@ namespace DataReader
 	*groundIndices, *levelSize
 	*/
 
-	void LoadActData(const std::string& path, int& n, std::string& name1, std::vector < PhysStruct >& entities, SDL_Rect& winArea, ActType& actType, std::vector < Ground >& ground, SDL_Point& levelSize);
+
 	void LoadEntityData(const std::string& path);
-	void LoadTileData(const std::string& path, std::vector < CollisionTile >& tiles);
-	void LoadTileData(std::vector < CollisionTile >& tiles, matrix < int >& heights, std::vector < double >& angles);
 	void LoadJSONBlock(const std::string& path);
-	void LoadCollisionsFromImage(const std::string& path, matrix < int >& heights, std::vector < double >& angles);
-	void LoadBackground(const filesystem::path& directory, std::vector < std::vector < Animation > >& background);
+	std::vector< CollisionTile > LoadCollisionsFromImage(const std::string& path);
+	CollisionTile loadCollisionTile(const Surface& surface, SDL_Point topLeft);
+	std::vector< std::vector< Animation > > LoadBackground(const filesystem::path& directory);
 	void LoadLevelBlocks(const std::string& path); 
 	/**
 	* Tile data (height and angle) is loaded from a file into a vector < CollisionTile >
