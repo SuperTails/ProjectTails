@@ -1,117 +1,137 @@
 [
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Act.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Act.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Act.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Act.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Act.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Animation.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Animation.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Animation.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Animation.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Animation.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Camera.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Camera.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/BlockEditor.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/BlockEditor.cpp",
+  "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/BlockEditor.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Camera.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Camera.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Camera.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/CollisionTile.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/CollisionTile.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/CollisionTile.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/CollisionTile.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/CollisionTile.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Constants.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Constants.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Constants.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Constants.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Constants.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/DataReader.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/DataReader.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/DataReader.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/DataReader.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/DataReader.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/EntityTypes.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/EntityTypes.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/EntityTypes.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/EntityTypes.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/EntityTypes.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Functions.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Functions.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Functions.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Functions.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Functions.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Ground.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Ground.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Ground.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Ground.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Ground.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/InputComponent.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/InputComponent.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Hitbox.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Hitbox.cpp",
+  "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Hitbox.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/InputComponent.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/InputComponent.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/InputComponent.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/LevelEditor.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/LevelEditor.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/LevelEditor.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/LevelEditor.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/LevelEditor.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Miscellaneous.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Miscellaneous.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Miscellaneous.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Miscellaneous.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Miscellaneous.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/PhysicsEntity.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/PhysicsEntity.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/PhysicsEntity.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/PhysicsEntity.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/PhysicsEntity.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Player.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Player.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Player.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Player.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Player.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/ProjectTails.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/ProjectTails.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/ProjectTails.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/SoundHandler.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/SoundHandler.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/SoundHandler.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Sprite.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Sprite.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Sprite.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Text.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Text.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Tests.cpp",
+  "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Tests.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Text.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Text.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Text.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/TextureManager.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/TextureManager.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/TextureManager.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/TextureManager.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/TextureManager.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Timer.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Timer.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Timer.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/effectManager.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/effectManager.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Version.cpp",
+  "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Version.cpp"
+},
+{
+  "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/effectManager.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/effectManager.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/effectManager.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/prhsGameLib.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/prhsGameLib.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/prhsGameLib.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/prhsGameLib.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/prhsGameLib.cpp"
 },
 {
   "directory": "/home/super-tails/Documents/Stuff/ProjectTails/build",
-  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -o CMakeFiles/ProjectTails.dir/ProjectTails/src/stdafx.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/stdafx.cpp",
+  "command": "/usr/bin/c++   -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails -I/home/super-tails/Documents/SDL2_image-2.0.1 -I/home/super-tails/Documents/SDL2_mixer-2.0.1 -I/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/include -I/usr/include/SDL2 -I/usr/local/include/SDL2  -g   -std=c++1z -march=native -mtune=native -fconcepts -o CMakeFiles/ProjectTails.dir/ProjectTails/src/stdafx.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/stdafx.cpp",
   "file": "/home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/stdafx.cpp"
 }
 ]

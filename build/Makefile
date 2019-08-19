@@ -177,6 +177,33 @@ ProjectTails/src/Animation.cpp.s:
 	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Animation.cpp.s
 .PHONY : ProjectTails/src/Animation.cpp.s
 
+ProjectTails/src/BlockEditor.o: ProjectTails/src/BlockEditor.cpp.o
+
+.PHONY : ProjectTails/src/BlockEditor.o
+
+# target to build an object file
+ProjectTails/src/BlockEditor.cpp.o:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/BlockEditor.cpp.o
+.PHONY : ProjectTails/src/BlockEditor.cpp.o
+
+ProjectTails/src/BlockEditor.i: ProjectTails/src/BlockEditor.cpp.i
+
+.PHONY : ProjectTails/src/BlockEditor.i
+
+# target to preprocess a source file
+ProjectTails/src/BlockEditor.cpp.i:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/BlockEditor.cpp.i
+.PHONY : ProjectTails/src/BlockEditor.cpp.i
+
+ProjectTails/src/BlockEditor.s: ProjectTails/src/BlockEditor.cpp.s
+
+.PHONY : ProjectTails/src/BlockEditor.s
+
+# target to generate assembly for a file
+ProjectTails/src/BlockEditor.cpp.s:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/BlockEditor.cpp.s
+.PHONY : ProjectTails/src/BlockEditor.cpp.s
+
 ProjectTails/src/Camera.o: ProjectTails/src/Camera.cpp.o
 
 .PHONY : ProjectTails/src/Camera.o
@@ -365,6 +392,33 @@ ProjectTails/src/Ground.s: ProjectTails/src/Ground.cpp.s
 ProjectTails/src/Ground.cpp.s:
 	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Ground.cpp.s
 .PHONY : ProjectTails/src/Ground.cpp.s
+
+ProjectTails/src/Hitbox.o: ProjectTails/src/Hitbox.cpp.o
+
+.PHONY : ProjectTails/src/Hitbox.o
+
+# target to build an object file
+ProjectTails/src/Hitbox.cpp.o:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Hitbox.cpp.o
+.PHONY : ProjectTails/src/Hitbox.cpp.o
+
+ProjectTails/src/Hitbox.i: ProjectTails/src/Hitbox.cpp.i
+
+.PHONY : ProjectTails/src/Hitbox.i
+
+# target to preprocess a source file
+ProjectTails/src/Hitbox.cpp.i:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Hitbox.cpp.i
+.PHONY : ProjectTails/src/Hitbox.cpp.i
+
+ProjectTails/src/Hitbox.s: ProjectTails/src/Hitbox.cpp.s
+
+.PHONY : ProjectTails/src/Hitbox.s
+
+# target to generate assembly for a file
+ProjectTails/src/Hitbox.cpp.s:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Hitbox.cpp.s
+.PHONY : ProjectTails/src/Hitbox.cpp.s
 
 ProjectTails/src/InputComponent.o: ProjectTails/src/InputComponent.cpp.o
 
@@ -582,6 +636,33 @@ ProjectTails/src/Sprite.cpp.s:
 	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.s
 .PHONY : ProjectTails/src/Sprite.cpp.s
 
+ProjectTails/src/Tests.o: ProjectTails/src/Tests.cpp.o
+
+.PHONY : ProjectTails/src/Tests.o
+
+# target to build an object file
+ProjectTails/src/Tests.cpp.o:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o
+.PHONY : ProjectTails/src/Tests.cpp.o
+
+ProjectTails/src/Tests.i: ProjectTails/src/Tests.cpp.i
+
+.PHONY : ProjectTails/src/Tests.i
+
+# target to preprocess a source file
+ProjectTails/src/Tests.cpp.i:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.i
+.PHONY : ProjectTails/src/Tests.cpp.i
+
+ProjectTails/src/Tests.s: ProjectTails/src/Tests.cpp.s
+
+.PHONY : ProjectTails/src/Tests.s
+
+# target to generate assembly for a file
+ProjectTails/src/Tests.cpp.s:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.s
+.PHONY : ProjectTails/src/Tests.cpp.s
+
 ProjectTails/src/Text.o: ProjectTails/src/Text.cpp.o
 
 .PHONY : ProjectTails/src/Text.o
@@ -662,6 +743,33 @@ ProjectTails/src/Timer.s: ProjectTails/src/Timer.cpp.s
 ProjectTails/src/Timer.cpp.s:
 	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.s
 .PHONY : ProjectTails/src/Timer.cpp.s
+
+ProjectTails/src/Version.o: ProjectTails/src/Version.cpp.o
+
+.PHONY : ProjectTails/src/Version.o
+
+# target to build an object file
+ProjectTails/src/Version.cpp.o:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.o
+.PHONY : ProjectTails/src/Version.cpp.o
+
+ProjectTails/src/Version.i: ProjectTails/src/Version.cpp.i
+
+.PHONY : ProjectTails/src/Version.i
+
+# target to preprocess a source file
+ProjectTails/src/Version.cpp.i:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.i
+.PHONY : ProjectTails/src/Version.cpp.i
+
+ProjectTails/src/Version.s: ProjectTails/src/Version.cpp.s
+
+.PHONY : ProjectTails/src/Version.s
+
+# target to generate assembly for a file
+ProjectTails/src/Version.cpp.s:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.s
+.PHONY : ProjectTails/src/Version.cpp.s
 
 ProjectTails/src/effectManager.o: ProjectTails/src/effectManager.cpp.o
 
@@ -759,6 +867,9 @@ help:
 	@echo "... ProjectTails/src/Animation.o"
 	@echo "... ProjectTails/src/Animation.i"
 	@echo "... ProjectTails/src/Animation.s"
+	@echo "... ProjectTails/src/BlockEditor.o"
+	@echo "... ProjectTails/src/BlockEditor.i"
+	@echo "... ProjectTails/src/BlockEditor.s"
 	@echo "... ProjectTails/src/Camera.o"
 	@echo "... ProjectTails/src/Camera.i"
 	@echo "... ProjectTails/src/Camera.s"
@@ -780,6 +891,9 @@ help:
 	@echo "... ProjectTails/src/Ground.o"
 	@echo "... ProjectTails/src/Ground.i"
 	@echo "... ProjectTails/src/Ground.s"
+	@echo "... ProjectTails/src/Hitbox.o"
+	@echo "... ProjectTails/src/Hitbox.i"
+	@echo "... ProjectTails/src/Hitbox.s"
 	@echo "... ProjectTails/src/InputComponent.o"
 	@echo "... ProjectTails/src/InputComponent.i"
 	@echo "... ProjectTails/src/InputComponent.s"
@@ -804,6 +918,9 @@ help:
 	@echo "... ProjectTails/src/Sprite.o"
 	@echo "... ProjectTails/src/Sprite.i"
 	@echo "... ProjectTails/src/Sprite.s"
+	@echo "... ProjectTails/src/Tests.o"
+	@echo "... ProjectTails/src/Tests.i"
+	@echo "... ProjectTails/src/Tests.s"
 	@echo "... ProjectTails/src/Text.o"
 	@echo "... ProjectTails/src/Text.i"
 	@echo "... ProjectTails/src/Text.s"
@@ -813,6 +930,9 @@ help:
 	@echo "... ProjectTails/src/Timer.o"
 	@echo "... ProjectTails/src/Timer.i"
 	@echo "... ProjectTails/src/Timer.s"
+	@echo "... ProjectTails/src/Version.o"
+	@echo "... ProjectTails/src/Version.i"
+	@echo "... ProjectTails/src/Version.s"
 	@echo "... ProjectTails/src/effectManager.o"
 	@echo "... ProjectTails/src/effectManager.i"
 	@echo "... ProjectTails/src/effectManager.s"
