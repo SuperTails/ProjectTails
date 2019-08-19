@@ -11,11 +11,13 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Act.cpp.o
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
  ../ProjectTails/include/Ground.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/Player.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Text.h
  ../ProjectTails/include/Timer.h
@@ -130,11 +132,13 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/BlockEditor.cpp.o
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
  ../ProjectTails/include/Ground.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/InputComponent.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Text.h
  ../ProjectTails/include/Timer.h
@@ -193,11 +197,13 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Camera.cpp.o
  ../ProjectTails/include/EntityTypes.h
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/Player.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Timer.h
  ../ProjectTails/include/prhsGameLib.h
@@ -263,10 +269,12 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/DataReader.cpp.o
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
  ../ProjectTails/include/Ground.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Timer.h
  ../ProjectTails/include/Typedefs.h
@@ -325,11 +333,13 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/EntityTypes.cpp.o
  ../ProjectTails/include/EntityTypes.h
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/Player.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Timer.h
  ../ProjectTails/include/prhsGameLib.h
@@ -435,10 +445,12 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Ground.cpp.o
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
  ../ProjectTails/include/Ground.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Timer.h
  ../ProjectTails/include/Typedefs.h
@@ -551,12 +563,14 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/LevelEditor.cpp.o
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
  ../ProjectTails/include/Ground.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/InputComponent.h
  ../ProjectTails/include/LevelEditor.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Text.h
  ../ProjectTails/include/Timer.h
@@ -617,11 +631,13 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Miscellaneous.cpp.o
  ../ProjectTails/include/EntityTypes.h
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/InputComponent.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Text.h
  ../ProjectTails/include/Timer.h
@@ -679,11 +695,13 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/PhysicsEntity.cpp.o
  ../ProjectTails/include/EntityTypes.h
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/Player.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Timer.h
  ../ProjectTails/include/prhsGameLib.h
@@ -742,12 +760,14 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Player.cpp.o
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
  ../ProjectTails/include/Ground.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/InputComponent.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/Player.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Timer.h
  ../ProjectTails/include/Typedefs.h
@@ -811,6 +831,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
  ../ProjectTails/include/Ground.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/InputComponent.h
  ../ProjectTails/include/LevelEditor.h
  ../ProjectTails/include/Miscellaneous.h
@@ -818,6 +839,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o
  ../ProjectTails/include/Player.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/SoundHandler.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Tests.h
@@ -978,11 +1000,13 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o
  ../ProjectTails/include/Functions.h
  ../ProjectTails/include/FunctionsImpl.h
  ../ProjectTails/include/Ground.h
+ ../ProjectTails/include/Hitbox.h
  ../ProjectTails/include/Miscellaneous.h
  ../ProjectTails/include/PhysicsEntity.h
  ../ProjectTails/include/Player.h
  ../ProjectTails/include/SDL_image.h
  ../ProjectTails/include/SDL_mixer.h
+ ../ProjectTails/include/Shapes.h
  ../ProjectTails/include/Sprite.h
  ../ProjectTails/include/Tests.h
  ../ProjectTails/include/Timer.h

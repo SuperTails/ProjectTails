@@ -197,6 +197,8 @@ Functions.h
 ../ProjectTails/include/Functions.h
 Animation.h
 ../ProjectTails/include/Animation.h
+Hitbox.h
+../ProjectTails/include/Hitbox.h
 vector
 -
 string
