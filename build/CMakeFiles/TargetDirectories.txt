@@ -1,3 +1,0 @@
-/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles/rebuild_cache.dir
-/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles/ProjectTails.dir
-/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles/edit_cache.dir

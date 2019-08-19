@@ -1,4 +1,0 @@
-[  3%] Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/Act.cpp.o
-CMakeFiles/ProjectTails.dir/build.make:62: recipe for target 'CMakeFiles/ProjectTails.dir/ProjectTails/Act.cpp.o' failed
-CMakeFiles/Makefile2:67: recipe for target 'CMakeFiles/ProjectTails.dir/all' failed
-Makefile:83: recipe for target 'all' failed
