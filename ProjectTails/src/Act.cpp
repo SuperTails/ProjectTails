@@ -35,31 +35,32 @@ Act::Act(const std::string& path) {
 	loadVersion(DataFile, (hasVersion ? version : Version{ 0, 0, 0 }));
 }
 
-Act::Act(const int& num, const std::string& name1, const std::vector< PhysStruct >& ent, const SDL_Rect& w, const ActType& a, double screenRatio, const SDL_Point& levelSize, const std::vector< std::vector< Animation > >& backgnd, std::vector< Ground >& ground) :
+Act::Act(const int& num, const std::string& name1, const std::vector< PhysicsEntity >& ent, const SDL_Rect& w, const ActType& a, double screenRatio, const SDL_Point& levelSize, const std::vector< std::vector< Animation > >& backgnd, std::vector< Ground >& ground) :
 	solidTiles(levelSize.x, std::vector< Ground >(levelSize.y, Ground())),
 	number(num),
 	name(name1),
 	aType(a),
-	background(backgnd),
-	phys_paths(ent.begin(), ent.end())
+	background(backgnd)
 {
 	for (const auto& block : ground) {
 		const SDL_Point pos = block.getPosition();
 		solidTiles[pos.x][pos.y] = block;
 	}
-	
+
+	for (const auto& entity : ent) {
+		entities.push_back(std::make_unique< PhysicsEntity >(entity));
+	}
 }
 
 Act::Act(const Act& act) :
 	number(act.number),
 	name(act.name),
-	phys_paths(act.phys_paths),
 	solidTiles(act.solidTiles),
 	background(act.background),
 	blockPrefix(act.blockPrefix),
 	backgroundFolder(act.backgroundFolder),
-	aType(act.aType) {
-
+	aType(act.aType)
+{
 	for (const auto& entity : act.entities) {
 		entities.push_back(std::make_unique< PhysicsEntity >(*entity));
 	}
@@ -67,9 +68,6 @@ Act::Act(const Act& act) :
 
 //Unload offscreen entities and update onscreen ones
 void Act::updateEntities(Player& player, Camera& cam) {
-	unloadEntities(cam);
-	loadNewEntities(cam);
-
 	// Update entities
 	std::vector< bool > toDestroy(entities.size(), false);
 	std::vector< std::unique_ptr < PhysicsEntity > > toAdd;
@@ -119,21 +117,32 @@ void Act::loadVersion(std::ifstream& DataFile, Version version) {
 
 	// Entity reading
 	while (DataFile >> std::ws, DataFile.peek() != 'E'){
-		std::cout << "Reading entity\n";
-		PhysStruct current;
-		DataFile >> current.position.x >> current.position.y;
-		current.position.w = current.position.h = 16;
-		DataFile >> current.typeId;
+		std::cout << "Reading entity, pos: ";
+
+		SDL_Rect pos{ 0, 0, 16, 16 };
+		DataFile >> pos.x >> pos.y; 
+		std::cout << "{ " << std::setw(5) << pos.x << ", " << std::setw(5) << pos.y << "}, id: ";
+
+		std::string typeId;
+		DataFile >> typeId;
+		std::cout << std::setw(15) << typeId << ", flags: ";
+
+		std::vector< char > flags;
 		for (char flag = DataFile.get(); flag != '\n' && flag != '\r'; flag = DataFile.get()) {
 			if (flag != ' ') {
-				current.flags.push_back(flag);
+				flags.push_back(flag);
+				std::cout << flag;
 			}
 		}
+
+		std::cout << "\n";
+
 		using namespace entity_property_data;
-		if (current.flags.size() != requiredFlagCount(getEntityTypeData(current.typeId).behaviorKey)) {
+		if (flags.size() != requiredFlagCount(getEntityTypeData(typeId).behaviorKey)) {
 			throw std::logic_error("Invalid flag count for entity!");
 		}
-		phys_paths.push_back(current);
+
+		entities.push_back(std::make_unique< PhysicsEntity >(typeId, flags, pos, false));
 	}
 	DataFile.get();
 
@@ -189,8 +198,12 @@ void Act::save(std::ostream& stream) const {
 	stream << name << "\n";
 
 	// Save entities
-	for (auto& entity : phys_paths) {
-		stream << entity.position.x << " " << entity.position.y << " " << entity.typeId << "\n";
+	for (auto& entity : entities) {
+		stream << entity->position.x << " " << entity->position.y << " " << entity->getKey();
+		for (char c : entity->getFlags()) {
+			stream << " " << c;
+		}
+		stream << "\n";
 	}
 
 	// Terminate the list of entities
@@ -309,52 +322,6 @@ void Act::renderBlockLayer(const Camera& cam, int layer) const {
 			if (block.getIndex() != Ground::NO_TILE) {
 				block.Render(cam, nullptr, layer);
 			}
-		}
-	}
-}
-
-void Act::loadNewEntities(const Camera& cam) {
-	const SDL_Rect cameraView = (cam.getCollisionRect());
-	for (auto load = phys_paths.begin(); load != phys_paths.end(); ) {
-		SDL_Rect position = load->position;
-		position.w = std::max(position.w, 16);
-		position.h = std::max(position.h, 16);
-		if (SDL_HasIntersection(&position, &cameraView)) {
-			std::cout << "Loading " << load->typeId << " at position " << load->position.x << " " << load->position.y << "\n";
-			entities.emplace_back(std::make_unique< PhysicsEntity >(*load));
-			entities.back()->shouldSave = true;
-			load = phys_paths.erase(load);
-		}
-		else {
-			++load;
-		}
-	}
-}
-
-void Act::unloadAllEntities() {
-	for (auto& entity : entities) {
-		if (entity->shouldSave) {
-			phys_paths.push_back(entity->toPhysStruct());
-		}
-	}
-	entities.clear();
-}
-
-void Act::unloadEntities(const Camera& cam) {
-	const SDL_Rect cameraView = (cam.getCollisionRect()) + SDL_Rect{ -50, -50, 100, 100 };
-	for (auto i = entities.begin(); i != entities.end(); ) {
-		SDL_Rect position = (*i)->getPosition();
-		position.w = std::max({ 16, position.w, (*i)->getCollisionRect().w });
-		position.h = std::max({ 16, position.h, (*i)->getCollisionRect().h });
-		if (!SDL_HasIntersection(&position, &cameraView)) {
-			if ((*i)->shouldSave) {
-				phys_paths.push_back((*i)->toPhysStruct());
-			}
-			std::cout << "Unloading " << (*i)->getKey() << " at position " << position.x << " " << position.y << "\n";
-			i = entities.erase(i);
-		}
-		else {
-			++i;
 		}
 	}
 }

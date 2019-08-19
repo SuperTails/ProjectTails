@@ -26,7 +26,7 @@ public:
 
 	Act(const std::string& path);
 
-	Act(const int& num, const std::string& name1, const std::vector < PhysStruct >& ent, const SDL_Rect& w, const ActType& a, double screenRatio, const SDL_Point& levelSize, const std::vector < std::vector < Animation > >& backgnd, std::vector < Ground >& ground);
+	Act(const int& num, const std::string& name1, const std::vector < PhysicsEntity >& ent, const SDL_Rect& w, const ActType& a, double screenRatio, const SDL_Point& levelSize, const std::vector < std::vector < Animation > >& backgnd, std::vector < Ground >& ground);
 
 	Act(const Act& act);
 
@@ -46,12 +46,13 @@ public:
 
 	const std::vector< std::vector< Ground > >& getGround() const { return solidTiles; };
 
-	std::unique_ptr< PhysicsEntity >& getLoadedEntity(int index) { return entities[index]; };
-	std::vector< std::unique_ptr < PhysicsEntity > >& getLoadedEntities() { return entities; };
+	std::vector< std::unique_ptr < PhysicsEntity > >& getEntities() { return entities; };
 
-	std::vector< PhysStruct >& getEntities() { return phys_paths; };
+	const std::vector< std::unique_ptr < PhysicsEntity > >& getEntities() const { return entities; };
 
-	const std::vector< PhysStruct >& getEntities() const { return phys_paths; };
+	void setEntities(std::vector< std::unique_ptr< PhysicsEntity > >&& newList) {
+		entities = std::move(newList);
+	};
 
 	ActType getType() { return aType; };
 
@@ -62,8 +63,6 @@ public:
 	const std::string& getBackgroundFolder() const { return backgroundFolder; };
 
 	void save(std::ostream& stream) const;
-
-	void unloadAllEntities();
 
 private:
 	typedef std::vector< std::unique_ptr< PhysicsEntity > > entityList;
@@ -76,7 +75,6 @@ private:
 
 	int number = 0; //Which zone it is, title screen = 0.
 	std::string name{}; //The zone's name
-	entityLoadList phys_paths{}; //Data for initializing the physics objects
 	entityList entities{}; //Array for the generic physics objects
 	std::vector< std::vector < Ground > > solidTiles{}; //Array for ground
 	std::vector< std::vector < Animation > > background{};
@@ -87,9 +85,6 @@ private:
 	ActType aType;
 
 	void renderBlockLayer(const Camera& cam, int layer) const;
-
-	void loadNewEntities(const Camera& cam);
-	void unloadEntities(const Camera& cam);
 };
 
 std::istream& operator>> (std::istream& stream, Act::ActType& type);

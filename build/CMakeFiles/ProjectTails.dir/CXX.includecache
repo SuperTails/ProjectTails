@@ -167,6 +167,8 @@ Typedefs.h
 ../ProjectTails/include/Typedefs.h
 Act.h
 ../ProjectTails/include/Act.h
+Shapes.h
+../ProjectTails/include/Shapes.h
 fstream
 -
 string

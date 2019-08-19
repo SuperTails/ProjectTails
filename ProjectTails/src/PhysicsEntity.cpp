@@ -48,34 +48,35 @@ PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
 	previousPosition = arg.previousPosition;
 };
 
-PhysicsEntity::PhysicsEntity(const PhysStruct& p) :
+PhysicsEntity::PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > f, SDL_Rect pos, bool temporary) :
 	invis(false),
-	shouldSave(!p.temporary),
+	shouldSave(!temporary),
 	canCollide(true),
 	destroyAfterLoop(false),
-	flags(p.flags),
+	flags(f),
 	posError{ 0.0, 0.0 },
-	dataKey(p.typeId),
+	dataKey(typeId),
 	velocity(entity_property_data::getEntityTypeData(dataKey).defaultVelocity),
 	gravity(entity_property_data::getEntityTypeData(dataKey).defaultGravity),
 	collisionRect(entity_property_data::getEntityTypeData(dataKey).collisionRect),
-	customData(createCustomData(p))
+	customData(createCustomData(dataKey, f))
 {
 	const auto& entityTypeData = entity_property_data::getEntityTypeData(dataKey);
-	for (const auto& animData : entityTypeData.animationTypes) {
-		animations.emplace_back(std::make_unique< Animation >(animData));
+	for (const auto& data : entityTypeData.animationTypes) {
+		animations.push_back(std::make_unique< Animation >(data));
 		animations.back()->stop();
 	}
-	
+
 	if (!animations.empty()) {
 		currentAnim.push_back(0);
 	}
 
-	for (auto index : currentAnim) {
+	for (std::size_t index : currentAnim) {
 		animations[index]->start();
 	}
 
-	position = { p.position.x, p.position.y };
+	position.x = pos.x;
+	position.y = pos.y;
 	previousPosition = position;
 }
 
@@ -211,19 +212,24 @@ void PhysicsEntity::setGravity(double g) {
 	gravity = g;
 }
 
+/*
+ * TODO: Figure out what this is
 entity_property_data::CustomData PhysicsEntity::createCustomData(const PhysStruct& physStruct) {
 	using namespace entity_property_data;
 	Key entityDataKey = getEntityTypeData(physStruct.typeId).behaviorKey;
 	return entity_property_data::createCustomFromKey(entityDataKey, physStruct.flags);
 }
+*/
+
+entity_property_data::CustomData PhysicsEntity::createCustomData(const std::string& typeId, const std::vector< char >& flags) {
+	using namespace entity_property_data;
+	Key entityDataKey = getEntityTypeData(typeId).behaviorKey;
+	return createCustomFromKey(entityDataKey, flags);
+}
 
 //Returns direction of THIS entity relative to objCollide
 SDL_Point PhysicsEntity::calcRectDirection(SDL_Rect& objCollide) {
 	return ::calcRectDirection(getCollisionRect(), objCollide);
-}
-
-PhysStruct PhysicsEntity::toPhysStruct() const {
-	return PhysStruct{ getKey(), getFlags(), getPosition(), shouldSave };
 }
 
 void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept {

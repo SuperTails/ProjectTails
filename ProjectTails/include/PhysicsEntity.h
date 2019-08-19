@@ -3,6 +3,7 @@
 #include "EntityTypes.h"
 #include "Functions.h"
 #include "Animation.h"
+#include "Hitbox.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -11,7 +12,7 @@
 struct AnimStruct;
 class Animation;
 
-struct doublePoint {
+struct [[deprecated("Use Point or Vector2")]] doublePoint {
 	double x;
 	double y;
 	doublePoint(const std::pair< int, int >& point) : x(point.first), y(point.second) {};
@@ -20,13 +21,6 @@ struct doublePoint {
 	doublePoint(const doublePoint&) = default;
 	doublePoint(doublePoint&&) = default;
 	doublePoint& operator= (const doublePoint&) = default;
-};
-
-struct PhysStruct {
-	entity_property_data::EntityTypeId typeId;
-	std::vector< char > flags;
-	SDL_Rect position;
-	bool temporary;
 };
 
 class Player;
@@ -42,9 +36,9 @@ public:
 	typedef std::vector < std::unique_ptr < PhysicsEntity > >::iterator entityListIter;
 	
 	PhysicsEntity();
-	PhysicsEntity(const PhysStruct& p);
 	PhysicsEntity(const PhysicsEntity& arg);
 	PhysicsEntity(PhysicsEntity&& other);
+	PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > flags, SDL_Rect position, bool temporary);
 	PhysicsEntity(SDL_Point pos, bool multi, SDL_Point tileSize = { 16, 16 });
 	virtual ~PhysicsEntity() = default;
 
@@ -88,6 +82,7 @@ public:
 	void customInit();
 
 	const std::vector< char >& getFlags() const { return flags; };
+	void setFlags(const std::vector< char >& f) { flags = f; };
 
 	doublePoint getVelocity() const { return velocity; };
 
@@ -103,8 +98,6 @@ public:
 
 	SDL_Point calcRectDirection(SDL_Rect& objCollide);
 
-	PhysStruct toPhysStruct() const;
-
 	friend void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept;
 
 	static SDL_Rect getRelativePos(const SDL_Rect& objPos, const SDL_Rect& camPos);
@@ -117,14 +110,19 @@ public:
 
 	std::vector< std::size_t > currentAnim; 
 	
-	static entity_property_data::CustomData createCustomData(const PhysStruct& physStruct);
+	// TODO: What is this again?
+	// static entity_property_data::CustomData createCustomData(const PhysStruct& physStruct);
+	
+	entity_property_data::CustomData createCustomData(const std::string& typeId, const std::vector< char >& flags);
+
 private:
 	bool destroyAfterLoop;
 
 protected:
+	SDL_Rect collisionRect;
+
 	entity_property_data::CustomData customData;
 	std::vector < std::unique_ptr < Animation > > animations;
-	SDL_Rect collisionRect{ 0, 0, 0, 0 };
 	std::vector< char > flags;
 	bool invis = false;
 	double gravity = 0.0;

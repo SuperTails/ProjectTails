@@ -16,8 +16,7 @@ bool LevelEditor::levelEditing(false);
 }*/
 
 LevelEditor::LevelEditor(Act act, Camera* camera) : 
-	level((act.unloadAllEntities(), act)),
-	currentEntity{ level.getEntities().end() },
+	currentEntity(act.getEntities().end()),
 	cam{ camera },
 	sky{ ASSET"Sky.png" } {
 
@@ -73,17 +72,19 @@ void LevelEditor::renderEntities() const {
 	const auto& levelEntities = level.getEntities();
 
 	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 255, 0, SDL_ALPHA_OPAQUE);
-	for (const PhysStruct& i : levelEntities) {
-		entityView.find(i.typeId)->second.Render(getXY(i.position) - cam->getPosition(), 0, NULL, cam->scale);
-		const auto requiredFlags = entity_property_data::requiredFlagCount(entity_property_data::getEntityTypeData(i.typeId).behaviorKey);
-		if (i.flags.size() != requiredFlags) {
-			const auto dst = (SDL_Rect{ i.position.x, i.position.y, 16, 16 } - cam->getPosition()) * cam->scale;
+	for (const std::unique_ptr< PhysicsEntity >& i : levelEntities) {
+		entityView.find(i->getKey())->second.Render(SDL_Point{ i->position.x, i->position.y } - cam->getPosition(), 0, NULL, cam->scale);
+		const auto requiredFlags = entity_property_data::requiredFlagCount(entity_property_data::getEntityTypeData(i->getKey()).behaviorKey);
+		if (i->getFlags().size() != requiredFlags) {
+			const auto dst = (SDL_Rect{ i->position.x, i->position.y, 16, 16 } - cam->getPosition()) * cam->scale;
 			SDL_RenderDrawRect(globalObjects::renderer, &dst);
 		}
 	}
-	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 0, (SDL_ALPHA_OPAQUE + SDL_ALPHA_TRANSPARENT) / 2);
 	if (currentEntity != levelEntities.end()) {
-		const SDL_Rect dst = (currentEntity->position - cam->getPosition()) * cam->scale;
+		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 0, (SDL_ALPHA_OPAQUE + SDL_ALPHA_TRANSPARENT) / 2);
+		auto temp = (*currentEntity)->position;
+		SDL_Rect pos{ temp.x, temp.y, 16, 16 };
+		const SDL_Rect dst = (pos - cam->getPosition()) * cam->scale;
 		SDL_RenderDrawRect(globalObjects::renderer, &dst);
 	}
 }
@@ -99,11 +100,11 @@ void LevelEditor::renderText() const {
 	t.setText("Mode: " + to_string(mode) + " Size: " + to_string(levelBlocks.size()) + " " + to_string(levelBlocks[0].size()));
 	t.Render(SDL_Point { 25, 25 });
 	if (mode == ENTITY && currentEntity != levelEntities.end()) {
-		const auto typeId = currentEntity->typeId;
+		const auto typeId = (*currentEntity)->getKey();
 		const auto requiredFlags = entity_property_data::requiredFlagCount(entity_property_data::getEntityTypeData(typeId).behaviorKey);
 		const auto currentString = [&]() -> std::string {
 			std::stringstream str;
-			std::copy(currentEntity->flags.begin(), currentEntity->flags.end(), std::ostream_iterator< char >(str, " "));
+			std::copy((*currentEntity)->getFlags().begin(), (*currentEntity)->getFlags().end(), std::ostream_iterator< char >(str, " "));
 			return str.str();
 		}();
 		flagsText.StringToText(std::to_string(requiredFlags) + "\nCURRENT: " + currentString);
@@ -179,8 +180,8 @@ bool LevelEditor::handleInput() {
 			entityYError += thisMove;
 		}
 
-		currentEntity->position.x += static_cast< int >(entityXError);
-		currentEntity->position.y += static_cast< int >(entityYError);
+		(*currentEntity)->position.x += static_cast< int >(entityXError);
+		(*currentEntity)->position.y += static_cast< int >(entityYError);
 
 		entityXError -= static_cast< int >(entityXError);
 		entityYError -= static_cast< int >(entityYError);
@@ -254,7 +255,8 @@ bool LevelEditor::handleInput() {
 		else if (lClick || rClick) {
 			const SDL_Rect mousePos{ mouse.x, mouse.y, 16, 16 };
 			currentEntity = std::find_if(levelEntities.begin(), levelEntities.end(), [&mousePos](const auto& entity) {
-				return SDL_HasIntersection(&entity.position, &mousePos);
+				SDL_Rect temp{ entity->position.x, entity->position.y, 16, 16 };
+				return SDL_HasIntersection(&temp, &mousePos);
 			});
 		}
 	}
@@ -262,7 +264,7 @@ bool LevelEditor::handleInput() {
 	if (mode == ENTITY) {
 		if (globalObjects::input.GetKeyPress(InputComponent::N)) {
 			SDL_Rect newPosition{ mouse.x, mouse.y, 16, 16 };
-			levelEntities.push_back(PhysStruct{ "RING", {}, newPosition, false });
+			levelEntities.push_back(std::make_unique< PhysicsEntity >("RING", std::vector< char >{}, newPosition, false));
 			currentEntity = std::prev(levelEntities.end());
 		}
 		else if(globalObjects::input.GetKeyPress(InputComponent::X) && currentEntity != levelEntities.end()) {
@@ -271,7 +273,7 @@ bool LevelEditor::handleInput() {
 		}
 		if (currentEntity != levelEntities.end()) {
 			const auto& entityTypes = entity_property_data::entityTypes;
-			const auto entityType = entityTypes.find(currentEntity->typeId);
+			const auto entityType = entityTypes.find((*currentEntity)->getKey());
 			assert(entityType != entityTypes.end());
 			if (globalObjects::input.GetKeyPress(InputComponent::LBRACKET)) {
 				/*if (entityType == entityTypes.begin()) {
@@ -282,11 +284,22 @@ bool LevelEditor::handleInput() {
 				}*/
 			}
 			else if (globalObjects::input.GetKeyPress(InputComponent::RBRACKET)) {
+				SDL_Rect pos{ (*currentEntity)->position.x, (*currentEntity)->position.y, 16, 16 };
 				if (std::next(entityType) == entityTypes.end()) {
-					currentEntity->typeId = entityTypes.begin()->first;
+					*currentEntity = std::make_unique< PhysicsEntity >(
+						entityTypes.begin()->first,
+						(*currentEntity)->getFlags(),
+						pos,
+						false
+					);
 				}
 				else {
-					currentEntity->typeId = std::next(entityType)->first;
+					*currentEntity = std::make_unique< PhysicsEntity >(
+						std::next(entityType)->first,
+						(*currentEntity)->getFlags(),
+						pos,
+						false
+					);
 				}
 			}
 			
@@ -296,7 +309,7 @@ bool LevelEditor::handleInput() {
 			std::string current;
 			std::getline(std::cin, current);
 			std::cout << '\n';
-			currentEntity->flags = parseFlags(current);
+			(*currentEntity)->setFlags(parseFlags(current));
 			std::cout << '\n';
 		}
 	}
@@ -368,11 +381,11 @@ std::string LevelEditor::convertToString(int levelNumber, const std::string& lev
 
 	auto& levelEntities = level.getEntities();
 	
-	for (const PhysStruct& i : levelEntities) {
-		current << i.position.x << ' ';
-		current << i.position.y << ' ';
-		current << i.typeId;
-		for (char c : i.flags) {
+	for (const std::unique_ptr< PhysicsEntity >& i : levelEntities) {
+		current << i->position.x << ' ';
+		current << i->position.y << ' ';
+		current << i->getKey();
+		for (char c : i->getFlags()) {
 			current << ' ' << c;
 		}
 		current << '\n';

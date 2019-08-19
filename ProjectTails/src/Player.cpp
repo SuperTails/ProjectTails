@@ -73,7 +73,7 @@ void Player::takeDamage(EntityManager& manager, int enemyCenterX) {
 	if (!damageCountdown.isTiming()) {
 		for (int i = 0; i < std::min(rings, 32); ++i) {
 			const auto& ringProperties = entity_property_data::getEntityTypeData("RING");
-			auto temp = std::make_unique<PhysicsEntity>(PhysStruct{ "RING", {}, { position.x, position.y, 16, 16 }, true });
+			auto temp = std::make_unique<PhysicsEntity>( "RING", std::vector< char >{}, SDL_Rect{ position.x, position.y, 16, 16 }, true);
 			const int speed = ((i >= 16) ? 2 : 4);
 			const int dir = ((i % 2 == 0) ? -1 : 1);
 			const double angle = 101.25 + 22.5 * ((i % 16) / 2);

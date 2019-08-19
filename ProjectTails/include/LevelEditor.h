@@ -3,6 +3,7 @@
 #include "Text.h"
 #include "Typedefs.h"
 #include "Act.h"
+#include "Shapes.h"
 #include <fstream>
 #include <string>
 #include <SDL.h>
@@ -10,7 +11,6 @@
 #include <experimental/filesystem>
 
 class Ground;
-class PhysStruct;
 
 class LevelEditor {
 public:
@@ -28,7 +28,7 @@ public:
 	// Maps entity key to image for rendering
 	std::unordered_map< std::string, Animation > entityView;
 
-	std::vector< PhysStruct >::iterator currentEntity;
+	std::vector< std::unique_ptr< PhysicsEntity > >::iterator currentEntity;
 
 	editMode mode = editMode::TILE;
 

@@ -142,8 +142,7 @@ void BeeBadnik::update(PhysicsEntity& parent, EntityManager& manager, const Play
 			newPos.x += 30;
 			newPos.y += 25;
 
-			PhysStruct temp{ "BEEPROJECTILE", {}, newPos, true };
-			auto entity = std::make_unique< PhysicsEntity >(temp);
+			auto entity = std::make_unique< PhysicsEntity >("BEEPROJECTILE", std::vector< char >{}, newPos, true);
 			entity->setVelocity({ -2.0, 2.0 });
 			manager.AddEntity(std::move(entity));
 		}
