@@ -57,6 +57,8 @@ SDL.h
 ../ProjectTails/include/SDL.h
 Miscellaneous.h
 ../ProjectTails/include/Miscellaneous.h
+Shapes.h
+../ProjectTails/include/Shapes.h
 
 ../ProjectTails/include/CollisionTile.h
 array
@@ -107,6 +109,8 @@ functional
 -
 Timer.h
 ../ProjectTails/include/Timer.h
+Shapes.h
+../ProjectTails/include/Shapes.h
 
 ../ProjectTails/include/Functions.h
 SDL.h
