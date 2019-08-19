@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Camera.h"
 #include "Timer.h"
 #include "Player.h"

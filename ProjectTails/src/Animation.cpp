@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Animation.h"
 #include "Functions.h"
 #include "Constants.h"

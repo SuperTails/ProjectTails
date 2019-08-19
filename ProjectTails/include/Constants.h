@@ -5,7 +5,7 @@
 #include "Animation.h"
 #define WINDOW_HORIZONTAL_SIZE 1024
 #define WINDOW_VERTICAL_SIZE 512
-#define ASSET "/home/super-tails/Documents/ProjectTails/asset/"
+#define ASSET "/home/super-tails/Documents/Stuff/ProjectTails/asset/"
 #define BADNIK ASSET"Badnik/"
 #define TAILS_PATH ASSET"Tails/"
 

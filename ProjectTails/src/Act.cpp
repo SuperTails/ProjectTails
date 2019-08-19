@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Act.h"
 
 //std::vector < PhysProp > Act::props = std::vector < PhysProp >();

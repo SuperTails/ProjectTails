@@ -3,7 +3,7 @@ project(ProjectTails)
 
 include_directories(ProjectTails ~/Documents/SDL2_image-2.0.1 ~/Documents/SDL2_mixer-2.0.1)
 
-file(GLOB SOURCES "ProjectTails/*.cpp")
+file(GLOB SOURCES "ProjectTails/src/*.cpp")
 
 add_executable(ProjectTails ${SOURCES})
 
@@ -19,7 +19,7 @@ find_package (SDL2)
 find_package (SDL2_image)
 find_package (SDL2_mixer)
 
-include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_MIXER_INCLUDE_DIRS})
+include_directories(${ProjectTails_SOURCE_DIR}/ProjectTails/include ${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_MIXER_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} stdc++fs)
 
 set (CMAKE_BUILD_TYPE Debug)
