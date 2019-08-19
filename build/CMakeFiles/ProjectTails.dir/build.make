@@ -465,9 +465,33 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o.provides: CMakeF
 CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o.provides.build: CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o
 
 
+CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
+CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o: ../ProjectTails/src/Shapes.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Shapes.cpp
+
+CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Shapes.cpp > CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.i
+
+CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Shapes.cpp -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.s
+
+CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o.requires:
+
+.PHONY : CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o.requires
+
+CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o.provides: CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o.requires
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o.provides.build
+.PHONY : CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o.provides
+
+CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o.provides.build: CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o
+
+
 CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o: ../ProjectTails/src/SoundHandler.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/SoundHandler.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.i: cmake_force
@@ -491,7 +515,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o.provides.build: 
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o: ../ProjectTails/src/Sprite.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Sprite.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.i: cmake_force
@@ -515,7 +539,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o.provides.build: CMakeF
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o: ../ProjectTails/src/Tests.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Tests.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.i: cmake_force
@@ -539,7 +563,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o.provides.build: CMakeFi
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Text.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Text.cpp.o: ../ProjectTails/src/Text.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Text.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Text.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Text.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Text.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Text.cpp.i: cmake_force
@@ -563,7 +587,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Text.cpp.o.provides.build: CMakeFil
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/TextureManager.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/TextureManager.cpp.o: ../ProjectTails/src/TextureManager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/TextureManager.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/TextureManager.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/TextureManager.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/TextureManager.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/TextureManager.cpp.i: cmake_force
@@ -587,7 +611,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/TextureManager.cpp.o.provides.build
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.o: ../ProjectTails/src/Timer.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Timer.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.i: cmake_force
@@ -611,7 +635,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Timer.cpp.o.provides.build: CMakeFi
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.o: ../ProjectTails/src/Version.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/Version.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.i: cmake_force
@@ -635,7 +659,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/Version.cpp.o.provides.build: CMake
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/effectManager.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/effectManager.cpp.o: ../ProjectTails/src/effectManager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/effectManager.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/effectManager.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/effectManager.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/effectManager.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/effectManager.cpp.i: cmake_force
@@ -659,7 +683,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/effectManager.cpp.o.provides.build:
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/prhsGameLib.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/prhsGameLib.cpp.o: ../ProjectTails/src/prhsGameLib.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/prhsGameLib.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/prhsGameLib.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/prhsGameLib.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/prhsGameLib.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/prhsGameLib.cpp.i: cmake_force
@@ -683,7 +707,7 @@ CMakeFiles/ProjectTails.dir/ProjectTails/src/prhsGameLib.cpp.o.provides.build: C
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/stdafx.cpp.o: CMakeFiles/ProjectTails.dir/flags.make
 CMakeFiles/ProjectTails.dir/ProjectTails/src/stdafx.cpp.o: ../ProjectTails/src/stdafx.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/stdafx.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object CMakeFiles/ProjectTails.dir/ProjectTails/src/stdafx.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/ProjectTails.dir/ProjectTails/src/stdafx.cpp.o -c /home/super-tails/Documents/Stuff/ProjectTails/ProjectTails/src/stdafx.cpp
 
 CMakeFiles/ProjectTails.dir/ProjectTails/src/stdafx.cpp.i: cmake_force
@@ -724,6 +748,7 @@ ProjectTails_OBJECTS = \
 "CMakeFiles/ProjectTails.dir/ProjectTails/src/PhysicsEntity.cpp.o" \
 "CMakeFiles/ProjectTails.dir/ProjectTails/src/Player.cpp.o" \
 "CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o" \
+"CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o" \
 "CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o" \
 "CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o" \
 "CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o" \
@@ -755,6 +780,7 @@ ProjectTails: CMakeFiles/ProjectTails.dir/ProjectTails/src/Miscellaneous.cpp.o
 ProjectTails: CMakeFiles/ProjectTails.dir/ProjectTails/src/PhysicsEntity.cpp.o
 ProjectTails: CMakeFiles/ProjectTails.dir/ProjectTails/src/Player.cpp.o
 ProjectTails: CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o
+ProjectTails: CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o
 ProjectTails: CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o
 ProjectTails: CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o
 ProjectTails: CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o
@@ -769,7 +795,7 @@ ProjectTails: CMakeFiles/ProjectTails.dir/build.make
 ProjectTails: /usr/lib/x86_64-linux-gnu/libSDL2_image.so
 ProjectTails: /usr/local/lib/libSDL2_mixer.so
 ProjectTails: CMakeFiles/ProjectTails.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Linking CXX executable ProjectTails"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/super-tails/Documents/Stuff/ProjectTails/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Linking CXX executable ProjectTails"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/ProjectTails.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -794,6 +820,7 @@ CMakeFiles/ProjectTails.dir/requires: CMakeFiles/ProjectTails.dir/ProjectTails/s
 CMakeFiles/ProjectTails.dir/requires: CMakeFiles/ProjectTails.dir/ProjectTails/src/PhysicsEntity.cpp.o.requires
 CMakeFiles/ProjectTails.dir/requires: CMakeFiles/ProjectTails.dir/ProjectTails/src/Player.cpp.o.requires
 CMakeFiles/ProjectTails.dir/requires: CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o.requires
+CMakeFiles/ProjectTails.dir/requires: CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o.requires
 CMakeFiles/ProjectTails.dir/requires: CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o.requires
 CMakeFiles/ProjectTails.dir/requires: CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o.requires
 CMakeFiles/ProjectTails.dir/requires: CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o.requires

@@ -582,6 +582,33 @@ ProjectTails/src/ProjectTails.cpp.s:
 	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.s
 .PHONY : ProjectTails/src/ProjectTails.cpp.s
 
+ProjectTails/src/Shapes.o: ProjectTails/src/Shapes.cpp.o
+
+.PHONY : ProjectTails/src/Shapes.o
+
+# target to build an object file
+ProjectTails/src/Shapes.cpp.o:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o
+.PHONY : ProjectTails/src/Shapes.cpp.o
+
+ProjectTails/src/Shapes.i: ProjectTails/src/Shapes.cpp.i
+
+.PHONY : ProjectTails/src/Shapes.i
+
+# target to preprocess a source file
+ProjectTails/src/Shapes.cpp.i:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.i
+.PHONY : ProjectTails/src/Shapes.cpp.i
+
+ProjectTails/src/Shapes.s: ProjectTails/src/Shapes.cpp.s
+
+.PHONY : ProjectTails/src/Shapes.s
+
+# target to generate assembly for a file
+ProjectTails/src/Shapes.cpp.s:
+	$(MAKE) -f CMakeFiles/ProjectTails.dir/build.make CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.s
+.PHONY : ProjectTails/src/Shapes.cpp.s
+
 ProjectTails/src/SoundHandler.o: ProjectTails/src/SoundHandler.cpp.o
 
 .PHONY : ProjectTails/src/SoundHandler.o
@@ -912,6 +939,9 @@ help:
 	@echo "... ProjectTails/src/ProjectTails.o"
 	@echo "... ProjectTails/src/ProjectTails.i"
 	@echo "... ProjectTails/src/ProjectTails.s"
+	@echo "... ProjectTails/src/Shapes.o"
+	@echo "... ProjectTails/src/Shapes.i"
+	@echo "... ProjectTails/src/Shapes.s"
 	@echo "... ProjectTails/src/SoundHandler.o"
 	@echo "... ProjectTails/src/SoundHandler.i"
 	@echo "... ProjectTails/src/SoundHandler.s"

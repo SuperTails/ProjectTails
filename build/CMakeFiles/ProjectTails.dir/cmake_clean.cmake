@@ -16,6 +16,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/ProjectTails.dir/ProjectTails/src/PhysicsEntity.cpp.o"
   "CMakeFiles/ProjectTails.dir/ProjectTails/src/Player.cpp.o"
   "CMakeFiles/ProjectTails.dir/ProjectTails/src/ProjectTails.cpp.o"
+  "CMakeFiles/ProjectTails.dir/ProjectTails/src/Shapes.cpp.o"
   "CMakeFiles/ProjectTails.dir/ProjectTails/src/SoundHandler.cpp.o"
   "CMakeFiles/ProjectTails.dir/ProjectTails/src/Sprite.cpp.o"
   "CMakeFiles/ProjectTails.dir/ProjectTails/src/Tests.cpp.o"
