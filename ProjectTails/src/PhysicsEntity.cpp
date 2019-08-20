@@ -118,6 +118,9 @@ void PhysicsEntity::AddAnim(const Args&... args) {
 void PhysicsEntity::Render(const Camera& camera) {
 	renderWithDefault(*this, camera);
 	if (globalObjects::debug) {
+		SDL_Rect dest = SDL_Rect{ int(position.x - camera.position.x), int(position.y - camera.position.y), 2, 2 } * camera.scale;
+		SDL_SetRenderDrawColor(globalObjects::renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+		SDL_RenderFillRect(globalObjects::renderer, &dest);
 		hitbox.render(camera, position);
 	}
 }

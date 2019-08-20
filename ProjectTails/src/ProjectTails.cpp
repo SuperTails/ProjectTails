@@ -182,8 +182,7 @@ int main(const int argc, const char* const argv[] ) {
 	 
 	cam.position = { 0, 0 };
 
-	using namespace std::literals::string_literals;
-	background = DataReader::LoadBackground(ASSET + "EmeraldHillZone/Background/"s);
+	background = DataReader::LoadBackground(ASSET"EmeraldHillZone/Background/");
 	
 	SoundHandler::init();
 	while (globalObjects::gameState == 0) {

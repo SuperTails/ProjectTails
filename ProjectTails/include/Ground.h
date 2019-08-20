@@ -27,7 +27,7 @@ public:
 	static bool showCollision;
 
 	// SDL_FLIP_HORIZONTAL and SDL_FLIP_VERTICAL are the first two flags
-	enum class Flags { TOP_SOLID = 0b0100, };
+	enum class Flags { TOP_SOLID = (1 << 2) };
 	
 	struct Tile {
 		int index;

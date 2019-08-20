@@ -691,8 +691,10 @@ void Player::collideGround(const std::vector < std::vector < Ground > >& tiles, 
 		if (floor) {
 			angle = std::get< double >(*floor);
 
+			double temp1;
+
 			const auto playerRadius = rotate90(static_cast< int >(collideMode), SDL_Point{ 0, yRadius });
-			Point fracPart = { std::fmod(position.x, 1.0), std::fmod(position.y, 1.0) };
+			Point fracPart = { std::modf(position.x, &temp1), std::modf(position.y, &temp1) };
 			SDL_Point temp = std::get< SDL_Point >(*floor) - playerRadius;
 			position = { double(temp.x), double(temp.y) };
 			position += fracPart;
@@ -723,7 +725,8 @@ void Player::collideCeilings(const std::vector< std::vector< Ground > >& tiles) 
 		const auto playerRadius = rotate90(static_cast< int >(collideMode), SDL_Point{ 0, topDistance });
 		const auto newPosition = point + playerRadius;
 		if (SensorResult{{ SDL_Point{ int(position.x), int(position.y) }, angle, direction }} < newPosition) {
-			position = Point{ double(newPosition.x), double(newPosition.y) } + (position - Point{ std::fmod(position.x, 1.0), std::fmod(position.y, 1.0) });
+			double temp;
+			position = Point{ double(newPosition.x), double(newPosition.y) } + (position - Point{ std::modf(position.x, &temp), std::modf(position.y, &temp) });
 			restrictVelocityDirection(velocity, { 0, 1 }, static_cast< int >(collideMode));
 		}
 	}
@@ -761,13 +764,15 @@ void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, con
 	const auto playerRightEdge = rotate90(static_cast< int >(collideMode), static_cast< SDL_Point >(position) + SDL_Point{  10, 0 }, static_cast< SDL_Point >(position));
 	const auto playerLeftEdge  = rotate90(static_cast< int >(collideMode), static_cast< SDL_Point >(position) + SDL_Point{ -10, 0 }, static_cast< SDL_Point >(position));
 
+	double temp;
+
 	//Push the player out of walls
 	if (rWall && !(rWall < playerRightEdge)) {
-		position = static_cast< Point >(std::get<0>(*rWall) - rWallRadius) + Point{ std::fmod(position.x, 1.0), std::fmod(position.y, 1.0) };
+		position = static_cast< Point >(std::get<0>(*rWall) - rWallRadius) + Point{ std::modf(position.x, &temp), std::modf(position.y, &temp) };
 		restrictVelocityDirection(velocity, { -1, 0 }, static_cast< int >(collideMode));
 	}
 	if (lWall && !(lWall < playerLeftEdge)) {
-		position = static_cast< Point >(std::get<0>(*lWall) - lWallRadius) + Point{ std::fmod(position.x, 1.0), std::fmod(position.y, 1.0) };
+		position = static_cast< Point >(std::get<0>(*lWall) - lWallRadius) + Point{ std::modf(position.x, &temp), std::modf(position.y, &temp) };
 		restrictVelocityDirection(velocity, {  1, 0 }, static_cast< int >(collideMode));
 	}
 }
@@ -1059,7 +1064,10 @@ void Player::render(const Camera& cam) {
 	}
 
 	if (globalObjects::debug) {
-		hitbox.render(cam, Point{ double(position.x), double(position.y) });
+		SDL_Rect dest = SDL_Rect{ int(position.x - cam.position.x), int(position.y - cam.position.y), 2, 2 } * cam.scale;
+		SDL_SetRenderDrawColor(globalObjects::renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+		SDL_RenderFillRect(globalObjects::renderer, &dest);
+		hitbox.render(cam, position);
 	}
 }
 
