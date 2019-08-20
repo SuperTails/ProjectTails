@@ -36,7 +36,7 @@ Player::Player() {
 	}
 
 	position = { 20, 0 };
-	collisionRect = { 0, 19, 120, 30 };
+	hitbox = HitboxForm(Rect{ 0, 19, 120, 30 });
 
 	customData = NoCustomData{};
 }
@@ -48,7 +48,7 @@ void Player::setActType(unsigned char aType) {
 		gravity = 0;
 	}
 	else if (actType == 2) {
-		collisionRect = { 0, 0, 36, 31 };
+		hitbox = HitboxForm(Rect{ 0, 0, 36, 31 });
 		setAnimation(1);
 		gravity = 0.21875;
 	}
@@ -73,7 +73,7 @@ void Player::takeDamage(EntityManager& manager, int enemyCenterX) {
 	if (!damageCountdown.isTiming()) {
 		for (int i = 0; i < std::min(rings, 32); ++i) {
 			const auto& ringProperties = entity_property_data::getEntityTypeData("RING");
-			auto temp = std::make_unique<PhysicsEntity>( "RING", std::vector< char >{}, SDL_Rect{ position.x, position.y, 16, 16 }, true);
+			auto temp = std::make_unique<PhysicsEntity>( "RING", std::vector< char >{}, position, true);
 			const int speed = ((i >= 16) ? 2 : 4);
 			const int dir = ((i % 2 == 0) ? -1 : 1);
 			const double angle = 101.25 + 22.5 * ((i % 16) / 2);
@@ -115,7 +115,7 @@ void Player::hitEnemy(EntityManager& manager, PhysicsEntity& enemy) {
 		destroyEnemy(manager, enemy);
 	}
 	else {
-		takeDamage(manager, enemy.getCollisionRect().x + enemy.getCollisionRect().y / 2 );
+		takeDamage(manager, enemy.getPosition().x);
 	}
 }
 
@@ -130,7 +130,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 	if (deltaTime.count() == 0) {
 		return;
 	}
-
+	
 	if (onGround) {
 		if (!onGroundPrev) {
 			if (velocity.x == 0 && velocity.y == 0) {
@@ -587,8 +587,8 @@ void Player::setAnimation(std::size_t index) {
 void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, EntityManager& manager) {
 	bool hurt = false;
 	int damageCenter = -1;
-	std::vector < SDL_Rect > platforms;
-	std::vector < SDL_Rect > walls;
+	std::vector < AbsoluteHitbox > platforms;
+	std::vector < AbsoluteHitbox > walls;
 
 	collideCeilings(tiles);
 	const int yRadius = getYRadius();
@@ -598,14 +598,13 @@ void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, Ent
 	if (currentAnim.front() == 5) {
 		offset = animations[currentAnim[1]]->getOffset().value_or(SDL_Point{ 0, 0 });
 	}
-	collisionRect = SDL_Rect{ -xRadius, -offset.y, 2 * xRadius, yRadius + offset.y }; 
-	SDL_Rect playerCollide = getCollisionRect();
+	hitbox = HitboxForm(Rect{ double(-xRadius), double(-offset.y), 2.0 * xRadius, double(yRadius + offset.y) }); 
 
 	for (PhysicsEntity& entity = *collisionQueue.front(); !collisionQueue.empty(); collisionQueue.pop()) {
 		const auto& entityKey = entity.getKey();
 		const auto& entityTypeData = entity_property_data::getEntityTypeData(entityKey);
 
-		SDL_Rect entityCollision = entity.getCollisionRect();
+		AbsoluteHitbox entityCollision = entity.getAbsHitbox();
 
 		SDL_Point entityCenter;
 
@@ -653,7 +652,7 @@ void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, Ent
 }*/
 
 //Returns height of A, height of B, and angle
-void Player::collideGround(const std::vector < std::vector < Ground > >& tiles, std::vector < SDL_Rect >& platforms, std::vector < SDL_Rect >& walls) {
+void Player::collideGround(const std::vector < std::vector < Ground > >& tiles, std::vector < AbsoluteHitbox >& platforms, std::vector < AbsoluteHitbox >& walls) {
 	onGroundPrev = onGround;
 	const int xRadius = getXRadius();
 	const int yRadius = getYRadius();
@@ -670,7 +669,8 @@ void Player::collideGround(const std::vector < std::vector < Ground > >& tiles, 
 
 	// Check platform sensors
 	if (collideMode == GROUND && velocity.y >= 0.0) {
-		for (const SDL_Rect& entityCollision : platforms) {
+		for (const AbsoluteHitbox& entityCol: platforms) {
+			Rect entityCollision = entityCol.box.getBox();
 			const int entityRadius = entityCollision.w / 2;
 			const int entityTop = entityCollision.y + 1;
 			const int entityCenter = entityCollision.x + entityRadius;
@@ -682,7 +682,7 @@ void Player::collideGround(const std::vector < std::vector < Ground > >& tiles, 
 				continue;
 			}
 			else {
-				floor = std::max(floor, SensorResult{{ { position.x, entityTop }, 0.0, Side::TOP }});
+				floor = std::max(floor, SensorResult{{ { int(position.x), entityTop }, 0.0, Side::TOP }});
 			}
 		}
 	}
@@ -692,7 +692,10 @@ void Player::collideGround(const std::vector < std::vector < Ground > >& tiles, 
 			angle = std::get< double >(*floor);
 
 			const auto playerRadius = rotate90(static_cast< int >(collideMode), SDL_Point{ 0, yRadius });
-			position = std::get< SDL_Point >(*floor) - playerRadius;
+			Point fracPart = { std::fmod(position.x, 1.0), std::fmod(position.y, 1.0) };
+			SDL_Point temp = std::get< SDL_Point >(*floor) - playerRadius;
+			position = { double(temp.x), double(temp.y) };
+			position += fracPart;
 		}
 		else {
 			onGround = false;
@@ -716,17 +719,17 @@ void Player::collideCeilings(const std::vector< std::vector< Ground > >& tiles) 
 	//Push the player out of ceilings
 	if (const auto ceiling = std::max(checkSensor(Sensor::C, tiles), checkSensor(Sensor::D, tiles))) {
 		const auto [point, angle, direction] = *ceiling;
-		const int topDistance = position.y - getCollisionRect().y;
+		const int topDistance = position.y - getAbsHitbox().box.getBox().y;
 		const auto playerRadius = rotate90(static_cast< int >(collideMode), SDL_Point{ 0, topDistance });
 		const auto newPosition = point + playerRadius;
-		if (SensorResult{{ position, angle, direction }} < newPosition) {
-			position = newPosition;
+		if (SensorResult{{ SDL_Point{ int(position.x), int(position.y) }, angle, direction }} < newPosition) {
+			position = Point{ double(newPosition.x), double(newPosition.y) } + (position - Point{ std::fmod(position.x, 1.0), std::fmod(position.y, 1.0) });
 			restrictVelocityDirection(velocity, { 0, 1 }, static_cast< int >(collideMode));
 		}
 	}
 }
 
-void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, const std::vector< SDL_Rect >& walls) {
+void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls) {
 	//Check for left wall
 	SensorResult lWall = checkSensor(Sensor::E, tiles);
 
@@ -734,18 +737,19 @@ void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, con
 	SensorResult rWall = checkSensor(Sensor::F, tiles);
 
 	if (collideMode == Mode::GROUND) {
-		for (const SDL_Rect& entityCollision : walls) {
+		for (const AbsoluteHitbox& entityCol : walls) {
+			Rect entityCollision = entityCol.box.getBox();
 			if (position.y + getYRadius() < entityCollision.y || position.y + 4 > entityCollision.y + entityCollision.h) {
 				continue;
 			}
 
 			if (position.x < entityCollision.x + entityCollision.w / 2) {
-				const SDL_Point pos{ entityCollision.x, position.y };
+				const SDL_Point pos{ int(entityCollision.x), int(position.y) };
 				const auto entityWall = SensorResult{{ pos, 32.0, Side::LEFT }};
 				rWall = std::max(rWall, entityWall);
 			}
 			else {
-				const SDL_Point pos{ entityCollision.x + entityCollision.w, position.y };
+				const SDL_Point pos{ int(entityCollision.x + entityCollision.w), int(position.y) };
 				const auto entityWall = SensorResult{{ pos, 192.0, Side::RIGHT }};
 				lWall = std::max(lWall, entityWall);
 			}
@@ -754,21 +758,21 @@ void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, con
 
 	const auto rWallRadius = rotate90(static_cast< int >(collideMode), SDL_Point{  10, 0 });
 	const auto lWallRadius = rotate90(static_cast< int >(collideMode), SDL_Point{ -10, 0 });
-	const auto playerRightEdge = rotate90(static_cast< int >(collideMode), SDL_Point{ position.x + 10, position.y }, position);
-	const auto playerLeftEdge  = rotate90(static_cast< int >(collideMode), SDL_Point{ position.x - 10, position.y }, position);
+	const auto playerRightEdge = rotate90(static_cast< int >(collideMode), static_cast< SDL_Point >(position) + SDL_Point{  10, 0 }, static_cast< SDL_Point >(position));
+	const auto playerLeftEdge  = rotate90(static_cast< int >(collideMode), static_cast< SDL_Point >(position) + SDL_Point{ -10, 0 }, static_cast< SDL_Point >(position));
 
 	//Push the player out of walls
 	if (rWall && !(rWall < playerRightEdge)) {
-		position = std::get<0>(*rWall) - rWallRadius;
+		position = static_cast< Point >(std::get<0>(*rWall) - rWallRadius) + Point{ std::fmod(position.x, 1.0), std::fmod(position.y, 1.0) };
 		restrictVelocityDirection(velocity, { -1, 0 }, static_cast< int >(collideMode));
 	}
 	if (lWall && !(lWall < playerLeftEdge)) {
-		position = std::get<0>(*lWall) - lWallRadius;
+		position = static_cast< Point >(std::get<0>(*lWall) - lWallRadius) + Point{ std::fmod(position.x, 1.0), std::fmod(position.y, 1.0) };
 		restrictVelocityDirection(velocity, {  1, 0 }, static_cast< int >(collideMode));
 	}
 }
 
-Player::SensorResult Player::checkSensor(const SDL_Point& position, const SDL_Point& radii, const doublePoint& velocity, Mode mode, Sensor sensor, bool path, const std::vector < std::vector < Ground > >& tiles) {
+Player::SensorResult Player::checkSensor(const SDL_Point& position, const SDL_Point& radii, const Vector2& velocity, Mode mode, Sensor sensor, bool path, const std::vector < std::vector < Ground > >& tiles) {
 	const auto [xRange, yRange, iterOp] = getRange(position, radii, mode, sensor);
 	
 	const auto [xStart, xEnd] = xRange;
@@ -961,11 +965,11 @@ std::tuple< std::pair< int, int >, std::pair< int, int >, Player::Direction > Pl
 }
 
 std::tuple< std::pair< int, int >, std::pair< int, int >, Player::Direction > Player::getRange(Sensor sensor) const {
-	return getRange({ position.x, position.y }, { getXRadius(), getYRadius() }, collideMode, sensor);
+	return getRange(static_cast< SDL_Point >(position), { getXRadius(), getYRadius() }, collideMode, sensor);
 }
 
 Player::SensorResult Player::checkSensor(Player::Sensor sensor, const std::vector < std::vector < Ground > >& tiles) const {
-	return checkSensor({ position.x, position.y }, { getXRadius(), getYRadius() }, velocity, collideMode, sensor, path, tiles);
+	return checkSensor(static_cast< SDL_Point >(position), { getXRadius(), getYRadius() }, velocity, collideMode, sensor, path, tiles);
 }
 
 std::optional< SDL_Point > Player::getSensorPoint(Player::Sensor sensor, const std::vector< std::vector< Ground > >& tiles) const {
@@ -1028,7 +1032,7 @@ void Player::render(const Camera& cam) {
 		using namespace animation_effects;
 		AnimationEffectList effects;
 		if (index == 5) {
-			SDL_Point tailPos = pos;
+			SDL_Point tailPos(pos);
 			SDL_Point tailCenter = { 0, 0 };
 			SDL_RendererFlip tailFlip;
 			int tailRot = 360-90;
@@ -1050,18 +1054,17 @@ void Player::render(const Camera& cam) {
 		}
 		else {
 			effects.emplace_back(Rotation{ { 0, 0 }, rot });
-			animations[index]->Render(pos, 0, nullptr, cam.scale, flip, effects);
+			animations[index]->Render(static_cast< SDL_Point >(pos), 0, nullptr, cam.scale, flip, effects);
 		}
 	}
 
 	if (globalObjects::debug) {
-		const SDL_Rect collision = (getCollisionRect() - cam.getPosition()) * cam.scale;
-		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-		SDL_RenderDrawRect(globalObjects::renderer, &collision);
+		hitbox.render(cam, Point{ double(position.x), double(position.y) });
 	}
 }
 
-SDL_Rect Player::getCollisionRect() const {
+// TODO: Reimplement this functionality
+/*SDL_Rect Player::getCollisionRect() const {
 	switch (collideMode) {
 	case GROUND:
 		return { position.x + collisionRect.x, position.y + collisionRect.y, collisionRect.w, collisionRect.h };
@@ -1072,7 +1075,7 @@ SDL_Rect Player::getCollisionRect() const {
 	case RIGHT_WALL:
 		return { position.x + collisionRect.y, position.y - collisionRect.x - collisionRect.w, collisionRect.h, collisionRect.w };
 	}
-}
+}*/
 
 void Player::setActCleared(bool b)
 {
@@ -1102,8 +1105,7 @@ int Player::lookDirection() const {
 
 void Player::destroyEnemy(EntityManager& manager, PhysicsEntity& entity) {
 	entity.destroy();
-	SDL_Point entityCenter = getXY(entity.getCollisionRect()) + (SDL_Point{ entity.getCollisionRect().w, entity.getCollisionRect().h } / 2);
-	if (position.y > entityCenter.y || velocity.y < 0) {
+	if (position.y > entity.getPosition().y || velocity.y < 0) {
 		velocity.y -= signum(velocity.y);
 	}
 	else if (globalObjects::input.GetKeyState(InputComponent::JUMP)) {
@@ -1188,9 +1190,8 @@ void Player::updateInAir(const InputComponent & input, double thisAccel, double 
 	}
 }
 
-void Player::restrictVelocityDirection(doublePoint& point, SDL_Point dir, int rotation) {
+void Player::restrictVelocityDirection(Vector2& point, SDL_Point dir, int rotation) {
 	const auto velocityDir = rotate90(rotation, dir);
-	doublePoint result;
 	point.x = (velocityDir.x ? (velocityDir.x * std::max(velocityDir.x * point.x, 0.0)) : point.x);
 	point.y = (velocityDir.y ? (velocityDir.y * std::max(velocityDir.y * point.y, 0.0)) : point.y);
 }

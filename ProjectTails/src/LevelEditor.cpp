@@ -62,7 +62,7 @@ void LevelEditor::renderTiles() {
 			}
 		}
 	}
-	const SDL_Point corner = SDL_Point{ 0, 0 } - cam->getPosition();
+	const SDL_Point corner = SDL_Point{ 0, 0 } - SDL_Point{ int(cam->getPosition().x), int(cam->getPosition().y) };
 	const auto boundingRect = SDL_Rect{ corner.x, corner.y, int(levelBlocks.size() * GROUND_PIXEL_WIDTH), int(levelBlocks[0].size() * GROUND_PIXEL_WIDTH)} * cam->scale;
 	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderDrawRect(globalObjects::renderer, &boundingRect);
@@ -73,18 +73,19 @@ void LevelEditor::renderEntities() const {
 
 	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 255, 0, SDL_ALPHA_OPAQUE);
 	for (const std::unique_ptr< PhysicsEntity >& i : levelEntities) {
-		entityView.find(i->getKey())->second.Render(SDL_Point{ i->position.x, i->position.y } - cam->getPosition(), 0, NULL, cam->scale);
+		Point temp = i->position - cam->getPosition();
+		entityView.find(i->getKey())->second.Render(SDL_Point{ int(temp.x), int(temp.y) }, 0, NULL, cam->scale);
 		const auto requiredFlags = entity_property_data::requiredFlagCount(entity_property_data::getEntityTypeData(i->getKey()).behaviorKey);
 		if (i->getFlags().size() != requiredFlags) {
-			const auto dst = (SDL_Rect{ i->position.x, i->position.y, 16, 16 } - cam->getPosition()) * cam->scale;
+			Point temp = i->position - cam->getPosition();
+			const auto dst = SDL_Rect{ int(temp.x), int(temp.y), 16, 16 } * cam->scale;
 			SDL_RenderDrawRect(globalObjects::renderer, &dst);
 		}
 	}
 	if (currentEntity != levelEntities.end()) {
 		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 0, (SDL_ALPHA_OPAQUE + SDL_ALPHA_TRANSPARENT) / 2);
-		auto temp = (*currentEntity)->position;
-		SDL_Rect pos{ temp.x, temp.y, 16, 16 };
-		const SDL_Rect dst = (pos - cam->getPosition()) * cam->scale;
+		auto temp = (*currentEntity)->position - cam->getPosition();
+		const SDL_Rect dst = SDL_Rect{ int(temp.x), int(temp.y), 16, 16 } * cam->scale;
 		SDL_RenderDrawRect(globalObjects::renderer, &dst);
 	}
 }
@@ -121,21 +122,18 @@ void LevelEditor::renderText() const {
 }
 
 bool LevelEditor::handleInput() {
-	static double cameraXError = 0;
-	static double cameraYError = 0;
-	
 	double thisDistance = (Timer::getFrameTime().count() / (1000.0 / 60.0)) * 10 / cam->scale;
 	if (globalObjects::input.GetKeyState(InputComponent::A)) {
-		cameraXError -= thisDistance;
+		cam->position.x -= thisDistance;
 	}
 	else if (globalObjects::input.GetKeyState(InputComponent::D)) {
-		cameraXError += thisDistance;
+		cam->position.x += thisDistance;
 	}
 	if (globalObjects::input.GetKeyState(InputComponent::W)) {
-		cameraYError -= thisDistance;
+		cam->position.y -= thisDistance;
 	}
 	else if (globalObjects::input.GetKeyState(InputComponent::S)) {
-		cameraYError += thisDistance;
+		cam->position.y += thisDistance;
 	}
 
 	if (mode == TILE) {
@@ -146,11 +144,6 @@ bool LevelEditor::handleInput() {
 			cam->scale += 0.1;
 		}
 	}
-
-	cam->position += SDL_Point{ static_cast< int >(cameraXError), static_cast< int >(cameraYError) };
-
-	cameraXError -= static_cast< int >(cameraXError);
-	cameraYError -= static_cast< int >(cameraYError);
 
 	if (globalObjects::input.GetKeyPress(InputComponent::M)) {
 		mode = (mode == TILE) ? ENTITY : TILE;
@@ -190,7 +183,7 @@ bool LevelEditor::handleInput() {
 	//Mouse coordinates are stored as absolute coordinates
 	SDL_Point mouse;
 	Uint32 mouseState = SDL_GetMouseState(&mouse.x, &mouse.y);
-	mouse = (mouse / cam->scale) + cam->getPosition();
+	mouse = (mouse / cam->scale) + SDL_Point{ int(cam->getPosition().x), int(cam->getPosition().y) };
 
 	
 
@@ -255,7 +248,7 @@ bool LevelEditor::handleInput() {
 		else if (lClick || rClick) {
 			const SDL_Rect mousePos{ mouse.x, mouse.y, 16, 16 };
 			currentEntity = std::find_if(levelEntities.begin(), levelEntities.end(), [&mousePos](const auto& entity) {
-				SDL_Rect temp{ entity->position.x, entity->position.y, 16, 16 };
+				SDL_Rect temp{ int(entity->position.x), int(entity->position.y), 16, 16 };
 				return SDL_HasIntersection(&temp, &mousePos);
 			});
 		}
@@ -263,8 +256,7 @@ bool LevelEditor::handleInput() {
 
 	if (mode == ENTITY) {
 		if (globalObjects::input.GetKeyPress(InputComponent::N)) {
-			SDL_Rect newPosition{ mouse.x, mouse.y, 16, 16 };
-			levelEntities.push_back(std::make_unique< PhysicsEntity >("RING", std::vector< char >{}, newPosition, false));
+			levelEntities.push_back(std::make_unique< PhysicsEntity >("RING", std::vector< char >{}, Point(mouse), false));
 			currentEntity = std::prev(levelEntities.end());
 		}
 		else if(globalObjects::input.GetKeyPress(InputComponent::X) && currentEntity != levelEntities.end()) {
@@ -284,12 +276,11 @@ bool LevelEditor::handleInput() {
 				}*/
 			}
 			else if (globalObjects::input.GetKeyPress(InputComponent::RBRACKET)) {
-				SDL_Rect pos{ (*currentEntity)->position.x, (*currentEntity)->position.y, 16, 16 };
 				if (std::next(entityType) == entityTypes.end()) {
 					*currentEntity = std::make_unique< PhysicsEntity >(
 						entityTypes.begin()->first,
 						(*currentEntity)->getFlags(),
-						pos,
+						(*currentEntity)->position,
 						false
 					);
 				}
@@ -297,7 +288,7 @@ bool LevelEditor::handleInput() {
 					*currentEntity = std::make_unique< PhysicsEntity >(
 						std::next(entityType)->first,
 						(*currentEntity)->getFlags(),
-						pos,
+						(*currentEntity)->position,
 						false
 					);
 				}

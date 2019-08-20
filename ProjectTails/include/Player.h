@@ -101,8 +101,6 @@ public:
 
 	Timer getDamageCountdown() const { return damageCountdown; };
 
-	SDL_Rect getCollisionRect() const;
-	
 	bool canDamageEnemy() const;
 	int lookDirection() const;
 
@@ -114,7 +112,7 @@ public:
 
 	void setAnimation(std::size_t index);
 
-	void collideGround(const std::vector < std::vector < Ground > >& tiles, std::vector < SDL_Rect >& platforms, std::vector < SDL_Rect >& walls);
+	void collideGround(const std::vector < std::vector < Ground > >& tiles, std::vector < AbsoluteHitbox >& platforms, std::vector < AbsoluteHitbox >& walls);
 
 	bool addRing(int num = 1);
 	
@@ -130,7 +128,7 @@ public:
 	enum class Sensor { A, B, C, D, E, F };
 	enum class Direction { UP, RIGHT, DOWN, LEFT };
 
-	static SensorResult checkSensor(const SDL_Point& position, const SDL_Point& radii, const doublePoint& velocity, Mode mode, Sensor sensor, bool path, const std::vector < std::vector < Ground > >& tiles);
+	static SensorResult checkSensor(const SDL_Point& position, const SDL_Point& radii, const Vector2& velocity, Mode mode, Sensor sensor, bool path, const std::vector < std::vector < Ground > >& tiles);
 
 	SensorResult checkSensor(Sensor sensor, const std::vector < std::vector < Ground > >& tiles) const;
 
@@ -189,7 +187,7 @@ private:
 
 	void handleCollisions(std::vector < std::vector < Ground > >& tiles, EntityManager& manager);
 
-	void collideWalls(const std::vector< std::vector< Ground > >& tiles, const std::vector< SDL_Rect >& walls);
+	void collideWalls(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls);
 
 	void collideCeilings(const std::vector< std::vector< Ground > >& tiles);
 
@@ -199,7 +197,7 @@ private:
 
 	void updateInAir(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc);
 
-	static void restrictVelocityDirection(doublePoint& point, SDL_Point dir, int rotation);
+	static void restrictVelocityDirection(Vector2& point, SDL_Point dir, int rotation);
 
 	bool getKeyPress(const InputComponent& input, int key) const;
 

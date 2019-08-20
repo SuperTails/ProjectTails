@@ -9,12 +9,13 @@
 #include <unordered_map>
 #include <functional>
 #include "Timer.h"
+#include "Shapes.h"
 
 class Player;
 class PhysicsEntity;
 class EntityManager;
 struct AnimStruct;
-struct doublePoint;
+struct Vector2;
 
 typedef std::vector < char > FlagList;
 
@@ -53,8 +54,6 @@ struct Spring {
 	void update(PhysicsEntity& parent, EntityManager& manager, const Player& player);
 
 	void bounceEntity(const PhysicsEntity& parent, PhysicsEntity& entity);
-
-	SDL_Rect getHitbox(const PhysicsEntity& parent) const;
 
 	void onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player);
 };
@@ -210,7 +209,7 @@ namespace entity_property_data {
 
 	struct EntityType {
 		double defaultGravity = 0.0;
-		std::pair< double, double > defaultVelocity;
+		Vector2 defaultVelocity;
 		bool isHazard;
 		std::vector < AnimStruct > animationTypes;
 		SDL_Rect collisionRect;

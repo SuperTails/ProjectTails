@@ -21,44 +21,38 @@ PhysicsEntity::PhysicsEntity(PhysicsEntity&& other) :
 	PhysicsEntity()
 {
 	swap(*this, other);
-#if _DEBUG
-	std::cout << "PhysicsEntity move constructor was called.\n";
-#endif
 }
 
 PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
 	invis(arg.invis),
-	posError(arg.posError),
 	dataKey(arg.dataKey),
 	velocity(arg.velocity),
 	shouldSave(arg.shouldSave),
 	currentAnim(arg.currentAnim),
-	collisionRect(arg.collisionRect),
 	canCollide(true),
 	destroyAfterLoop(arg.destroyAfterLoop),
 	gravity(arg.gravity),
 	flags(arg.flags),
-	customData(arg.customData)
+	customData(arg.customData),
+	hitbox(arg.hitbox)
 {
 	for (const auto& animation : arg.animations) {
 		AddAnim(*animation);
 	}
 
 	position = arg.position;
-	previousPosition = arg.previousPosition;
 };
 
-PhysicsEntity::PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > f, SDL_Rect pos, bool temporary) :
+PhysicsEntity::PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > f, Point pos, bool temporary) :
 	invis(false),
 	shouldSave(!temporary),
 	canCollide(true),
 	destroyAfterLoop(false),
 	flags(f),
-	posError{ 0.0, 0.0 },
 	dataKey(typeId),
 	velocity(entity_property_data::getEntityTypeData(dataKey).defaultVelocity),
 	gravity(entity_property_data::getEntityTypeData(dataKey).defaultGravity),
-	collisionRect(entity_property_data::getEntityTypeData(dataKey).collisionRect),
+	hitbox(Rect{ entity_property_data::getEntityTypeData(dataKey).collisionRect }),
 	customData(createCustomData(dataKey, f))
 {
 	const auto& entityTypeData = entity_property_data::getEntityTypeData(dataKey);
@@ -77,12 +71,10 @@ PhysicsEntity::PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vec
 
 	position.x = pos.x;
 	position.y = pos.y;
-	previousPosition = position;
 }
 
-PhysicsEntity::PhysicsEntity(SDL_Point pos, bool multi, SDL_Point tileSize) :
+PhysicsEntity::PhysicsEntity(Point pos, bool multi, SDL_Point tileSize) :
 	velocity{ 0.0, 0.0 },
-	posError{ 0.0, 0.0 },
 	currentAnim(0)
 {
 	position = pos;
@@ -93,18 +85,10 @@ PhysicsEntity::PhysicsEntity(SDL_Point pos, bool multi, SDL_Point tileSize) :
 };
  
 void PhysicsEntity::update(Player* player, EntityManager* manager) {
-	previousPosition = position;
-
 	const double frameTime = Timer::getFrameTime().count();
 
-	posError.x += frameTime * velocity.x / (1000.0 / 60.0);
-	posError.y += frameTime * velocity.y / (1000.0 / 60.0);
-
-	position.x += floor(posError.x);
-	position.y += floor(posError.y);
-
-	posError.x -= floor(posError.x);
-	posError.y -= floor(posError.y);
+	position.x += frameTime * velocity.x / (1000.0 / 60.0);
+	position.y += frameTime * velocity.y / (1000.0 / 60.0);
 
 	velocity.y += gravity * frameTime / (1000.0 / 60.0);
 
@@ -134,18 +118,8 @@ void PhysicsEntity::AddAnim(const Args&... args) {
 void PhysicsEntity::Render(const Camera& camera) {
 	renderWithDefault(*this, camera);
 	if (globalObjects::debug) {
-		SDL_Rect collision = (getCollisionRect() - camera.getPosition()) * camera.scale;
-		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-		SDL_RenderDrawRect(globalObjects::renderer, &collision);
+		hitbox.render(camera, position);
 	}
-}
-
-SDL_Rect PhysicsEntity::getRelativePos(const SDL_Rect& p) const {
-	return getRelativePos(getPosition(), p);
-}
-
-SDL_Rect PhysicsEntity::getRelativePos(const SDL_Rect& a, const SDL_Rect& b) {
-	return { a.x - b.x, a.y - b.y, a.w, a.h };
 }
 
 void PhysicsEntity::destroy() {
@@ -159,13 +133,8 @@ void PhysicsEntity::destroy() {
 	}
 }
 
-SDL_Rect PhysicsEntity::getPosition() const {
-	SDL_Point size{ 0, 0 };
-	std::for_each(currentAnim.begin(), currentAnim.end(), [&](auto index) {
-		size.x = std::max({ size.x, animations[index]->GetSize().x, collisionRect.w });	
-		size.y = std::max({ size.y, animations[index]->GetSize().y, collisionRect.h });
-	});
-	return SDL_Rect{ position.x, position.y, size.x, size.y };
+Point PhysicsEntity::getPosition() const {
+	return position;
 }
 
 void PhysicsEntity::setAnim(const std::vector< std::size_t >& a) {
@@ -179,14 +148,10 @@ void PhysicsEntity::setAnim(const std::vector< std::size_t >& a) {
 }
 
 void PhysicsEntity::renderRaw(const Camera& camera) const {
-	const SDL_Point relativePosition = position - camera.getPosition();
+	const Point relativePosition = position - camera.getPosition();
 	for (auto index : currentAnim) {
-		animations[index]->Render(relativePosition, 0, nullptr, camera.scale);
+		animations[index]->Render(SDL_Point{ int(relativePosition.x), int(relativePosition.y) }, 0, nullptr, camera.scale);
 	}
-}
-
-SDL_Rect PhysicsEntity::getCollisionRect() const {
-	return SDL_Rect{ position.x + collisionRect.x, position.y + collisionRect.y, collisionRect.w, collisionRect.h };
 }
 
 const std::string& PhysicsEntity::getKey() const {
@@ -227,15 +192,13 @@ entity_property_data::CustomData PhysicsEntity::createCustomData(const std::stri
 	return createCustomFromKey(entityDataKey, flags);
 }
 
-//Returns direction of THIS entity relative to objCollide
+/*//Returns direction of THIS entity relative to objCollide
 SDL_Point PhysicsEntity::calcRectDirection(SDL_Rect& objCollide) {
 	return ::calcRectDirection(getCollisionRect(), objCollide);
-}
+}*/
 
 void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept {
 	using std::swap;
-
-	swap(static_cast<PRHS_Entity&>(lhs), static_cast<PRHS_Entity&>(rhs));
 
 	swap(lhs.velocity, rhs.velocity);
 	swap(lhs.shouldSave, rhs.shouldSave);
@@ -244,11 +207,10 @@ void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept {
 	swap(lhs.destroyAfterLoop, rhs.destroyAfterLoop);
 	swap(lhs.customData, rhs.customData);
 	swap(lhs.animations, rhs.animations);
-	swap(lhs.collisionRect, rhs.collisionRect);
+	swap(lhs.hitbox, rhs.hitbox);
 	swap(lhs.currentAnim, rhs.currentAnim);
 	swap(lhs.invis, rhs.invis);
 	swap(lhs.gravity, rhs.gravity);
-	swap(lhs.posError, rhs.posError);
 }
 
 SDL_Point getCenterDifference(const SDL_Rect& r1, const SDL_Rect& r2) {

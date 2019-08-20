@@ -37,7 +37,7 @@ Ground::Ground(std::size_t index, SDL_Point pos, bool pFlip) :
 }
 
 void Ground::Render(const Camera& camera, const SDL_Point* position, int layer, bool doFlip) const {
-	const SDL_Point rectPos = (this->position) - camera.getPosition();
+	const SDL_Point rectPos = (this->position) - SDL_Point{ int(camera.getPosition().x), int(camera.getPosition().y) };
 	const SDL_Point pos = (position ? *position : rectPos);
 
 	if (layer == 2) {

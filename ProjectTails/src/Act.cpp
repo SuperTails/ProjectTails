@@ -6,6 +6,7 @@
 #include "Camera.h"
 #include "Constants.h"
 #include "Ground.h"
+#include "Hitbox.h"
 #include <fstream>
 
 enum class Act::ActType : unsigned char { TITLE, TORNADO, NORMAL };
@@ -119,7 +120,7 @@ void Act::loadVersion(std::ifstream& DataFile, Version version) {
 	while (DataFile >> std::ws, DataFile.peek() != 'E'){
 		std::cout << "Reading entity, pos: ";
 
-		SDL_Rect pos{ 0, 0, 16, 16 };
+		Point pos{ 0, 0 };
 		DataFile >> pos.x >> pos.y; 
 		std::cout << "{ " << std::setw(5) << pos.x << ", " << std::setw(5) << pos.y << "}, id: ";
 
@@ -233,17 +234,15 @@ void Act::save(std::ostream& stream) const {
 void Act::updateCollisions(Player& player, std::vector< bool >& toDestroy, std::vector< std::unique_ptr< PhysicsEntity > >& toAdd) {
 	bool hurt = false;
 	for (auto& entity : entities) {
-		const SDL_Rect playerCollide = player.getCollisionRect();
-		const SDL_Rect objCollide = entity->getCollisionRect();
-		if (SDL_HasIntersection(&playerCollide, &objCollide) && entity->canCollide) {
+		if (intersects(player, *entity) && entity->canCollide) {
 			player.addCollision(entity);
 		}
 	}
 }
 
 void Act::renderObjects(Player& player, Camera& cam) {
-	const SDL_Point pos = cam.getPosition();
-	const SDL_Rect cameraView = cam.getCollisionRect();
+	const Point pos = cam.getPosition();
+	const Rect cameraView = cam.getViewArea();
 
 	globalObjects::renderBackground(background, cam);
 
@@ -262,15 +261,15 @@ void Act::renderObjects(Player& player, Camera& cam) {
 	if (globalObjects::debug) {
 		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 		static Text tileText(ASSET"FontGUI.png");
-		SDL_Point start = ((getXY(cameraView) / GROUND_PIXEL_WIDTH) * GROUND_PIXEL_WIDTH);
-		SDL_Point end = ((SDL_Point{ cameraView.x + cameraView.w, cameraView.y + cameraView.h } / GROUND_PIXEL_WIDTH) * GROUND_PIXEL_WIDTH);
+		SDL_Point start = ((SDL_Point{ int(cameraView.x), int(cameraView.y) } / GROUND_PIXEL_WIDTH) * GROUND_PIXEL_WIDTH);
+		SDL_Point end = ((SDL_Point{ int(cameraView.x + cameraView.w), int(cameraView.y + cameraView.h) } / GROUND_PIXEL_WIDTH) * GROUND_PIXEL_WIDTH);
 		start.x = std::max(start.x, 0);
 		start.y = std::max(start.y, 0);
 		end.x = std::min(end.x, int(solidTiles.size() * GROUND_PIXEL_WIDTH));
 		end.y = std::min(end.y, int(solidTiles[0].size() * GROUND_PIXEL_WIDTH));
 		for (int x = start.x; x < solidTiles.size() * GROUND_PIXEL_WIDTH; x += GROUND_PIXEL_WIDTH) {
 			for (int y = start.y; y < solidTiles.size() * GROUND_PIXEL_WIDTH; y += GROUND_PIXEL_WIDTH) {
-				const SDL_Rect position = SDL_Rect{ x - pos.x, y - pos.y, GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH } * 2;
+				const SDL_Rect position = SDL_Rect{ int(x - pos.x), int(y - pos.y), GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH } * 2;
 				SDL_RenderDrawRect(globalObjects::renderer, &position);
 				//tileText.setText(std::to_string(int(solidTiles[x / GROUND_PIXEL_WIDTH][y / GROUND_PIXEL_WIDTH].getIndex())));
 				//tileText.Render(getXY(position));
@@ -295,22 +294,37 @@ void Act::renderObjects(Player& player, Camera& cam) {
 			SDL_SetRenderDrawColor(globalObjects::renderer, i % 2 * 255, (i % 4 >> 1) * 255, (i >> 2) * 255, SDL_ALPHA_OPAQUE);
 
 			if (auto result = player.getSensorPoint(static_cast< Player::Sensor >(i), solidTiles)) {
-				const auto pos = (*result - camPos) / 3 * 2;
+				const auto pos = (*result - SDL_Point{ int(camPos.x), int(camPos.y) }) / 3 * 2;
 				SDL_RenderSetScale(globalObjects::renderer, 3, 3);
 				SDL_RenderDrawPoint(globalObjects::renderer, pos.x, pos.y);
 				SDL_RenderSetScale(globalObjects::renderer, 1, 1);
 			}
 			auto [xRange, yRange, dir] = player.getRange(Player::Sensor(i));
-			auto first = (SDL_Point{ xRange.first, yRange.first } - camPos) * 2;
-			auto second = (SDL_Point{ xRange.second, yRange.second } - camPos) * 2;
+			auto first = (SDL_Point{ xRange.first, yRange.first } - SDL_Point{ int(camPos.x), int(camPos.y) }) * 2;
+			auto second = (SDL_Point{ xRange.second, yRange.second } - SDL_Point{ int(camPos.x), int(camPos.y) }) * 2;
 
 			SDL_RenderDrawLine(globalObjects::renderer, first.x, first.y, second.x, second.y);
 		}
 	}
+
+	if (globalObjects::debug) {
+		for (auto& entity : entities) {
+			if (intersects(player, *entity) && entity->canCollide) {
+				SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 255, SDL_ALPHA_OPAQUE);
+				Rect box = entity->getAbsHitbox().box.getBox();
+				box.x -= cam.getPosition().x;
+				box.y -= cam.getPosition().y;
+				SDL_Rect dest{ int(box.x), int(box.y), int(box.w), int(box.h) };
+				dest *= cam.scale;
+				SDL_RenderFillRect(globalObjects::renderer, &dest);
+			}
+		}
+	}
+
 }
 
 void Act::renderBlockLayer(const Camera& cam, int layer) const {
-	const SDL_Rect cameraView = cam.getCollisionRect();
+	const Rect cameraView = cam.getViewArea();
 
 	const std::size_t leftTile = std::clamp< int >((cameraView.x - GROUND_PIXEL_WIDTH) / GROUND_PIXEL_WIDTH, 0, solidTiles.size() - 1);
 	const std::size_t rightTile = std::clamp< int >((cameraView.x + cameraView.w + GROUND_PIXEL_WIDTH) / GROUND_PIXEL_WIDTH, 0, solidTiles.size() - 1);

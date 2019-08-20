@@ -102,8 +102,8 @@ int main(const int argc, const char* const argv[] ) {
 
 	Player Tails;
 
-	Camera cam = Camera({ -32, -8, int(WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO + 64), int(WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 16) });
-	cam.setOffset({ (int)(-WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO / 2), (int)(-WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 128) });
+	Camera cam = Camera({ -32, -8, double(WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO + 64), double(WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 16) });
+	cam.setOffset({ (double)(-WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO / 2), (double)(-WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 128) });
 
 	//Load entities:
 	cout << "Loading entity data...\n";
@@ -254,7 +254,7 @@ int main(const int argc, const char* const argv[] ) {
 		{
 			SDL_Point mousePos;
 			SDL_GetMouseState(&mousePos.x, &mousePos.y);
-			mousePos = cam.getPosition() + (mousePos * SCREEN_RATIO);
+			mousePos = SDL_Point{ int(cam.getPosition().x), int(cam.getPosition().y) } + (mousePos * SCREEN_RATIO);
 			debugText << "PATH: " << std::boolalpha << Tails.getPath() << "\n";
 			debugText << "MOUSE: " << mousePos.x << " " << mousePos.y << "\n";
 		}

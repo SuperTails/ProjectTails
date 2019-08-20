@@ -67,9 +67,7 @@ void Spring::update(PhysicsEntity& parent, EntityManager& manager, const Player&
 }
 
 void Spring::onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player& player) {
-	SDL_Rect springHitbox = getHitbox(parent);
-	SDL_Rect playerCollide = player.getCollisionRect();
-	if (SDL_HasIntersection(&springHitbox, &playerCollide)) {
+	if (intersects(parent, player)) {
 		player.setOnGround(false);
 		player.setCorkscrew(true);
 		bounceEntity(parent, static_cast< PhysicsEntity& >(player));
@@ -78,7 +76,7 @@ void Spring::onPlayerTouch(PhysicsEntity& parent, EntityManager& manager, Player
 
 void Spring::bounceEntity(const PhysicsEntity& parent, PhysicsEntity& entity) {
 	extendedTime.start();
-	doublePoint vel = entity.getVelocity();
+	Vector2 vel = entity.getVelocity();
 	if (static_cast<int>(direction) & static_cast<int>(Direction::LEFT)) {
 		vel.x = -10.0;
 	}
@@ -92,12 +90,6 @@ void Spring::bounceEntity(const PhysicsEntity& parent, PhysicsEntity& entity) {
 		vel.y = 10.0;
 	}
 	entity.setVelocity(vel);
-}
-
-SDL_Rect Spring::getHitbox(const PhysicsEntity& parent) const {
-	const SDL_Rect position = parent.getPosition();
-	const int rot = (__builtin_ctz(static_cast<int>(direction)) + 1) % 4;
-	return rotate90(rot, SDL_Rect{ position.x + 1, position.y, position.w - 2, 1 }, { position.x + position.w / 2 });
 }
 
 BeeBadnik::BeeBadnik(const FlagList& list) :
@@ -120,7 +112,7 @@ void BeeBadnik::update(PhysicsEntity& parent, EntityManager& manager, const Play
 
 	if (!timeUntilMove.isTiming()) {
 		// Flying animation
-		const SDL_Rect playerPosition = player.getPosition();
+		const Point playerPosition = player.getPosition();
 		parent.velocity.x = -2.0;
 		parent.setAnim({ 0 });
 		if (playerPosition.x != parent.getPosition().x) {
@@ -138,9 +130,9 @@ void BeeBadnik::update(PhysicsEntity& parent, EntityManager& manager, const Play
 		if (timeUntilMove.timeRemaining().count() < 30.0 && !hasFired) {
 			hasFired = true;
 
-			SDL_Rect newPos = parent.getPosition();
-			newPos.x += 30;
-			newPos.y += 25;
+			Point newPos = parent.getPosition();
+			newPos.x += 30.0;
+			newPos.y += 25.0;
 
 			auto entity = std::make_unique< PhysicsEntity >("BEEPROJECTILE", std::vector< char >{}, newPos, true);
 			entity->setVelocity({ -2.0, 2.0 });
@@ -211,7 +203,7 @@ void Bridge::onPlayerTouch(PhysicsEntity &parent, EntityManager &manager, Player
 
 void Bridge::update(PhysicsEntity& parent, EntityManager& manager, const Player& player) {
 	bool playerIsOnPlatform = player.getPosition().y - parent.getPosition().y <= 21;
-	parent.setCollisionRect({ 0, 0, int(bridgeWidth * 16), 16 });
+	parent.setHitbox(HitboxForm(Rect{ 0.0, 0.0, bridgeWidth * 16.0, 16.0 }));
 	if (playerIsOnPlatform) {
 		//Smooth on/off timer
 		transition = std::min(1.0, transition + (Timer::getFrameTime().count() / (1000.0 / 60.0)) / 30);
@@ -219,7 +211,7 @@ void Bridge::update(PhysicsEntity& parent, EntityManager& manager, const Player&
 		//Player index
 		int playerPosition = (player.getPosition().x - parent.getPosition().x) / 16.0;
 
-		parent.setCollisionRect({ std::min(std::max(playerPosition * 16, 0), (int(bridgeWidth) - 1) * 16), 0, 16, 16 });
+		parent.setHitbox(Rect{ std::min(std::max(playerPosition * 16.0, 0.0), (bridgeWidth - 1.0) * 16.0), 0.0, 16.0, 16.0 });
 
 		const auto playerIndex = std::min< std::size_t>(playerPosition, bridgeWidth - 1.0);
 
@@ -242,11 +234,12 @@ void Bridge::update(PhysicsEntity& parent, EntityManager& manager, const Player&
 		for (int i = playerPosition + 1; i < bridgeWidth; ++i) {
 			segmentOffsets[i] = transition * maxDepression * sin(M_PI / 2 * (bridgeWidth - i) / (bridgeWidth - playerPosition));
 		}
-		if (playerPosition < segmentOffsets.size()) {
+		// TODO: Figure out what this did
+		/*if (playerPosition < segmentOffsets.size()) {
 			SDL_Rect oldCollision = parent.getCollisionRect();
 			oldCollision.y = segmentOffsets[playerPosition];
 			parent.setCollisionRect(oldCollision);
-		}
+		}*/
 	}
 	else {
 		transition = std::max(0.0, transition - (Timer::getFrameTime().count() / (1000.0 / 60.0)) / 120);
@@ -257,14 +250,14 @@ void Bridge::update(PhysicsEntity& parent, EntityManager& manager, const Player&
 }
 
 void Bridge::render(const PhysicsEntity& parent, const Camera& camera) const {
-	SDL_Rect relativePos = parent.getPosition() - camera.getPosition();
+	Point relativePos = parent.getPosition() - camera.getPosition();
 	int xStart = relativePos.x;
 	int yStart = relativePos.y;
 	for (std::size_t segment = 0; segment < bridgeWidth; ++segment) {
 		relativePos.x = xStart + 16 * segment;
 		relativePos.y = yStart + segmentOffsets[segment];
 		for (auto index : parent.currentAnim) {
-			parent.getAnim(index)->Render(getXY(relativePos), 0, NULL, camera.scale);
+			parent.getAnim(index)->Render(SDL_Point{ int(relativePos.x), int(relativePos.y) }, 0, NULL, camera.scale);
 		}
 	}
 }

@@ -11,22 +11,11 @@
 
 struct AnimStruct;
 class Animation;
-
-struct [[deprecated("Use Point or Vector2")]] doublePoint {
-	double x;
-	double y;
-	doublePoint(const std::pair< int, int >& point) : x(point.first), y(point.second) {};
-	doublePoint(double x_, double y_) : x{ x_ }, y{ y_ } {};
-	doublePoint() = default;
-	doublePoint(const doublePoint&) = default;
-	doublePoint(doublePoint&&) = default;
-	doublePoint& operator= (const doublePoint&) = default;
-};
-
 class Player;
+class Camera;
 struct EntityManager;
 
-class PhysicsEntity : public PRHS_Entity
+class PhysicsEntity
 {
 	std::string dataKey;
 
@@ -38,8 +27,8 @@ public:
 	PhysicsEntity();
 	PhysicsEntity(const PhysicsEntity& arg);
 	PhysicsEntity(PhysicsEntity&& other);
-	PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > flags, SDL_Rect position, bool temporary);
-	PhysicsEntity(SDL_Point pos, bool multi, SDL_Point tileSize = { 16, 16 });
+	PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > flags, Point position, bool temporary);
+	PhysicsEntity(Point pos, bool multi, SDL_Point tileSize = { 16, 16 });
 	virtual ~PhysicsEntity() = default;
 
 	void update(Player* player = nullptr, EntityManager* manager = nullptr);
@@ -58,15 +47,17 @@ public:
 
 	SDL_Rect getRelativePos(const SDL_Rect& p) const;
 
-	SDL_Rect getCollisionRect() const;
-
 	const std::string& getKey() const;
 
 	std::size_t numAnims() { return animations.size(); };
 
-	void setCollisionRect(SDL_Rect rect) { collisionRect = rect; };
+	void setVelocity(Vector2 vel) { velocity = vel; };
 
-	void setVelocity(doublePoint vel) { velocity = vel; };
+	void setHitbox(HitboxForm box) { hitbox = box; };
+
+	HitboxForm getHitbox() const { return hitbox; };
+
+	AbsoluteHitbox getAbsHitbox() const { return AbsoluteHitbox(getHitbox(), getPosition()); };
 
 	void setGravity(double g);
 
@@ -84,25 +75,23 @@ public:
 	const std::vector< char >& getFlags() const { return flags; };
 	void setFlags(const std::vector< char >& f) { flags = f; };
 
-	doublePoint getVelocity() const { return velocity; };
+	Vector2 getVelocity() const { return velocity; };
 
 	bool isInvisible() { return invis; };
 
-	SDL_Rect getPosition() const;
-
-	doublePoint& getPosError() { return posError; };
+	Point getPosition() const;
 
 	void setAnim(const std::vector< std::size_t >& a);
 
 	void renderRaw(const Camera& camera) const;
 
-	SDL_Point calcRectDirection(SDL_Rect& objCollide);
+	//SDL_Point calcRectDirection(SDL_Rect& objCollide);
 
 	friend void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept;
 
 	static SDL_Rect getRelativePos(const SDL_Rect& objPos, const SDL_Rect& camPos);
 
-	doublePoint velocity;
+	Vector2 velocity;
 	bool shouldSave;
 	bool canCollide;
 
@@ -115,18 +104,19 @@ public:
 	
 	entity_property_data::CustomData createCustomData(const std::string& typeId, const std::vector< char >& flags);
 
+	Point position;
+
 private:
 	bool destroyAfterLoop;
 
 protected:
-	SDL_Rect collisionRect;
+	HitboxForm hitbox;
 
 	entity_property_data::CustomData customData;
 	std::vector < std::unique_ptr < Animation > > animations;
 	std::vector< char > flags;
 	bool invis = false;
 	double gravity = 0.0;
-	doublePoint posError = { 0.0, 0.0 };
 };
 
 struct EntityManager {

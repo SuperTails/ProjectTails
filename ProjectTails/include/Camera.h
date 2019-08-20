@@ -3,23 +3,27 @@
 #include "Constants.h"
 #include "SDL.h"
 #include "Miscellaneous.h"
+#include "Shapes.h"
+
 class Camera : public PhysicsEntity
 {
 public:
-	Camera(const SDL_Rect& collision);
+	Camera(const Rect& view);
 	~Camera();
 
-	void setOffset(SDL_Point pos) { offset = pos; };
-	SDL_Point getOffset() const { return offset; };
+	void setOffset(Vector2 pos) { offset = pos; };
+	Vector2 getOffset() const { return offset; };
 	void updatePos(const Player& player);
-	SDL_Point getPosition() const;
-	SDL_Rect getCollisionRect() const;
+	Point getPosition() const;
+	
+	Rect getViewArea() const;
 
 	double scale;
 
 private:
+	Rect viewWindow;
 
-	SDL_Point offset; //The position of the camera relative to the player (usually negative)
+	Vector2 offset; //The position of the camera relative to the player (usually negative)
 	double frameCount;
 	double currentLookOffset;
 };
