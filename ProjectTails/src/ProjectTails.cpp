@@ -19,7 +19,6 @@
 #include "SoundHandler.h"
 #include "effectManager.h"
 #include "CollisionTile.h"
-#include "Tests.h"
 #include "BlockEditor.h"
 #include <gtest/gtest.h>
 #include <unordered_map>
@@ -119,10 +118,14 @@ int main(int argc, char **argv ) {
 
 	std::vector< std::vector < Animation > > background;
 
-	Ground::setCollisionList(DataReader::LoadCollisionsFromImage(ASSET"SolidGraph.png"));
+	CollisionTile::loadFromImage(ASSET"SolidGraph.png");
 	
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> Reworked collision tiles
 	SDL_SetRenderDrawColor(globalObjects::renderer, 0, 0, 0, 0);
 
 	Act currentAct{ ASSET"Act1Data.txt" };
@@ -212,6 +215,8 @@ int main(int argc, char **argv ) {
 	Timer::updateFrameTime();
 
 	auto fpsCounterStart = Timer::getTime();
+
+	CollisionTile::test();
 
 	while (true) {
 		SoundHandler::updateMusic();

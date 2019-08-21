@@ -2,6 +2,7 @@
 #include "Ground.h"
 #include "Sprite.h"
 #include "Text.h"
+#include "CollisionTile.h"
 #include <array>
 
 class Layer;
@@ -13,9 +14,9 @@ class BlockEditor {
 public:
 	void render(const Camera& camera);
 
-	Ground::Tile& tileAt(Ground::Layer& layer, SDL_Point pos) const;
+	CollisionTile& tileAt(Ground::Layer& layer, SDL_Point pos) const;
 
-	const Ground::Tile& tileAt(const Ground::Layer& layer, SDL_Point pos) const;
+	const CollisionTile& tileAt(const Ground::Layer& layer, SDL_Point pos) const;
 
 	void update(const Camera& camera);
 
@@ -47,7 +48,7 @@ private:
 	bool mouseDebounce = false;
 
 	std::size_t currentBlockIndex = 0;
-	Ground::Tile selectedTile = { 0, 0 };
+	CollisionTile selectedTile = { 0, 0 };
 
 	double xMouseError = 0.0;
 	double yMouseError = 0.0;

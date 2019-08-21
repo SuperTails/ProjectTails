@@ -4,6 +4,7 @@
 #include "Animation.h"
 #include "Typedefs.h"
 #include "json.hpp"
+#include "DataReader.h"
 #include <array>
 #include <vector>
 #include <bitset>
@@ -22,31 +23,25 @@ struct SDL_Point;
 
 class Ground {
 	friend class BlockEditor;
+	friend void DataReader::LoadJSONBlock(const std::string& block);
+
+	class GroundData;
 public:
+
 
 	static bool showCollision;
 
 	// SDL_FLIP_HORIZONTAL and SDL_FLIP_VERTICAL are the first two flags
 	enum class Flags { TOP_SOLID = (1 << 2) };
 	
-	struct Tile {
-		int index;
-		int flags;
-	};
+	friend void to_json(nlohmann::json& j, const CollisionTile& t);
+	friend void from_json(const nlohmann::json& j, CollisionTile& t);
 
-	friend void to_json(nlohmann::json& j, const Tile& t);
-	friend void from_json(const nlohmann::json& j, Tile& t);
+	typedef std::array< CollisionTile, GROUND_SIZE > Layer;
+	typedef std::vector< Layer > DataType;
 
-	typedef std::array < Tile, GROUND_SIZE > Layer;
-	typedef std::vector < Layer > DataType;
-
-	struct groundArrayData {
-		DataType graphics;
-		DataType collision;
-	};
-
-	friend void to_json(nlohmann::json& j, groundArrayData arrayData);
-	friend void from_json(const nlohmann::json& j, groundArrayData& arrayData);
+	friend void to_json(nlohmann::json& j, const GroundData& arrayData);
+	friend void from_json(const nlohmann::json& j, GroundData& arrayData);
 
 	Ground(std::size_t index, SDL_Point pos, bool pFlip = false);
 	Ground() = default;
@@ -60,7 +55,7 @@ public:
 	const CollisionTile& getTile(int tileX, int tileY, bool path) const;
 	double getTileAngle(int tileX, int tileY, bool path) const;
 	int getFlag(int tileX, int tileY, bool path) const;
-	bool empty() const { return (dataIndex == -1) || data[dataIndex].collision.empty(); };
+	//bool empty() const { return (dataIndex == -1) || data[dataIndex].collision.empty(); };
 
 	void setPosition(SDL_Point pos);
 	SDL_Point getPosition() const;
@@ -71,13 +66,14 @@ public:
 	void setFlip(bool newFlip);
 	bool getFlip() const;
 
+	bool empty() const;
+
 	static const std::size_t NO_TILE;
 
 	static void setMap(const std::string& mapPath);
-	static void setCollisionList(const std::vector < CollisionTile >& list);
 
-	static void clearTiles() { data.clear(); };
-	static void addTile(const groundArrayData& tileData) { data.emplace_back(tileData); };
+	static void clearTiles();
+	static void addTile(const GroundData& tileData);
 	static std::size_t tileCount() { return data.size(); };
 
 	static std::string getMapPath() { return mPath; };
@@ -93,14 +89,9 @@ private:
 	SDL_Point position = { -1, -1 };
 
 	static std::string mPath;
-	static std::vector < CollisionTile > tileList;
 	static Surface map;
 
 	static Surface& getCollisionDebugMap();
-
-	class GroundData;
-
-	static std::vector < GroundData > data;
 
 	class GroundData {
 		friend class Ground;
@@ -110,13 +101,13 @@ private:
 		GroundData(const GroundData&) = default;
 		GroundData(GroundData&&) = default;
 
-		GroundData(const Ground::groundArrayData& arrayData);
+		GroundData(const Ground::DataType& graphicsLayers, const Ground::DataType& collisionLayers);
 
-		bool getMultiPath() const { return collision.size() == 2; };
+		bool getMultiPath() const;
 
 		static std::array< Animation, 2 > convertTileGraphics(const DataType& graphics, Surface& map = Ground::map);
 
-		static std::pair< Surface&, SDL_Rect > getTileFromMap(Tile tile, Surface& flipNone, Surface& flipH, Surface& flipV, Surface& flipHV);
+		static std::pair< Surface&, SDL_Rect > getTileFromMap(CollisionTile tile, Surface& flipNone, Surface& flipH, Surface& flipV, Surface& flipHV);
 
 		void updateTileGraphics();
 
@@ -127,6 +118,9 @@ private:
 
 		std::array< Animation, 2 > layers;
 	};
+
+	static std::vector < GroundData > data;
+
 };
 
 std::istream& operator>> (std::istream& stream, Ground& g);

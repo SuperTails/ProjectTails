@@ -537,6 +537,8 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 	if (onGround) {
 		velocity.y -= gravity * (Timer::getFrameTime().count() * 60.0 / 1000.0);
 	}
+
+
 }
 
 void Player::jump(bool rolljump) {
@@ -777,6 +779,23 @@ void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, con
 	}
 }
 
+static std::pair< CollisionTile, int > getTile(SDL_Point position, const std::vector< std::vector< Ground > >& tiles, bool path) {
+	if (position.x < 0 || position.y < 0) {
+		return { { 0, 0 }, 0 };
+	}
+	if (position.x >= tiles.size() * GROUND_PIXEL_WIDTH || position.y >= tiles[0].size() * GROUND_PIXEL_WIDTH) {
+		return { { 0, 0 }, 0 };
+	}
+
+	SDL_Point blockPos = position / GROUND_PIXEL_WIDTH;
+
+	const Ground& block = tiles[blockPos.x][blockPos.y];
+
+	SDL_Point tilePos = SDL_Point{ int(position.x % GROUND_PIXEL_WIDTH), int(position.y % GROUND_PIXEL_WIDTH) } / TILE_WIDTH;
+
+	return { block.getTile(tilePos.x, tilePos.y, path), block.getFlag(tilePos.x, tilePos.y, path) };
+}
+
 Player::SensorResult Player::checkSensor(const SDL_Point& position, const SDL_Point& radii, const Vector2& velocity, Mode mode, Sensor sensor, bool path, const std::vector < std::vector < Ground > >& tiles) {
 	const auto [xRange, yRange, iterOp] = getRange(position, radii, mode, sensor);
 	
@@ -823,7 +842,6 @@ Player::SensorResult Player::checkSensor(const SDL_Point& position, const SDL_Po
 						tileHeight = 0;
 					}
 				}
-
 			}
 
 			if (tileHeight != 0) {
@@ -1000,8 +1018,11 @@ std::pair<int, bool > Player::getHeight(const std::vector< std::vector < Ground 
 	const auto blockCoord = (side ? blockPosition.y : blockPosition.x) * GROUND_PIXEL_WIDTH;
 	const auto start = (side ? yRange.first : xRange.first);
 	const auto heightIndex = (start - blockCoord) % TILE_WIDTH;
-	const bool mirrored = tileFlags & (side ? SDL_FLIP_VERTICAL : SDL_FLIP_HORIZONTAL);
-	const auto tileHeight = tile.getHeight(mirrored ? (TILE_WIDTH - 1 - heightIndex) : (heightIndex), side);
+	//const bool mirrored = tileFlags & (side ? SDL_FLIP_VERTICAL : SDL_FLIP_HORIZONTAL);
+	//const auto tileHeight = tile.getHeight(mirrored ? (TILE_WIDTH - 1 - heightIndex) : (heightIndex), side);
+	
+	const auto tileHeight = ::getHeight(tile, heightIndex, side ? 2 : 3);
+	
 	const bool flipped = tileFlags & (side ? SDL_FLIP_HORIZONTAL : SDL_FLIP_VERTICAL);
 
 	return { tileHeight, flipped };

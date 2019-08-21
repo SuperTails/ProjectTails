@@ -4,6 +4,7 @@
 #include "Ground.h"
 #include "Camera.h"
 #include "json.hpp"
+#include "CollisionTile.h"
 #include <fstream>
 #include <experimental/filesystem>
 
@@ -38,7 +39,7 @@ void BlockEditor::render(const Camera& camera) {
 	mousePos /= camera.scale;
 
 	const int tilesPerRow = groundMap.size().x / TILE_WIDTH;
-	const auto tilePos = SDL_Point{ (selectedTile.index % tilesPerRow), (selectedTile.index / tilesPerRow) } * TILE_WIDTH + SDL_Point{ 4 * width, 0 };
+	const auto tilePos = SDL_Point{ (selectedTile.getIndex() % tilesPerRow), (selectedTile.getIndex() / tilesPerRow) } * TILE_WIDTH + SDL_Point{ 4 * width, 0 };
 	drawRect(SDL_Rect{ tilePos.x, tilePos.y, TILE_WIDTH, TILE_WIDTH }, false, 0, 0, 0);
 
 	const SDL_Rect mouseRect{ mousePos.x, mousePos.y, 1, 1 };	
@@ -109,15 +110,15 @@ void BlockEditor::render(const Camera& camera) {
 	index.Render(SDL_Point{ width + 10, width + 10 } * camera.scale);
 
 	static Text tileText;
-	tileText.setText("Selected tile: " + std::to_string(selectedTile.index));
+	tileText.setText("Selected tile: " + std::to_string(selectedTile.getIndex()));
 	tileText.Render(SDL_Point{ width * 2 + 10, groundMap.size().y / 2 + 5 } * camera.scale); 
 }
 
-Ground::Tile& BlockEditor::tileAt(Ground::Layer& layer, SDL_Point pos) const {
+CollisionTile& BlockEditor::tileAt(Ground::Layer& layer, SDL_Point pos) const {
 	return layer[pos.x + pos.y * GROUND_WIDTH];
 }
 
-const Ground::Tile& BlockEditor::tileAt(const Ground::Layer& layer, SDL_Point pos) const {
+const CollisionTile& BlockEditor::tileAt(const Ground::Layer& layer, SDL_Point pos) const {
 	return layer[pos.x + pos.y * GROUND_WIDTH];
 }
 
@@ -194,9 +195,9 @@ void BlockEditor::updateBlock(Ground::GroundData& block) {
 }
 
 void BlockEditor::addBlock() {
-	Ground::groundArrayData temp;
+	Ground::GroundData temp;
 	Ground::Layer emptyLayer;
-	emptyLayer.fill({ 0, 0 });
+	emptyLayer.fill(CollisionTile{ 0, 0 });
 	temp.graphics.resize(2, emptyLayer);
 	temp.collision.resize(2, emptyLayer);
 	Ground::addTile(temp);
@@ -241,8 +242,8 @@ void BlockEditor::selectTile(SDL_Rect mouseRect, Uint32 mouseState, bool mouseDe
 	const auto groundMapArea = SDL_Rect{ 2 * GROUND_PIXEL_WIDTH, 0, groundMapSize.x, groundMapSize.y };
 	if (SDL_HasIntersection(&groundMapArea, &mouseRect) && lMouse) {
 		const int tilesPerRow = groundMap.size().x / TILE_WIDTH;
-		selectedTile.index = tilesPerRow * (mouseRect.y * 2 / TILE_WIDTH) + (mouseRect.x - groundMapArea.x) * 2 / TILE_WIDTH;
-		std::cout << "Selected tile " << selectedTile.index << "\n";
+		selectedTile.setIndex(tilesPerRow * (mouseRect.y * 2 / TILE_WIDTH) + (mouseRect.x - groundMapArea.x) * 2 / TILE_WIDTH);
+		std::cout << "Selected tile " << selectedTile.getIndex() << "\n";
 	}
 
 }
@@ -283,16 +284,16 @@ void BlockEditor::save() {
 	}
 
 	auto& graphics = currentBlock().graphics;
-	if (graphics.size() > 1 && std::none_of(graphics[1].begin(), graphics[1].end(), [](auto a){ return a.index; })) {
+	if (graphics.size() > 1 && std::none_of(graphics[1].begin(), graphics[1].end(), [](auto a){ return a.getIndex(); })) {
 		graphics.resize(1);
 	}
 
 	auto& collision = currentBlock().collision;
-	if (collision.size() > 1 && std::none_of(collision[1].begin(), collision[1].end(), [](auto a){ return a.index; })) {
+	if (collision.size() > 1 && std::none_of(collision[1].begin(), collision[1].end(), [](auto a){ return a.getIndex(); })) {
 		collision.resize(1);
 	}
 
-	nlohmann::json out = Ground::groundArrayData{ graphics, collision };
+	nlohmann::json out = Ground::GroundData{ graphics, collision };
 	
 	std::ofstream file(path);
 	file << out.dump(4);

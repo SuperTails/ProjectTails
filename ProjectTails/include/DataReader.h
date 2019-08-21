@@ -10,7 +10,6 @@
 using json = nlohmann::json;
 
 class Ground;
-class CollisionTile;
 
 namespace DataReader
 {
@@ -27,8 +26,6 @@ namespace DataReader
 
 	void LoadEntityData(const std::string& path);
 	void LoadJSONBlock(const std::string& path);
-	std::vector< CollisionTile > LoadCollisionsFromImage(const std::string& path);
-	CollisionTile loadCollisionTile(const Surface& surface, SDL_Point topLeft);
 	std::vector< std::vector< Animation > > LoadBackground(const filesystem::path& directory);
 	void LoadLevelBlocks(const std::string& path); 
 	/**

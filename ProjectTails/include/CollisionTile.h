@@ -1,30 +1,50 @@
 #pragma once
+#include "DataReader.h"
 #include <array>
 #include <json.hpp>
 
-class CollisionTile
-{
+class CollisionTile {
 public:
 	static const std::size_t heightMapSize = 16;
 
-	CollisionTile(const std::array< int, heightMapSize >& heights, double ang) noexcept;
-	CollisionTile() noexcept = default;
+	CollisionTile() = default;
+	CollisionTile(int idx, int fl) : dataIndex(idx), flags(fl) {};
 
 	void setHeights(const std::array< int, heightMapSize >& heights) noexcept;
-	void setHeight(int index, int height) { heightMap[index] = height; };
-	void setAngle(double ang) { angle = ang; };
-	void setCollide(bool collide) { canCollide = collide; };
+	void setHeight(int index, int height) { dataList[dataIndex].heightMap[index] = height; };
+	void setAngle(double ang) { dataList[dataIndex].angle = ang; };
 
-	int getSideHeight(int ind) const { return heightMapSide[ind]; };
-	int getHeight(int ind, bool side = false) const { return side ? heightMapSide[ind] : heightMap[ind]; };
-	int getAngle() const { return angle; };
-	bool getCollide() const { return canCollide; };
+	int getHeight(int ind) const { return dataList[dataIndex].heightMap[ind]; };
+	int getAngle() const { return dataList[dataIndex].angle; };
 
-	void calculateSideMap();
+	void setIndex(int idx) { dataIndex = idx; };
+
+	int getIndex() const { return dataIndex; };
+
+	int flags = 0;
+
+	static void loadFromImage(const std::string& image);
 
 private:
-	std::array < int, heightMapSize > heightMap{};
-	std::array < int, heightMapSize > heightMapSide{};
-	double angle;
-	bool canCollide;
+	int dataIndex = 0;
+
+	struct CollisionTileData {
+		std::array < int, heightMapSize > heightMap{};
+		double angle;
+	};
+
+	static CollisionTileData loadCollisionTile(const Surface& surface, SDL_Point topLeft);
+
+	static void setCollisionList(const std::vector< CollisionTileData >& list);
+
+	static std::vector< CollisionTileData > dataList;
+public:
+	static void test();
 };
+
+// dir:
+// 0 = from the right
+// 1 = from the bottom
+// 2 = from the left
+// 3 = from the top
+int getHeight(const CollisionTile &tile, int idx, int dir);

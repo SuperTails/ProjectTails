@@ -7,7 +7,6 @@
 #include "json.hpp"
 
 Surface Ground::map;
-std::vector< CollisionTile > Ground::tileList;
 std::string Ground::mPath;
 std::vector< Ground::GroundData > Ground::data;
 
@@ -23,10 +22,6 @@ void Ground::setMap(const std::string& mapPath) {
 		throw std::invalid_argument("Could not set tilemap for ground!");
 	}
 	map = std::move(newMap);
-}
-
-void Ground::setCollisionList(const std::vector < CollisionTile >& list) {
-	tileList = list;
 }
 
 Ground::Ground(std::size_t index, SDL_Point pos, bool pFlip) :
@@ -54,9 +49,9 @@ const CollisionTile& Ground::getTile(int tileX, int tileY, bool path) const {
 	path &= data[dataIndex].getMultiPath();
 
 	if (flip) {
-		return tileList[data[dataIndex].collision[path].at(tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX)).index];
+		return data[dataIndex].collision[path].at(tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX));
 	}
-	return tileList[data[dataIndex].collision[path].at(tileX + tileY * GROUND_WIDTH).index];
+	return data[dataIndex].collision[path].at(tileX + tileY * GROUND_WIDTH);
 }
 
 int Ground::getFlag(int tileX, int tileY, bool path) const {
@@ -78,9 +73,6 @@ Ground& Ground::operator= (Ground arg) {
 }
 
 double Ground::getTileAngle(int tileX, int tileY, bool path) const {
-	if (empty()) {
-		return 0.0;
-	}
 	const CollisionTile& tile = getTile(tileX, tileY, path);
 	int flag = getFlag(tileX, tileY, path) & (SDL_FLIP_NONE | SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
 	switch (flag) {
@@ -138,9 +130,9 @@ void swap(Ground& lhs, Ground& rhs) noexcept {
 	swap(lhs.flip, rhs.flip);
 };
 
-Ground::GroundData::GroundData(const Ground::groundArrayData& arrayData) : 
-	collision(arrayData.collision),
-	graphics(arrayData.graphics) {
+Ground::GroundData::GroundData(const Ground::DataType& graphicsLayers, const Ground::DataType& collisionLayers) : 
+	collision(collisionLayers),
+	graphics(graphicsLayers) {
 
 	updateTileGraphics();
 }	
@@ -158,7 +150,8 @@ std::array< Animation, 2 > Ground::GroundData::convertTileGraphics(const DataTyp
 
 		const auto& currentLayer = graphics[layer];
 		for (int tile = 0; tile < currentLayer.size(); ++tile) {
-			const int index = ((currentLayer[tile].index == 220) ? 251 : currentLayer[tile].index);
+			// TODO: Figure out what that check was for
+			const int index = ((currentLayer[tile].getIndex() == 220) ? 251 : currentLayer[tile].getIndex());
 			const int tileFlip = currentLayer[tile].flags & (SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
 			
 			auto [surfaceFlipped, source] = getTileFromMap({ index, tileFlip }, map, flipHoriz, flipVertical, flipBoth); 
@@ -176,13 +169,17 @@ std::array< Animation, 2 > Ground::GroundData::convertTileGraphics(const DataTyp
 	return layers;
 }
 
-std::pair< Surface&, SDL_Rect > Ground::GroundData::getTileFromMap(Tile tile, Surface& flipNone, Surface& flipH, Surface& flipV, Surface& flipHV) {
+bool Ground::empty() const {
+	return dataIndex == NO_TILE || data[dataIndex].collision.size() == 0;
+}
+
+std::pair< Surface&, SDL_Rect > Ground::GroundData::getTileFromMap(CollisionTile tile, Surface& flipNone, Surface& flipH, Surface& flipV, Surface& flipHV) {
 	const auto [mapWidth, mapHeight] = flipNone.size();
 	const int mapTileWidth = mapWidth / TILE_WIDTH;
 
 	tile.flags &= SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL;
 
-	auto source = SDL_Rect{ tile.index % mapTileWidth, tile.index / mapTileWidth, 1, 1 } * TILE_WIDTH;
+	auto source = SDL_Rect{ tile.getIndex() % mapTileWidth, tile.getIndex() / mapTileWidth, 1, 1 } * TILE_WIDTH;
 	if (tile.flags & SDL_FLIP_HORIZONTAL) {
 		source.x = mapWidth - TILE_WIDTH - source.x;
 	}
@@ -200,6 +197,8 @@ std::pair< Surface&, SDL_Rect > Ground::GroundData::getTileFromMap(Tile tile, Su
 			return flipV;
 		case SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL:
 			return flipHV;
+		default:
+			return flipNone;
 		}	
 	}();
 
@@ -217,16 +216,16 @@ void Ground::GroundData::updateTileGraphics() {
 
 using json = nlohmann::json;
 
-void to_json(json& j, const Ground::Tile& t) {
+void to_json(json& j, const CollisionTile& t) {
 	const int flip = t.flags & (SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
 	const bool flipX = (flip == SDL_FLIP_HORIZONTAL) || (flip == SDL_FLIP_VERTICAL);
 	const int rot = 2 * bool(flip & SDL_FLIP_VERTICAL);
 	
-	j = json{ { "rot", rot }, { "flipX", flipX }, { "tile", t.index } };
+	j = json{ { "rot", rot }, { "flipX", flipX }, { "tile", t.getIndex() } };
 }
 
-void from_json(const json& j, Ground::Tile& t) {
-	t.index = j["tile"].get<int>();
+void from_json(const json& j, CollisionTile& t) {
+	t.setIndex(j["tile"].get<int>());
 	t.flags = 0;
 	if (j["rot"].get<int>() == 2) {
 		t.flags |= SDL_FLIP_VERTICAL;
@@ -237,7 +236,8 @@ void from_json(const json& j, Ground::Tile& t) {
 	}
 }
 
-void to_json(json& j, Ground::groundArrayData arrayData) {
+void to_json(json& j, const Ground::GroundData& arrayDat) {
+	Ground::GroundData arrayData = arrayDat;
 	// Output graphics tiles
 	for (int i = 0; i < arrayData.graphics.size(); ++i) {
 		auto& output = j["layers"][i];
@@ -247,12 +247,12 @@ void to_json(json& j, Ground::groundArrayData arrayData) {
 
 	// Transform physics tiles to the correct format (numbered starting at 340)
 	for (auto& layer : arrayData.collision) {
-		if (std::any_of(layer.begin(), layer.end(), [](auto a) { return a.index >= 340; })) {
+		if (std::any_of(layer.begin(), layer.end(), [](auto a) { return a.getIndex() >= 340; })) {
 			continue;
 		}
 		std::transform(layer.begin(), layer.end(), layer.begin(), [](auto a) {
-				a.index += 340;
-			return Ground::Tile{ (a.index == 560 ? 591 : a.index), a.flags };
+				a.setIndex(a.getIndex() + 340);
+			return CollisionTile{ (a.getIndex() == 560 ? 591 : a.getIndex()), a.flags };
 		});
 	}
 
@@ -272,7 +272,7 @@ void to_json(json& j, Ground::groundArrayData arrayData) {
 			for (int tile = 0; tile < collision.size(); ++tile) {
 				if (output["tiles"][tile].is_null()) {
 					bool topOnly = collision[tile].flags & int(Ground::Flags::TOP_SOLID);
-					output["tiles"][tile] = Ground::Tile{ topOnly ? 592 : 0, 0 };
+					output["tiles"][tile] = CollisionTile{ topOnly ? 592 : 0, 0 };
 				}
 			}
 		}
@@ -285,7 +285,7 @@ void to_json(json& j, Ground::groundArrayData arrayData) {
 	j["tileshigh"] = GROUND_SIZE;
 }
 
-void from_json(const json& j, Ground::groundArrayData& arrayData) {
+void from_json(const json& j, Ground::GroundData& block) {
 	const auto& layers = j["layers"];
 
 	const int numLayers = layers.size();
@@ -296,7 +296,7 @@ void from_json(const json& j, Ground::groundArrayData& arrayData) {
 	auto loadGraphicsLayer = [&](const json& dataLayer) {
 		Ground::Layer layer{};
 		std::copy(dataLayer.begin(), dataLayer.end(), layer.begin());
-		arrayData.graphics.push_back(layer);
+		block.graphics.push_back(layer);
 	};
 
 	// Load image data
@@ -321,16 +321,19 @@ void from_json(const json& j, Ground::groundArrayData& arrayData) {
 	const std::size_t collisionLayerStart = 1 + isDoubleLayer + hasAnimatedLayer;
 	const std::size_t collisionLayerCount = numLayers - collisionLayerStart - hasAdditionalFlags;
 
-	arrayData.collision.resize(numLayers - collisionLayerStart - hasAdditionalFlags, { MAX_GRAPHICS_TILE_INDEX + 1, 0 });
+	Ground::Layer blankLayer;
+	std::fill(blankLayer.begin(), blankLayer.end(), CollisionTile{ MAX_GRAPHICS_TILE_INDEX + 1, 0 });
+
+	block.collision.resize(numLayers - collisionLayerStart - hasAdditionalFlags, blankLayer);
 
 	for (int l = 0; l < numLayers - collisionLayerStart - hasAdditionalFlags; ++l) {
 		// Load collision data
 		const auto& layerTiles = layers[l + collisionLayerStart]["tiles"];
 		const bool doOffset = layerTiles[0]["tile"].get<int>() >= 340;
-		std::transform(layerTiles.begin(), layerTiles.end(), arrayData.collision[l].begin(),
+		std::transform(layerTiles.begin(), layerTiles.end(), block.collision[l].begin(),
 			[doOffset](const json& tile) {
 				int current = tile["tile"].get<int>() - 340 * doOffset;
-				Ground::Tile result{ current, 0 };
+				CollisionTile result{ current, 0 };
 				if (tile["rot"].get<int>() == 2) {
 					result.flags |= SDL_FLIP_VERTICAL;
 					result.flags |= (!tile["flipX"].get<bool>()) * SDL_FLIP_HORIZONTAL;
@@ -345,10 +348,24 @@ void from_json(const json& j, Ground::groundArrayData& arrayData) {
 	if (hasAdditionalFlags) {
 		for (int i = 0; i < GROUND_SIZE; ++i) {
 			if (layers.back()["tiles"][i]["tile"].get<int>() == 592) {
-				arrayData.collision[0][i].flags |= static_cast < int >(Ground::Flags::TOP_SOLID);
+				block.collision[0][i].flags |= static_cast < int >(Ground::Flags::TOP_SOLID);
 			}
 		}
 	}
+
+	block.updateTileGraphics();
+}
+
+void Ground::clearTiles() {
+	data.clear();
+}
+
+void Ground::addTile(const GroundData& newTile) {
+	data.emplace_back(newTile);
+}
+
+bool Ground::GroundData::getMultiPath() const {
+	return collision.size() == 2;
 }
 
 std::istream& operator>> (std::istream& stream, Ground& g) {

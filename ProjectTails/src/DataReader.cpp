@@ -17,7 +17,7 @@ void DataReader::LoadJSONBlock(const std::string& path) {
 	DataFile >> j;
 	DataFile.close();
 	
-	Ground::groundArrayData arrayData;
+	Ground::GroundData arrayData;
 	arrayData = j;
 
 	Ground::addTile(arrayData);
@@ -81,50 +81,6 @@ void DataReader::LoadEntityData(const std::string& path) {
 	std::cout << "All entity loading complete!\n";
 }
 
-std::vector< CollisionTile > DataReader::LoadCollisionsFromImage(const std::string& path) {
-	Surface DataFile(path);
-	if (DataFile == nullptr) {
-		throw "Could not open image file!\n";
-	}
-
-	Surface::PixelLock pixelLock(DataFile);
-
-	std::vector< CollisionTile > result;
-	result.reserve(DataFile.size().x / TILE_WIDTH * 8);
-
-	for (int tileY = 0; tileY < 8; ++tileY) {
-		std::cout << "Reading collision data on row " << tileY << "\n";
-		for (int tileX = 0; tileX < DataFile.size().x / TILE_WIDTH; ++tileX) {
-			result.push_back(loadCollisionTile(DataFile, { int(tileX * TILE_WIDTH), int(tileY * TILE_WIDTH) }));
-		}
-	}
-
-	return result;
-};
-
-CollisionTile DataReader::loadCollisionTile(const Surface& surface, SDL_Point topLeft) {
-	const Uint32 colorMask  = imageFormat.Rmask | imageFormat.Gmask | imageFormat.Bmask;
-	const Uint32 angleMask  = imageFormat.Gmask;
-	const Uint32 angleShift = imageFormat.Gshift;
-
-	CollisionTile result;
-	for (int x = topLeft.x; x < topLeft.x + CollisionTile::heightMapSize; ++x) {
-		for (int y = topLeft.y; y < topLeft.y + CollisionTile::heightMapSize; ++y) {
-			const Uint32 color = getPixel(surface.get(), x, y);
-			if (color & colorMask) {
-				// Move to the next column
-				const double tempAngle = (color & angleMask) >> angleShift;
-				result.setAngle((tempAngle == 255.0) ? 0.0 : tempAngle);
-				result.setHeight(x - topLeft.x, 16 - (y - topLeft.y));
-				break;
-			}
-		}
-	}
-
-	result.calculateSideMap();
-
-	return result;
-}
 
 std::vector< std::vector< Animation > > DataReader::LoadBackground(const filesystem::path& directory) {
 	std::vector < std::vector < Animation > > background;
