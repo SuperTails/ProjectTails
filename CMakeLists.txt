@@ -56,4 +56,6 @@ endif()
 
 add_executable(ProjectTails ${SOURCES})
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} stdc++fs gtest)
-add_test(NAME testall COMMAND testall)
+add_test(NAME testall COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ProjectTails -test)
+
+enable_testing()

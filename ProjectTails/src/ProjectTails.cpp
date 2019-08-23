@@ -21,6 +21,7 @@
 #include "CollisionTile.h"
 #include "Tests.h"
 #include "BlockEditor.h"
+#include <gtest/gtest.h>
 #include <unordered_map>
 #include <fstream>
 #include <algorithm>
@@ -50,12 +51,12 @@ using namespace std::string_view_literals;
 
 const std::array< std::pair< std::string_view, bool* >, 4 > options{
 	make_pair("-level"sv, &LevelEditor::levelEditing),
-	make_pair("-test"sv , &Tests::doTests),
+	make_pair("-test"sv , &tests::doTests),
 	make_pair("-debug"sv, &globalObjects::debug),
 	make_pair("-block"sv, &BlockEditor::editing),
 };
 
-int main(const int argc, const char* const argv[] ) { 
+int main(int argc, char **argv ) { 
 	if (!sdlStatus.success) {
 		std::cerr << "Initialization failed.\n";
 		return 1;
@@ -76,6 +77,11 @@ int main(const int argc, const char* const argv[] ) {
 
 	for (auto& option : options) {
 		*option.second = findArg(args, option.first) != args.end();
+	}
+
+	if (tests::doTests) {
+		::testing::InitGoogleTest(&argc, argv);
+		return RUN_ALL_TESTS();
 	}
 
 	if (globalObjects::debug) {
@@ -116,13 +122,6 @@ int main(const int argc, const char* const argv[] ) {
 	Ground::setCollisionList(DataReader::LoadCollisionsFromImage(ASSET"SolidGraph.png"));
 	
 	globalObjects::updateLoading(1 / LOAD_STEPS);
-
-	if (Tests::doTests) {
-		Ground::clearTiles();
-		Tests::runTests();
-		return 0;
-	}
-
 
 	SDL_SetRenderDrawColor(globalObjects::renderer, 0, 0, 0, 0);
 
