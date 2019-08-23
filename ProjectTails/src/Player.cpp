@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cmath>
 #include "Player.h"
-//#include "PlayerState.h"
 #include "EntityTypes.h"
 #include "Functions.h"
 #include "Ground.h"

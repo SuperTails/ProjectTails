@@ -70,6 +70,21 @@ int getHeight(const CollisionTile &tile, int idx, int dir) {
 	return getHeight2(tile, idx, dir);
 }
 
+SDL_Point surfacePos(const CollisionTile& tile, int idx, int dir) {
+	switch (dir) {
+	case 0:
+		return { int(CollisionTile::heightMapSize - getHeight(tile, idx, dir) - 1), idx };
+	case 1:
+		return { idx, int(CollisionTile::heightMapSize - getHeight(tile, idx, dir) - 1) };
+	case 2:
+		return { getHeight(tile, idx, dir), idx };
+	case 3:
+		return { idx, getHeight(tile, idx, dir) };
+	default:
+		throw "Invalid direction\n";
+	}
+}
+
 void CollisionTile::loadFromImage(const std::string& path) {
 	Surface DataFile(path);
 	if (DataFile == nullptr) {

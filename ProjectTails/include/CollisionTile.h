@@ -48,3 +48,5 @@ public:
 // 2 = from the left
 // 3 = from the top
 int getHeight(const CollisionTile &tile, int idx, int dir);
+
+SDL_Point surfacePos(const CollisionTile &tile, int idx, int dir);
