@@ -29,16 +29,26 @@ private:
 	int dataIndex = 0;
 
 	struct CollisionTileData {
+		CollisionTileData() = default;
+		CollisionTileData(const CollisionTileData&) = default;
+		CollisionTileData(CollisionTileData&&) = default;
+
+		CollisionTileData(std::array< int, heightMapSize > hMap, double ang);
+
+		constexpr CollisionTileData& operator=(CollisionTileData&) = default;
+		constexpr CollisionTileData& operator=(const CollisionTileData&) = default;
+
 		std::array < int, heightMapSize > heightMap{};
-		double angle;
+		double angle{};
 	};
 
 	static CollisionTileData loadCollisionTile(const Surface& surface, SDL_Point topLeft);
 
 	static void setCollisionList(const std::vector< CollisionTileData >& list);
 
-	static std::vector< CollisionTileData > dataList;
 public:
+	static std::vector< CollisionTileData > dataList;
+
 	static void test();
 };
 

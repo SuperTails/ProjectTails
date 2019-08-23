@@ -12,6 +12,7 @@
 #include "Player.h"
 #include "Camera.h"
 #include "Text.h"
+#include "Tests.h"
 #include "Ground.h"
 #include "DataReader.h"
 #include "Miscellaneous.h"
@@ -122,10 +123,6 @@ int main(int argc, char **argv ) {
 	
 	globalObjects::updateLoading(1 / LOAD_STEPS);
 
-<<<<<<< HEAD
-=======
-
->>>>>>> Reworked collision tiles
 	SDL_SetRenderDrawColor(globalObjects::renderer, 0, 0, 0, 0);
 
 	Act currentAct{ ASSET"Act1Data.txt" };

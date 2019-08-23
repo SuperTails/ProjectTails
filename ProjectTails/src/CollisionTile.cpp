@@ -128,6 +128,13 @@ CollisionTile::CollisionTileData CollisionTile::loadCollisionTile(const Surface&
 	return result;
 }
 
+CollisionTile::CollisionTileData::CollisionTileData(std::array< int, CollisionTile::heightMapSize > hMap, double ang) :
+	heightMap(hMap),
+	angle(ang)
+{
+
+}
+
 void CollisionTile::test() {
 	dataList.push_back(CollisionTileData{ { 0, 0, 0, 4, 4, 6, 14, 14, 14, 10, 10, 10, 10, 0, 0, 0 }, 0.0 });
 	CollisionTile tile{ int(dataList.size() - 1), 0 };
