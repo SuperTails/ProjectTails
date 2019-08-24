@@ -1,6 +1,7 @@
 #include "Tests.h"
 #include "CollisionTile.h"
 #include "Functions.h"
+#include "Player.h"
 
 #include <array>
 #include <gtest/gtest.h>
@@ -17,7 +18,9 @@ TEST(CollisionTiles, SurfacePosition) {
 	CollisionTile tile(0, 0.0);
 
 	for (int i = 0; i < CollisionTile::heightMapSize; ++i) {
-		EXPECT_EQ(surfacePos(tile, i, 3), (SDL_Point{ i, heights[i] }));
+		SDL_Point actual = surfacePos(tile, i, Direction::DOWN);
+		SDL_Point expected = SDL_Point{ i, heights[i] };
+		EXPECT_EQ(actual, expected) << "Actual value: { " << actual.x << ", " << actual.y << " } did not match expected { " << expected.x << ", " << expected.y << " }";
 	}
 
 	// TODO: Maybe the others?
@@ -34,25 +37,25 @@ TEST(CollisionTiles, GetHeight) {
 
 	// Top side
 	for (int i = 0; i < CollisionTile::heightMapSize; ++i) {
-		EXPECT_EQ(getHeight(tile, i, 3), heights[i]);
+		EXPECT_EQ(getHeight(tile, i, Direction::DOWN), heights[i]);
 	}
 
 	// Right side
 	const std::array< int, CollisionTile::heightMapSize > rightResult{ 0, 0, 9, 9, 9, 9, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13 };
 	for (int i = 0; i < CollisionTile::heightMapSize; ++i) {
-		EXPECT_EQ(getHeight(tile, i, 0), rightResult[i]);
+		EXPECT_EQ(getHeight(tile, i, Direction::LEFT), rightResult[i]);
 	}
 
 	// Bottom side
 	const std::array< int, CollisionTile::heightMapSize > bottomResult{ 0, 0, 0, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 0, 0, 0 };
 	for (int i = 0; i < CollisionTile::heightMapSize; ++i) {
-		EXPECT_EQ(getHeight(tile, i, 1), bottomResult[i]);
+		EXPECT_EQ(getHeight(tile, i, Direction::UP), bottomResult[i]);
 	}
 
 	// Left side
 	const std::array< int, CollisionTile::heightMapSize > leftResult{ 0, 0, 10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 13, 13, 13, 13 };
 	for (int i = 0; i < CollisionTile::heightMapSize; ++i) {
-		EXPECT_EQ(getHeight(tile, i, 2), leftResult[i]);
+		EXPECT_EQ(getHeight(tile, i, Direction::RIGHT), leftResult[i]);
 	}
 
 	CollisionTile::dataList.clear();

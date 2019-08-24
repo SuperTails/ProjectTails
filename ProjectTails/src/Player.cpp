@@ -928,7 +928,7 @@ Player::SensorResult Player::checkSensor(const SDL_Point& position, const SDL_Po
 	}
 }
 
-std::tuple< std::pair< int, int >, std::pair< int, int >, Player::Direction > Player::getRange(const SDL_Point& position, const SDL_Point& radii, Mode mode, Sensor sensor) {
+std::tuple< std::pair< int, int >, std::pair< int, int >, Direction > Player::getRange(const SDL_Point& position, const SDL_Point& radii, Mode mode, Sensor sensor) {
 	 return [&]() -> std::tuple< std::pair< int, int >, std::pair< int, int >, Direction > {
 		const auto x = position.x;
 		const auto y = position.y;
@@ -986,7 +986,7 @@ std::tuple< std::pair< int, int >, std::pair< int, int >, Player::Direction > Pl
 
 }
 
-std::tuple< std::pair< int, int >, std::pair< int, int >, Player::Direction > Player::getRange(Sensor sensor) const {
+std::tuple< std::pair< int, int >, std::pair< int, int >, Direction > Player::getRange(Sensor sensor) const {
 	return getRange(static_cast< SDL_Point >(position), { getXRadius(), getYRadius() }, collideMode, sensor);
 }
 
@@ -1020,7 +1020,7 @@ std::pair<int, bool > Player::getHeight(const std::vector< std::vector < Ground 
 	//const bool mirrored = tileFlags & (side ? SDL_FLIP_VERTICAL : SDL_FLIP_HORIZONTAL);
 	//const auto tileHeight = tile.getHeight(mirrored ? (TILE_WIDTH - 1 - heightIndex) : (heightIndex), side);
 	
-	const auto tileHeight = ::getHeight(tile, heightIndex, side ? 2 : 3);
+	const auto tileHeight = ::getHeight(tile, heightIndex, side ? Direction::RIGHT: Direction::DOWN);
 	
 	const bool flipped = tileFlags & (side ? SDL_FLIP_HORIZONTAL : SDL_FLIP_VERTICAL);
 
@@ -1232,7 +1232,7 @@ bool Player::getKeyState(const InputComponent& input, int key) const {
 	return input.GetKeyState(key) && !damageCountdown.isTiming();
 }
 
-SDL_Point directionCompare(SDL_Point a, SDL_Point b, Player::Direction direction) {
+SDL_Point directionCompare(SDL_Point a, SDL_Point b, Direction direction) {
 	a = rotate90(static_cast< int >(direction), a);
 	b = rotate90(static_cast< int >(direction), b);
 	return { signum(b.x - a.x), signum(b.y - a.y) };
@@ -1315,7 +1315,7 @@ std::ostream& operator<< (std::ostream& str, Player::Sensor sensor) {
 	return str;
 }
 
-std::ostream& operator<< (std::ostream& str, Player::Direction direction) {
+std::ostream& operator<< (std::ostream& str, Direction direction) {
 	static const std::array< std::string, 4 > names{ "UP", "RIGHT", "DOWN", "LEFT" }; 
 	str << names[std::size_t(direction)];
 	return str;
@@ -1325,4 +1325,8 @@ std::ostream& operator<< (std::ostream& str, Player::Side side) {
 	static const std::array< std::string, 4 > names{ "TOP", "RIGHT", "BOTTOM", "LEFT" };
 	str << names[std::size_t(side)];
 	return str;
+}
+
+std::optional< SDL_Point > collideLine(SDL_Point lineBegin, int maxLength, Direction direction, const std::vector< std::vector< Ground > >& ground, bool useOneWayPlatforms) {
+	
 }

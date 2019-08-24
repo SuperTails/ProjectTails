@@ -1,5 +1,6 @@
 #pragma once
 #include "DataReader.h"
+#include "Player.h"
 #include <array>
 #include <json.hpp>
 
@@ -57,6 +58,6 @@ public:
 // 1 = from the bottom
 // 2 = from the left
 // 3 = from the top
-int getHeight(const CollisionTile &tile, int idx, int dir);
+int getHeight(const CollisionTile &tile, int idx, Direction dir);
 
-SDL_Point surfacePos(const CollisionTile &tile, int idx, int dir);
+SDL_Point surfacePos(const CollisionTile &tile, int idx, Direction dir);

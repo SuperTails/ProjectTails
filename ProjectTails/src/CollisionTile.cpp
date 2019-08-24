@@ -12,57 +12,57 @@ void CollisionTile::setHeights(const std::array< int, heightMapSize >& heights) 
 	std::copy(heights.begin(), heights.end(), dataList[dataIndex].heightMap.begin());
 }
 
-int getHeight2(const CollisionTile &tile, int idx, int dir) {
+int getHeight2(const CollisionTile &tile, int idx, Direction dir) {
 	switch (dir) {
-	case 0:
+	case Direction::LEFT:
 		for (int j = CollisionTile::heightMapSize - 1; j >= 0; --j) {
 			if (tile.getHeight(j) >= CollisionTile::heightMapSize - idx) {
 				return 1 + j;
 			}
 		}
 		return 0;
-	case 1:
+	case Direction::UP:
 		return CollisionTile::heightMapSize * (tile.getHeight(idx) != 0);
-	case 2:
+	case Direction::RIGHT:
 		for (int j = 0; j < CollisionTile::heightMapSize; ++j) {
 			if (tile.getHeight(j) >= CollisionTile::heightMapSize - idx) {
 				return CollisionTile::heightMapSize - j;
 			}
 		}
 		return 0;
-	case 3:
+	case Direction::DOWN:
 		return tile.getHeight(idx);
 	default:
 		throw std::invalid_argument("Invalid direction");
 	}
 }
 
-int getHeight(const CollisionTile &tile, int idx, int dir) {
+int getHeight(const CollisionTile &tile, int idx, Direction dir) {
 	int flags = tile.flags;
 	if (flags & SDL_FLIP_HORIZONTAL) {
 		switch (dir) {
-		case 1:
-		case 3:
+		case Direction::UP:
+		case Direction::DOWN:
 			idx = CollisionTile::heightMapSize - idx - 1;
 			break;
-		case 0:
-			dir = 2;
+		case Direction::LEFT:
+			dir = Direction::RIGHT;
 			break;
-		case 2:
-			dir = 0;
+		case Direction::RIGHT:
+			dir = Direction::LEFT;
 			break;
 		}
 	}
 	if (flags & SDL_FLIP_VERTICAL) {
 		switch (dir) {
-		case 0:
-		case 2:
+		case Direction::LEFT:
+		case Direction::RIGHT:
 			idx = CollisionTile::heightMapSize - idx - 1;
-		case 1:
-			dir = 3;
+		case Direction::UP:
+			dir = Direction::DOWN;
 			break;
-		case 3:
-			dir = 1;
+		case Direction::DOWN:
+			dir = Direction::UP;
 			break;
 		}
 	}
@@ -70,15 +70,15 @@ int getHeight(const CollisionTile &tile, int idx, int dir) {
 	return getHeight2(tile, idx, dir);
 }
 
-SDL_Point surfacePos(const CollisionTile& tile, int idx, int dir) {
+SDL_Point surfacePos(const CollisionTile& tile, int idx, Direction dir) {
 	switch (dir) {
-	case 0:
+	case Direction::LEFT:
 		return { int(CollisionTile::heightMapSize - getHeight(tile, idx, dir) - 1), idx };
-	case 1:
+	case Direction::UP:
 		return { idx, int(CollisionTile::heightMapSize - getHeight(tile, idx, dir) - 1) };
-	case 2:
+	case Direction::RIGHT:
 		return { getHeight(tile, idx, dir), idx };
-	case 3:
+	case Direction::DOWN:
 		return { idx, getHeight(tile, idx, dir) };
 	default:
 		throw "Invalid direction\n";
@@ -142,7 +142,7 @@ void CollisionTile::test() {
 	for (int i = 0; i <= 3; ++i) {
 		std::cout << "\nDir: " << i << "\n";
 		for (int j = 0; j < 16; ++j) {
-			std::cout << "i: " << j << ", " << ::getHeight(tile, j, i) << "\n";
+			std::cout << "i: " << j << ", " << ::getHeight(tile, j, static_cast< Direction >(i)) << "\n";
 		}
 	}
 }

@@ -10,6 +10,8 @@ class PlayerState;
 
 enum Mode { GROUND, LEFT_WALL, CEILING, RIGHT_WALL };
 
+enum class Direction{ UP, RIGHT, DOWN, LEFT };
+
 namespace player_constants {
 	namespace animation_paths {
 		const std::string TORNADO_PATH = TAILS_PATH"Tornado.png";
@@ -126,7 +128,6 @@ public:
 	static std::string modeToString(Mode m);
 
 	enum class Sensor { A, B, C, D, E, F };
-	enum class Direction { UP, RIGHT, DOWN, LEFT };
 
 	static SensorResult checkSensor(const SDL_Point& position, const SDL_Point& radii, const Vector2& velocity, Mode mode, Sensor sensor, bool path, const std::vector < std::vector < Ground > >& tiles);
 
@@ -210,7 +211,7 @@ private:
 	__attribute__((const)) friend bool operator< (const SensorResult& a, const SDL_Point& b);
 };
 
-SDL_Point directionCompare(SDL_Point a, SDL_Point b, Player::Direction direction);
+SDL_Point directionCompare(SDL_Point a, SDL_Point b, Direction direction);
 
 double hexToDeg(double hex);
 
@@ -224,6 +225,8 @@ bool isOffsetState(const Player::State& state);
 
 std::ostream& operator<< (std::ostream& str, Player::Sensor sensor);
 
-std::ostream& operator<< (std::ostream& str, Player::Direction sensor);
+std::ostream& operator<< (std::ostream& str, Direction sensor);
 
 std::ostream& operator<< (std::ostream& str, Player::Side side);
+
+std::optional< SDL_Point > collideLine(SDL_Point lineBegin, int maxLength, Direction direction, const std::vector< std::vector< Ground > >& ground, bool useOneWayPlatforms);
