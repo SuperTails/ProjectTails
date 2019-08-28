@@ -1,25 +1,15 @@
 cmake_minimum_required(VERSION 3.5.1) 
 project(ProjectTails)
 
-include_directories(ProjectTails ~/Documents/SDL2_image-2.0.1 ~/Documents/SDL2_mixer-2.0.1)
-
 file(GLOB SOURCES "ProjectTails/src/*.cpp")
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${ProjectTails_SOURCE_DIR}/cmake")
+include_directories(${ProjectTails_SOURCE_DIR}/ProjectTails/include /usr/include/SDL2)
 
-INCLUDE(FindPkgConfig)
+set(CMAKE_BUILD_TYPE Debug)
 
-find_package (SDL2)
-find_package (SDL2_image)
-find_package (SDL2_mixer)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include_directories(${ProjectTails_SOURCE_DIR}/ProjectTails/include ${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_MIXER_INCLUDE_DIRS})
-
-set (CMAKE_BUILD_TYPE Debug)
-
-set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-set (GCC_COVERAGE_COMPILE_FLAGS "-std=c++1z -march=native -mtune=native -fconcepts")
+set(GCC_COVERAGE_COMPILE_FLAGS "-std=c++1z -march=native -mtune=native -fconcepts")
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
@@ -55,7 +45,7 @@ if (CMAKE_VERSION VERSION_LESS 2.8.11)
 endif()
 
 add_executable(ProjectTails ${SOURCES})
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} stdc++fs gtest)
+target_link_libraries(${PROJECT_NAME} SDL2 SDL2_image SDL2_mixer stdc++fs gtest)
 add_test(NAME testall COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ProjectTails -test)
 
 enable_testing()
