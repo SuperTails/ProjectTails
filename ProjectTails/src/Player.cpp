@@ -778,21 +778,25 @@ void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, con
 	}
 }
 
-static std::pair< CollisionTile, int > getTile(SDL_Point position, const std::vector< std::vector< Ground > >& tiles, bool path) {
+static CollisionTile getTile(SDL_Point position, const std::vector< std::vector< Ground > >& tiles, bool path) {
 	if (position.x < 0 || position.y < 0) {
-		return { { 0, 0 }, 0 };
+		return { 0, 0 };
 	}
 	if (position.x >= tiles.size() * GROUND_PIXEL_WIDTH || position.y >= tiles[0].size() * GROUND_PIXEL_WIDTH) {
-		return { { 0, 0 }, 0 };
+		return { 0, 0 };
 	}
 
 	SDL_Point blockPos = position / GROUND_PIXEL_WIDTH;
 
 	const Ground& block = tiles[blockPos.x][blockPos.y];
 
+	if (block.empty()) {
+		return { 0, 0 };
+	}
+
 	SDL_Point tilePos = SDL_Point{ int(position.x % GROUND_PIXEL_WIDTH), int(position.y % GROUND_PIXEL_WIDTH) } / TILE_WIDTH;
 
-	return { block.getTile(tilePos.x, tilePos.y, path), block.getFlag(tilePos.x, tilePos.y, path) };
+	return block.getTile(tilePos.x, tilePos.y, path);
 }
 
 Player::SensorResult Player::checkSensor(const SDL_Point& position, const SDL_Point& radii, const Vector2& velocity, Mode mode, Sensor sensor, bool path, const std::vector < std::vector < Ground > >& tiles) {
@@ -1327,6 +1331,50 @@ std::ostream& operator<< (std::ostream& str, Player::Side side) {
 	return str;
 }
 
-std::optional< SDL_Point > collideLine(SDL_Point lineBegin, int maxLength, Direction direction, const std::vector< std::vector< Ground > >& ground, bool useOneWayPlatforms) {
-	
+std::optional< SDL_Point > collideLine(SDL_Point lineBegin, int maxLength, Direction direction, const std::vector< std::vector< Ground > >& ground, bool useOneWayPlatforms, bool path) {
+	const bool upDown = (direction == Direction::UP || direction == Direction::DOWN);
+	SDL_Point directionVec;
+	switch (direction) {
+	case Direction::UP:
+		directionVec = SDL_Point{  0, -1 };
+		break;
+	case Direction::DOWN:
+		directionVec = SDL_Point{  0,  1 };
+		break;
+	case Direction::LEFT:
+		directionVec = SDL_Point{ -1,  0 };
+		break;
+	case Direction::RIGHT:
+		directionVec = SDL_Point{  1,  0 };
+		break;
+	}
+	const SDL_Point lineEnd = lineBegin + directionVec * maxLength;
+	SDL_Point current = lineEnd;
+
+	const int idx = upDown ? (lineBegin.x % TILE_WIDTH) : (lineBegin.y % TILE_WIDTH);
+
+	CollisionTile currentTile = getTile(current, ground, path);
+	SDL_Point tileCorner = (current / TILE_WIDTH) * TILE_WIDTH;
+	std::optional< SDL_Point > surface = surfacePos(currentTile, idx, Direction::DOWN);
+
+	if (!surface) {
+		return {};
+	}
+
+	auto isPast = [&]() {
+		SDL_Point difference = current - lineEnd;
+		int coord = upDown ? difference.y : difference.x;
+		return maxLength < std::abs(coord);
+	};
+
+	SDL_Point lastCorner = tileCorner;
+	do {
+		lastCorner = tileCorner;
+		current = tileCorner + *surface - directionVec;
+		tileCorner = (current / TILE_WIDTH) * TILE_WIDTH;
+		currentTile = getTile(current, ground, path);
+		surface = surfacePos(currentTile, idx, Direction::DOWN);
+	} while (surface && lastCorner != tileCorner && !isPast());
+
+	return { current };
 }

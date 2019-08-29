@@ -6,6 +6,8 @@
 
 __attribute__((const)) bool operator== (SDL_Point lhs, SDL_Point rhs);
 
+__attribute__((const)) bool operator!= (SDL_Point lhs, SDL_Point rhs);
+
 double mod(double a, double b);
 
 template < typename F, typename T >

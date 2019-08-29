@@ -319,6 +319,27 @@ void Act::renderObjects(Player& player, Camera& cam) {
 				SDL_RenderFillRect(globalObjects::renderer, &dest);
 			}
 		}
+
+		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 127, 0, SDL_ALPHA_OPAQUE);
+		SDL_Point playerPos = static_cast< SDL_Point >(player.getPosition());
+		playerPos -= static_cast< SDL_Point >(cam.getPosition());
+		playerPos.x *= cam.scale;
+		playerPos.y *= cam.scale;
+		SDL_RenderDrawLine(globalObjects::renderer, playerPos.x, playerPos.y, playerPos.x, playerPos.y + 32 * cam.scale);
+
+		auto result = collideLine(static_cast< SDL_Point >(player.getPosition()), 32, Direction::DOWN, solidTiles, true, player.getPath()); 
+
+		if (result) {
+			static int lastHeight = result->y;
+			if (lastHeight != result->y) {
+				std::cout << "Height changed, is now y = " << result->y << " [" << result->y / GROUND_PIXEL_WIDTH << "," << (result->y % GROUND_PIXEL_WIDTH) / TILE_WIDTH << "," << result->y % TILE_WIDTH << "]\n";
+				lastHeight = result->y;
+			}
+
+			SDL_Point displayPos = ((*result) - static_cast< SDL_Point >(cam.getPosition())) * cam.scale;
+			SDL_Rect displayPos2 = { displayPos.x - 1, displayPos.y - 1, 3, 3 };
+			SDL_RenderFillRect(globalObjects::renderer, &displayPos2);
+		}
 	}
 
 }

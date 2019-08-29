@@ -229,4 +229,4 @@ std::ostream& operator<< (std::ostream& str, Direction sensor);
 
 std::ostream& operator<< (std::ostream& str, Player::Side side);
 
-std::optional< SDL_Point > collideLine(SDL_Point lineBegin, int maxLength, Direction direction, const std::vector< std::vector< Ground > >& ground, bool useOneWayPlatforms);
+std::optional< SDL_Point > collideLine(SDL_Point lineBegin, int maxLength, Direction direction, const std::vector< std::vector< Ground > >& ground, bool useOneWayPlatforms, bool path);

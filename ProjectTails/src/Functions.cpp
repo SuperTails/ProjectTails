@@ -4,6 +4,10 @@ bool operator== (SDL_Point lhs, SDL_Point rhs) {
 	return lhs.x == rhs.x && lhs.y == rhs.y;
 }
 
+bool operator!= (SDL_Point lhs, SDL_Point rhs) {
+	return !(lhs == rhs);
+}
+
 double mod(double a, double b) {
 	return a - b * floor(a / b);
 }

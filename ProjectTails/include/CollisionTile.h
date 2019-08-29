@@ -60,4 +60,4 @@ public:
 // 3 = from the top
 int getHeight(const CollisionTile &tile, int idx, Direction dir);
 
-SDL_Point surfacePos(const CollisionTile &tile, int idx, Direction dir);
+std::optional< SDL_Point > surfacePos(const CollisionTile &tile, int idx, Direction dir);
