@@ -76,11 +76,11 @@ std::optional< SDL_Point > surfacePos(const CollisionTile& tile, int idx, Direct
 	}
 	switch (dir) {
 	case Direction::LEFT:
-		return { { int(CollisionTile::heightMapSize - getHeight(tile, idx, dir) - 2), idx } };
+		return { { getHeight(tile, idx, dir) - 1, idx } };
 	case Direction::UP:
 		return { { idx, getHeight(tile, idx, dir) - 1 } };
 	case Direction::RIGHT:
-		return { { getHeight(tile, idx, dir) + 1, idx } };
+		return { { int(CollisionTile::heightMapSize - getHeight(tile, idx, dir)), idx } };
 	case Direction::DOWN:
 		return { { idx, int(CollisionTile::heightMapSize - getHeight(tile, idx, dir)) } };
 	default:

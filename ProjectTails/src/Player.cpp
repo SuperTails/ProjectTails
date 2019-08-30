@@ -1355,7 +1355,7 @@ std::optional< SDL_Point > collideLine(SDL_Point lineBegin, int maxLength, Direc
 
 	CollisionTile currentTile = getTile(current, ground, path);
 	SDL_Point tileCorner = (current / TILE_WIDTH) * TILE_WIDTH;
-	std::optional< SDL_Point > surface = surfacePos(currentTile, idx, Direction::DOWN);
+	std::optional< SDL_Point > surface = surfacePos(currentTile, idx, direction);
 
 	if (!surface) {
 		return {};
@@ -1373,7 +1373,7 @@ std::optional< SDL_Point > collideLine(SDL_Point lineBegin, int maxLength, Direc
 		current = tileCorner + *surface - directionVec;
 		tileCorner = (current / TILE_WIDTH) * TILE_WIDTH;
 		currentTile = getTile(current, ground, path);
-		surface = surfacePos(currentTile, idx, Direction::DOWN);
+		surface = surfacePos(currentTile, idx, direction);
 	} while (surface && lastCorner != tileCorner && !isPast());
 
 	return { current };
