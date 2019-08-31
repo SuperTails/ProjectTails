@@ -312,14 +312,15 @@ void Act::renderObjects(Player& player, Camera& cam) {
 		}
 
 		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 127, 0, SDL_ALPHA_OPAQUE);
-		SDL_Point playerPos = static_cast< SDL_Point >(player.getPosition());
-		playerPos -= static_cast< SDL_Point >(cam.getPosition());
-		playerPos.x *= cam.scale;
-		playerPos.y *= cam.scale;
-		SDL_RenderDrawLine(globalObjects::renderer, playerPos.x, playerPos.y, playerPos.x, playerPos.y + 32 * cam.scale);
-		SDL_RenderDrawLine(globalObjects::renderer, playerPos.x, playerPos.y, playerPos.x, playerPos.y - 32 * cam.scale);
-		SDL_RenderDrawLine(globalObjects::renderer, playerPos.x, playerPos.y, playerPos.x + 32 * cam.scale, playerPos.y);
-		SDL_RenderDrawLine(globalObjects::renderer, playerPos.x, playerPos.y, playerPos.x - 32 * cam.scale, playerPos.y);
+		const int maxLength = 32;
+		const std::array< Point, 4 > offsets = { Point{ 0, maxLength }, { 0, -maxLength }, { maxLength, 0 }, { -maxLength, 0 } };
+		for (Point offset : offsets) {
+			drawing::drawLine(globalObjects::renderer, cam,
+				player.getPosition(),
+				player.getPosition() + offset,
+				drawing::Color{ 255, 127, 0 }
+			);
+		}
 
 		std::vector< SDL_Point > results;
 		for (int i = 0; i < 4; ++i) {
@@ -330,9 +331,7 @@ void Act::renderObjects(Player& player, Camera& cam) {
 		}
 
 		for (SDL_Point result : results) {
-			SDL_Point displayPos = (result - static_cast< SDL_Point >(cam.getPosition())) * cam.scale;
-			SDL_Rect displayPos2 = { displayPos.x - 1, displayPos.y - 1, 3, 3 };
-			SDL_RenderFillRect(globalObjects::renderer, &displayPos2);
+			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(result), drawing::Color{ 255, 127, 0 }, 4);
 		}
 	}
 
