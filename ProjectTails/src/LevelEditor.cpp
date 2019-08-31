@@ -5,6 +5,7 @@
 #include "Functions.h"
 #include "InputComponent.h"
 #include "Version.h"
+#include "Drawing.h"
 #include <experimental/filesystem>
 #include <functional>
 #include <limits>
@@ -53,7 +54,6 @@ void LevelEditor::render() {
 void LevelEditor::renderTiles() {
 	auto& levelBlocks = level.getGround();
 
-	const SDL_Rect src{ 0, 0, 1, 1 }, dst{ 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE };
 	sky.render({ 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE });
 	for (const auto& column : levelBlocks) {
 		for (const auto& block : column) {
@@ -62,10 +62,11 @@ void LevelEditor::renderTiles() {
 			}
 		}
 	}
-	const SDL_Point corner = SDL_Point{ 0, 0 } - SDL_Point{ int(cam->getPosition().x), int(cam->getPosition().y) };
-	const auto boundingRect = SDL_Rect{ corner.x, corner.y, int(levelBlocks.size() * GROUND_PIXEL_WIDTH), int(levelBlocks[0].size() * GROUND_PIXEL_WIDTH)} * cam->scale;
-	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
-	SDL_RenderDrawRect(globalObjects::renderer, &boundingRect);
+
+	double width = levelBlocks.size() * GROUND_PIXEL_WIDTH;
+	double height = (levelBlocks.size() == 0) ? 0 : levelBlocks[0].size() * GROUND_PIXEL_WIDTH;
+	Rect dest{ 0, 0, width, height };
+	drawing::drawRect(globalObjects::renderer, *cam, dest, drawing::Color{ 255, 0, 0 }, false);
 }
 
 void LevelEditor::renderEntities() const {
@@ -77,16 +78,15 @@ void LevelEditor::renderEntities() const {
 		entityView.find(i->getKey())->second.Render(SDL_Point{ int(temp.x), int(temp.y) }, 0, NULL, cam->scale);
 		const auto requiredFlags = entity_property_data::requiredFlagCount(entity_property_data::getEntityTypeData(i->getKey()).behaviorKey);
 		if (i->getFlags().size() != requiredFlags) {
-			Point temp = i->position - cam->getPosition();
-			const auto dst = SDL_Rect{ int(temp.x), int(temp.y), 16, 16 } * cam->scale;
-			SDL_RenderDrawRect(globalObjects::renderer, &dst);
+			Rect dest{ i->getPosition().x, i->getPosition().y, 16, 16 };
+
+			drawing::drawRect(globalObjects::renderer, *cam, dest, drawing::Color{ 255, 255, 0 }, false);
 		}
 	}
 	if (currentEntity != levelEntities.end()) {
-		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 0, (SDL_ALPHA_OPAQUE + SDL_ALPHA_TRANSPARENT) / 2);
-		auto temp = (*currentEntity)->position - cam->getPosition();
-		const SDL_Rect dst = SDL_Rect{ int(temp.x), int(temp.y), 16, 16 } * cam->scale;
-		SDL_RenderDrawRect(globalObjects::renderer, &dst);
+		Point pos = (*currentEntity)->getPosition();
+		Rect dest{ pos.x - 1, pos.y - 1, 18, 18 };
+		drawing::drawRect(globalObjects::renderer, *cam, dest, drawing::Color{ 255, 0, 0 }, false);
 	}
 }
 

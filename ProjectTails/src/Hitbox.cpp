@@ -1,6 +1,7 @@
 #include "Hitbox.h"
 #include "Miscellaneous.h"
 #include "Camera.h"
+#include "Drawing.h"
 
 HitboxForm::HitboxForm(Rect rect) :
 	box(rect)
@@ -27,11 +28,7 @@ void HitboxForm::render(const Camera& camera, Point center) const {
 	Rect temp = box;
 	temp.x += center.x;
 	temp.y += center.y;
-	temp.x -= camera.getPosition().x;
-	temp.y -= camera.getPosition().y;
-	SDL_Rect collision = static_cast< SDL_Rect >(temp) * camera.scale;
-	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-	SDL_RenderDrawRect(globalObjects::renderer, &collision);
+	drawing::drawRect(globalObjects::renderer, camera, temp, drawing::Color{ 255, 255, 255 }, false);
 }
 
 bool intersects(const PhysicsEntity& a, const PhysicsEntity& b) {
