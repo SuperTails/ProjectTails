@@ -10,6 +10,7 @@
 #include "Miscellaneous.h"
 #include "InputComponent.h"
 #include "Camera.h"
+#include "Drawing.h"
 
 Player::Player() {
 	using namespace player_constants::animation_paths;
@@ -1064,9 +1065,7 @@ void Player::render(const Camera& cam) {
 	}
 
 	if (globalObjects::debug) {
-		SDL_Rect dest = SDL_Rect{ int(position.x - cam.position.x), int(position.y - cam.position.y), 2, 2 } * cam.scale;
-		SDL_SetRenderDrawColor(globalObjects::renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-		SDL_RenderFillRect(globalObjects::renderer, &dest);
+		drawing::drawPoint(globalObjects::renderer, cam, getPosition(), drawing::Color{ 0, 0, 0 }, 2);
 		hitbox.render(cam, position);
 	}
 }
