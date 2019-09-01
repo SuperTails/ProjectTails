@@ -111,6 +111,8 @@ int main(int argc, char **argv ) {
 	Camera cam = Camera({ -32, -8, double(WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO + 64), double(WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 16) });
 	cam.setOffset({ (double)(-WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO / 2), (double)(-WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 128) });
 
+	text::addFont("GUI", Surface{ ASSET"FontGUI.png" }, "0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ.-", 10);
+
 	//Load entities:
 	cout << "Loading entity data...\n";
 	
@@ -165,7 +167,7 @@ int main(int argc, char **argv ) {
 	int last_frames = 0;
 	Uint32 start = SDL_GetTicks();
 
-	Text rings_text = Text(constants::FONT_PATH);
+	/*Text rings_text = Text(constants::FONT_PATH);
 	Text rings_count_text = Text(constants::FONT_PATH);
 	Text debug_text = Text(constants::FONT_PATH);
 	Text debug_text2 = Text(constants::FONT_PATH);
@@ -173,7 +175,7 @@ int main(int argc, char **argv ) {
 	rings_text.StringToText("RINGS:");
 	rings_count_text.StringToText(to_string(Tails.getRings()));
 	debug_text.StringToText("");
-	debug_text2.StringToText("");
+	debug_text2.StringToText("");*/
 
 	// Sprites
 	Sprite sky{ constants::SKY_PATH };
@@ -203,7 +205,7 @@ int main(int argc, char **argv ) {
 
 	double avg_fps = 0.0;
 
-	debug_text.StringToText("nope");
+	//debug_text.StringToText("nope");
 
 	SoundHandler::setMusic(ASSET"TheAdventureContinues", true);
 
@@ -240,7 +242,7 @@ int main(int argc, char **argv ) {
 
 		currentAct.updateEntities(Tails, cam);
 
-		rings_count_text.setText(to_string(Tails.getRings()));
+		text::renderAbsolute({ 1, 1 }, "GUI", "RINGS: " + std::to_string(Tails.getRings()));
 
 		cam.updatePos(Tails);
 
@@ -261,15 +263,11 @@ int main(int argc, char **argv ) {
 
 		currentAct.renderObjects(Tails, cam);
 
-		rings_text.Render(SDL_Point{ 25, 25 });
-		rings_count_text.Render(SDL_Point { rings_text.getText().size().x + 28, 25 });
-
-		debug_text.setText(debugText.str());
-		debug_text.Render(SDL_Point{ 25, 40 });
-
 		lives.render({ 2 * 8, WINDOW_VERTICAL_SIZE - 2 * 24, 2 * lives.size().x, 2 * lives.size().y });
 
 		effectManager::updateFade();
+
+		text::renderAbsolute({ 1, 15 }, "GUI", debugText.str());
 
 		window.updateDisplay();
 		
