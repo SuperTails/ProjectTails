@@ -18,6 +18,8 @@ public:
 	int getHeight(int ind) const { return dataList[dataIndex].heightMap[ind]; };
 	int getAngle() const { return dataList[dataIndex].angle; };
 
+	int getAngle(Direction dir) const;
+
 	void setIndex(int idx) { dataIndex = idx; };
 
 	int getIndex() const { return dataIndex; };
@@ -27,6 +29,8 @@ public:
 	static void loadFromImage(const std::string& image);
 
 private:
+	int getRawAngle() const;
+
 	int dataIndex = 0;
 
 	struct CollisionTileData {

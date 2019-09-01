@@ -61,9 +61,9 @@ SDL_Rect getRelativePosition(const SDL_Rect& a, const SDL_Rect& b) {
 	return SDL_Rect { a.x - b.x, a.y - b.y, a.w, a.h };
 }
 
-SDL_Point rotate90(int amount, SDL_Point point, const SDL_Point& center) {
+SDL_Point rotate90(int amount, SDL_Point point, SDL_Point center) {
 	point -= center;
-	switch (amount) {
+	switch (((amount % 4) + 4) % 4) {
 	case 0:
 		return SDL_Point{ point.x, point.y }   + center;
 	case 1:
@@ -75,16 +75,31 @@ SDL_Point rotate90(int amount, SDL_Point point, const SDL_Point& center) {
 	}
 }
 
-SDL_Rect rotate90(int amount, SDL_Rect rect, const SDL_Point& center) {
+SDL_Rect rotate90(int amount, SDL_Rect rect, SDL_Point center) {
 	rect.x -= center.x;
 	rect.y -= center.y;
-	switch (amount) {
+	switch (((amount % 4) + 4) % 4) {
 	case 0:
 		return { center.x + rect.x, center.y + rect.y, rect.w, rect.h };
 	case 1:
 		return { center.x - rect.y - rect.h, center.y + rect.x, rect.h, rect.w };
 	case 2:
-		return { center.x + rect.x, center.y - rect.y - rect.h, rect.w, rect.h };
+		return { center.x - rect.x, center.y - rect.y - rect.h, rect.w, rect.h };
+	case 3:
+		return { center.x + rect.y, center.y - rect.x - rect.w, rect.h, rect.w };
+	}
+}
+
+Rect rotate90(int amount, Rect rect, Point center) {
+	rect.x -= center.x;
+	rect.y -= center.y;
+	switch (((amount % 4) + 4) % 4) {
+	case 0:
+		return { center.x + rect.x, center.y + rect.y, rect.w, rect.h };
+	case 1:
+		return { center.x - rect.y - rect.h, center.y + rect.x, rect.h, rect.w };
+	case 2:
+		return { center.x - rect.x, center.y - rect.y - rect.h, rect.w, rect.h };
 	case 3:
 		return { center.x + rect.y, center.y - rect.x - rect.w, rect.h, rect.w };
 	}

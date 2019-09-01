@@ -52,7 +52,7 @@ public:
 	void Render(const Camera& camera, const SDL_Point* position = nullptr, int layer = 2, bool doFlip = false) const;
 	bool getMulti() const { return data[dataIndex].getMultiPath(); };
 
-	const CollisionTile& getTile(int tileX, int tileY, bool path) const;
+	CollisionTile getTile(int tileX, int tileY, bool path) const;
 	double getTileAngle(int tileX, int tileY, bool path) const;
 	int getFlag(int tileX, int tileY, bool path) const;
 	//bool empty() const { return (dataIndex == -1) || data[dataIndex].collision.empty(); };

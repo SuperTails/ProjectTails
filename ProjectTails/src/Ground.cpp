@@ -45,11 +45,13 @@ void Ground::Render(const Camera& camera, const SDL_Point* position, int layer, 
 
 }
 
-const CollisionTile& Ground::getTile(int tileX, int tileY, bool path) const {
+CollisionTile Ground::getTile(int tileX, int tileY, bool path) const {
 	path &= data[dataIndex].getMultiPath();
 
 	if (flip) {
-		return data[dataIndex].collision[path].at(tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX));
+		auto temp = data[dataIndex].collision[path].at(tileY * GROUND_WIDTH + (GROUND_WIDTH - 1 - tileX));
+		temp.flags ^= SDL_FLIP_HORIZONTAL;
+		return temp;
 	}
 	return data[dataIndex].collision[path].at(tileX + tileY * GROUND_WIDTH);
 }

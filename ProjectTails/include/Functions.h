@@ -1,4 +1,5 @@
 #pragma once
+#include "Shapes.h"
 #include <SDL2/SDL.h>
 #include <type_traits>
 #include <functional>
@@ -69,9 +70,11 @@ __attribute__((const)) SDL_Point rotate(const SDL_Point& p, int degrees);
 std::pair < double, double > rotate(const std::pair < double, double >& p, double degrees);
 
 // Returns point rotated by 90 * amount degrees clockwise around center
-__attribute__((const)) SDL_Point rotate90(int amount, SDL_Point point, const SDL_Point& center = { 0, 0 });
+__attribute__((const)) SDL_Point rotate90(int amount, SDL_Point point, SDL_Point center = { 0, 0 });
 
-__attribute__((const)) SDL_Rect rotate90(int amount, SDL_Rect rect, const SDL_Point& center = { 0, 0 });
+__attribute__((const)) SDL_Rect rotate90(int amount, SDL_Rect rect, SDL_Point center = { 0, 0 });
+
+__attribute__((const)) Rect rotate90(int amount, Rect rect, Point center = { 0, 0 });
 
 template < typename F, typename... Args >
 auto applyOptional(F&& f, const std::optional<Args...>& t) ->

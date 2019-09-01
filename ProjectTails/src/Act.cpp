@@ -322,16 +322,10 @@ void Act::renderObjects(Player& player, Camera& cam) {
 			);
 		}
 
-		std::vector< SDL_Point > results;
-		for (int i = 0; i < 4; ++i) {
-			std::optional< SDL_Point > temp = collideLine(static_cast< SDL_Point >(player.getPosition()), 32, static_cast< Direction >(i), solidTiles, true, player.getPath());
-			if (temp) {
-				results.push_back(*temp);
-			}
-		}
+		auto result = findGroundHeight(solidTiles, player.getPosition(), player.getMode(), player.getHitbox().getBox(), false, player.getPath(), Direction::DOWN);
 
-		for (SDL_Point result : results) {
-			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(result), drawing::Color{ 255, 127, 0 }, 4);
+		if (result) {
+			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(result->first), drawing::Color{ 0, 0, 255 }, 4);
 		}
 	}
 

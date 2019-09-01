@@ -12,6 +12,42 @@ void CollisionTile::setHeights(const std::array< int, heightMapSize >& heights) 
 	std::copy(heights.begin(), heights.end(), dataList[dataIndex].heightMap.begin());
 }
 
+int CollisionTile::getRawAngle() const {
+	switch (flags & (SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL)) {
+	case SDL_FLIP_NONE:
+		return dataList[dataIndex].angle;
+	case SDL_FLIP_HORIZONTAL:
+		return 0x100 - dataList[dataIndex].angle;
+	case SDL_FLIP_VERTICAL:
+		return (0x180 - int(dataList[dataIndex].angle)) % 0x100;
+	case (SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL):
+		return (0x080 + int(dataList[dataIndex].angle)) % 0x100;
+	default:
+		std::cerr << "Invalid flag: " << flags << "\n";
+		throw "Invalid flag";
+		return -1;
+	}
+}
+
+// TODO: Confirm angles are correct
+int CollisionTile::getAngle(Direction dir) const {
+	if ((flags & SDL_FLIP_HORIZONTAL) && dir == Direction::LEFT) {
+		return 192;
+	}
+	else if (!(flags & SDL_FLIP_HORIZONTAL) && dir == Direction::RIGHT) {
+		return 64;
+	}
+	else if ((flags & SDL_FLIP_VERTICAL) && dir == Direction::DOWN) {
+		return 128;
+	}
+	else if (!(flags & SDL_FLIP_VERTICAL) && dir == Direction::UP) {
+		return 0;
+	}
+	else {
+		return getRawAngle();
+	}
+}
+
 int getHeight2(const CollisionTile &tile, int idx, Direction dir) {
 	switch (dir) {
 	case Direction::LEFT:

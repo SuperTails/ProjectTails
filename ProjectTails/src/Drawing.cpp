@@ -13,7 +13,7 @@ namespace drawing {
 
 		SDL_Rect dest{ int(pos.x), int(pos.y), int(size), int(size) };
 
-		SDL_RenderDrawRect(renderer, &dest);
+		SDL_RenderFillRect(renderer, &dest);
 	}
 
 	void drawRect(SDL_Renderer* renderer, const Camera& camera, Rect rect, Color color, bool filled) {
