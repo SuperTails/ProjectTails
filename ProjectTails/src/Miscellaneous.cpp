@@ -137,15 +137,15 @@ void globalObjects::updateLoading(double incr) {
 	int currentHeight = WINDOW_VERTICAL_SIZE / 2;
 	int rowHeight = 40;
 	loadProgress.back().progress += incr;
-	Text t(ASSET"FontGUI.png");
+	//Text t(ASSET"FontGUI.png");
 	SDL_Rect currentBar{ WINDOW_HORIZONTAL_SIZE / 4, currentHeight + 15, WINDOW_HORIZONTAL_SIZE / 2, 10 };
 	for (int i = 0; i < loadProgress.size(); i++) {
-		t.StringToText(loadProgress[i].label);
+		//t.StringToText(loadProgress[i].label);
 		currentBar.w = WINDOW_HORIZONTAL_SIZE / 2;
 		SDL_RenderDrawRect(renderer, &currentBar);
 		currentBar.w = loadProgress[i].progress * WINDOW_HORIZONTAL_SIZE / 2;
-		SDL_Point textPosition { WINDOW_HORIZONTAL_SIZE / 2 - t.getText().size().x / 2, WINDOW_VERTICAL_SIZE / 2 };
-		t.Render(textPosition);
+		//SDL_Point textPosition { WINDOW_HORIZONTAL_SIZE / 2 - t.getText().size().x / 2, WINDOW_VERTICAL_SIZE / 2 };
+		//t.Render(textPosition);
 		SDL_RenderFillRect(renderer, &currentBar);
 		currentHeight += rowHeight;
 		currentBar.y += rowHeight;

@@ -34,13 +34,11 @@ private:
 
 	void selectTile(SDL_Rect mouseRect, Uint32 mouseState, bool mouseDebounce);
 
-	void updateFlags();
-
 	void renderFlags() const;
 
 	Sprite groundMap{ Ground::map };
 
-	std::array< std::array< std::array< Text, GROUND_WIDTH >, GROUND_WIDTH >, 2 > flagsText;
+	//std::array< std::array< std::array< Text, GROUND_WIDTH >, GROUND_WIDTH >, 2 > flagsText;
 
 	bool flagMode = false;
 

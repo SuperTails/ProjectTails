@@ -104,13 +104,9 @@ void BlockEditor::render(const Camera& camera) {
 	drawRect(SDL_Rect{ 0    , 0, width, width } * camera.scale, false, 0, 0, 0);
 	drawRect(SDL_Rect{ width, 0, width, width } * camera.scale, false, 0, 0, 0);
 
-	static Text index;
-	index.setText("Index: " + std::to_string(currentBlockIndex));
-	index.Render(SDL_Point{ width + 10, width + 10 } * camera.scale);
-
-	static Text tileText;
-	tileText.setText("Selected tile: " + std::to_string(selectedTile.index));
-	tileText.Render(SDL_Point{ width * 2 + 10, groundMap.size().y / 2 + 5 } * camera.scale); 
+	text::renderAbsolute(SDL_Point{ width + 10, width + 10 } * camera.scale, "GUI", "Index: " + std::to_string(currentBlockIndex));
+	text::renderAbsolute(SDL_Point{ width * 2 + 10, groundMap.size().y / 2 + 5 } * camera.scale, "GUI",
+			"Selected Tile: " + std::to_string(selectedTile.index));
 }
 
 Ground::Tile& BlockEditor::tileAt(Ground::Layer& layer, SDL_Point pos) const {
@@ -152,10 +148,6 @@ void BlockEditor::update(const Camera& camera) {
 	}
 
 	flagMode ^= input.GetKeyPress(InputComponent::F);
-
-	if (flagMode) {
-		updateFlags();
-	}
 
 	if (input.GetKeyPress(InputComponent::N)) {
 		addBlock();
@@ -222,7 +214,6 @@ bool BlockEditor::editBlock(SDL_Rect mouseRect, Uint32 mouseState, bool mouseDeb
 		if (flagMode) {
 			if (!mouseDebounce && mouseState && lMouseMask) {
 				tile.flags ^= static_cast< int >(Ground::Flags::TOP_SOLID);
-				updateFlags();
 				return true;
 			}
 		}
@@ -247,27 +238,20 @@ void BlockEditor::selectTile(SDL_Rect mouseRect, Uint32 mouseState, bool mouseDe
 
 }
 
-void BlockEditor::updateFlags() {
-	const auto& blockTiles = (Ground::showCollision ? currentBlock().collision: currentBlock().graphics);
-	for (std::size_t blockIndex = 0; blockIndex < std::min(flagsText.size(), blockTiles.size()); ++blockIndex) {
-		for (std::size_t x = 0; x < flagsText[blockIndex].size(); ++x) {
-			for (std::size_t y = 0; y < flagsText[blockIndex][x].size(); ++y) {
-				auto& text = flagsText[blockIndex][x][y];
-				const auto& tile = tileAt(blockTiles[blockIndex], { int(x), int(y) });
-				std::stringstream out;
-				out << std::hex << tile.flags;
-				text.setText(out.str());
-			}
-		}
-	}
-}
-
 void BlockEditor::renderFlags() const {
-	for (std::size_t blockIndex = 0; blockIndex < flagsText.size(); ++blockIndex) {
-		for (std::size_t x = 0; x < flagsText[blockIndex].size(); ++x) {
-			for (std::size_t y = 0; y < flagsText[blockIndex][x].size(); ++y) {
-				auto& text = flagsText[blockIndex][x][y];
-				text.Render((SDL_Point{ int(TILE_WIDTH / 2 + blockIndex * GROUND_PIXEL_WIDTH + x * TILE_WIDTH), int(TILE_WIDTH / 2 + y * TILE_WIDTH) })* 2);
+	const auto& blockTiles = (Ground::showCollision ? currentBlock().collision: currentBlock().graphics);
+	// TODO: Fix
+	for (int blockIndex = 0; blockIndex < blockTiles.size(); ++blockIndex) {
+		for (int x = 0; x < GROUND_WIDTH; ++x) {
+			for (int y = 0; y < GROUND_WIDTH; ++y) {
+				const auto& tile = tileAt(blockTiles[blockIndex], { x, y });
+				std::stringstream stream;
+				stream << std::hex << tile.flags;
+				SDL_Point position{
+					int(TILE_WIDTH / 2 + blockIndex * GROUND_PIXEL_WIDTH + x * TILE_WIDTH),
+					int(TILE_WIDTH / 2 + y * TILE_WIDTH)
+				};
+				text::renderAbsolute(position * 2, "GUI", stream.str());
 			}
 		}
 	}

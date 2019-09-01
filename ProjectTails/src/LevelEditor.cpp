@@ -96,10 +96,9 @@ void LevelEditor::renderText() const {
 
 	using std::to_string;
 
-	static Text t(constants::FONT_PATH);
-	static Text flagsText(constants::FONT_PATH);
-	t.setText("Mode: " + to_string(mode) + " Size: " + to_string(levelBlocks.size()) + " " + to_string(levelBlocks[0].size()));
-	t.Render(SDL_Point { 25, 25 });
+	std::string helpText = "Mode: " + to_string(mode) + " Size: " + to_string(levelBlocks.size()) + " " + to_string(levelBlocks[0].size());
+	text::renderAbsolute(SDL_Point{ 1, 1 }, "GUI", helpText);
+
 	if (mode == ENTITY && currentEntity != levelEntities.end()) {
 		const auto typeId = (*currentEntity)->getKey();
 		const auto requiredFlags = entity_property_data::requiredFlagCount(entity_property_data::getEntityTypeData(typeId).behaviorKey);
@@ -108,17 +107,17 @@ void LevelEditor::renderText() const {
 			std::copy((*currentEntity)->getFlags().begin(), (*currentEntity)->getFlags().end(), std::ostream_iterator< char >(str, " "));
 			return str.str();
 		}();
-		flagsText.StringToText(std::to_string(requiredFlags) + "\nCURRENT: " + currentString);
-		flagsText.Render(SDL_Point{ 25, 28 + t.getText().size().y });
+
+		text::renderAbsolute(SDL_Point{ 1, 15 }, "GUI", std::to_string(requiredFlags) + "\nCURRENT: " + currentString);
 	}
-	static Text controls(constants::FONT_PATH);
+	std::string controlsText;
 	if (mode == editMode::TILE) {
-		controls.setText("M: Change mode   Click and drag: Change tile   LBracket: Zoom out   RBracket: Zoom in");
+		controlsText = "M: Change mode   Click and drag: Change tile   LBracket: Zoom out   RBracket: Zoom in";
 	}
 	else {
-		controls.setText("M: Change mode   Click: Select entity");
+		controlsText = "M: Change mode   Click: Select entity";
 	}
-	controls.Render(SDL_Point{ 25, 50 });
+	text::renderAbsolute(SDL_Point{ 1, 30 }, "GUI", controlsText);
 }
 
 bool LevelEditor::handleInput() {
