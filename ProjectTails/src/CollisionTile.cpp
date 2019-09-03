@@ -12,7 +12,7 @@ void CollisionTile::setHeights(const std::array< int, heightMapSize >& heights) 
 	std::copy(heights.begin(), heights.end(), dataList[dataIndex].heightMap.begin());
 }
 
-int CollisionTile::getRawAngle() const {
+int CollisionTile::getAngle() const {
 	switch (flags & (SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL)) {
 	case SDL_FLIP_NONE:
 		return dataList[dataIndex].angle;
@@ -44,7 +44,7 @@ int CollisionTile::getAngle(Direction dir) const {
 		return 0;
 	}
 	else {
-		return getRawAngle();
+		return getAngle();
 	}
 }
 

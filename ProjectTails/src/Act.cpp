@@ -3,6 +3,7 @@
 #include "Act.h"
 #include "Text.h"
 #include "Version.h"
+#include "CollisionTile.h"
 #include "Camera.h"
 #include "Constants.h"
 #include "Ground.h"
@@ -282,26 +283,6 @@ void Act::renderObjects(Player& player, Camera& cam) {
 	}
 
 	if (globalObjects::debug) {
-		const auto camPos = cam.getPosition();
-		for (int i = 0; i < 6; ++i) {
-			drawing::Color color{
-				std::uint8_t(((i % 2) >> 0) * 255),
-				std::uint8_t(((i % 4) >> 1) * 255),
-				std::uint8_t(((i % 8) >> 2) * 255)
-			};
-			if (auto result = player.getSensorPoint(static_cast< Player::Sensor >(i), solidTiles)) {
-				drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(*result), color, 3.0);
-			}
-			auto [xRange, yRange, dir] = player.getRange(Player::Sensor(i));
-
-			Point first{ double(xRange.first), double(yRange.first) };
-			Point second{ double(xRange.second), double(yRange.second) };
-
-			drawing::drawLine(globalObjects::renderer, cam, first, second, color);
-		}
-	}
-
-	if (globalObjects::debug) {
 		for (auto& entity : entities) {
 			if (intersects(player, *entity) && entity->canCollide) {
 				SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 255, SDL_ALPHA_OPAQUE);
@@ -311,22 +292,45 @@ void Act::renderObjects(Player& player, Camera& cam) {
 			}
 		}
 
-		SDL_SetRenderDrawColor(globalObjects::renderer, 255, 127, 0, SDL_ALPHA_OPAQUE);
-		const int maxLength = 32;
-		const std::array< Point, 4 > offsets = { Point{ 0, maxLength }, { 0, -maxLength }, { maxLength, 0 }, { -maxLength, 0 } };
-		for (Point offset : offsets) {
-			drawing::drawLine(globalObjects::renderer, cam,
-				player.getPosition(),
-				player.getPosition() + offset,
-				drawing::Color{ 255, 127, 0 }
-			);
-		}
-
 		auto result = findGroundHeight(solidTiles, player.getPosition(), player.getMode(), player.getHitbox().getBox(), false, player.getPath(), Direction::DOWN);
-
 		if (result) {
 			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(result->first), drawing::Color{ 0, 0, 255 }, 4);
 		}
+
+		auto lResult = findGroundHeight(solidTiles, player.getPosition(), player.getMode(), player.getWallHitbox(), false, player.getPath(), Direction::LEFT);
+		auto rResult = findGroundHeight(solidTiles, player.getPosition(), player.getMode(), player.getWallHitbox(), false, player.getPath(), Direction::RIGHT);
+
+		if (lResult) {
+			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(lResult->first), drawing::Color{ 0, 0, 255 }, 4);
+		}
+		if (rResult) {
+			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(rResult->first), drawing::Color{ 0, 0, 255 }, 4);
+		}
+
+		SDL_Point mousePos;
+		SDL_GetMouseState(&mousePos.x, &mousePos.y);
+		mousePos /= cam.scale;
+		mousePos += static_cast< SDL_Point >(cam.getPosition());
+
+		CollisionTile tile0 = getTile(mousePos, solidTiles, false);
+		CollisionTile tile1 = getTile(mousePos, solidTiles, true);
+
+		std::stringstream tileDebugInfo;
+		
+		auto printThings = [](std::stringstream& stream, const CollisionTile& tile) {
+			stream << "idx: " << tile.getIndex() << ", raw angle: " << tile.getAngle() << ", flags: " << tile.flags;
+		};
+
+		if (tile0.getIndex()) {
+			printThings(tileDebugInfo, tile0);
+			tileDebugInfo << "\n";
+		}
+		if (tile1.getIndex() && tile1.getIndex() != tile0.getIndex()) {
+			printThings(tileDebugInfo, tile1);
+			tileDebugInfo << "\n";
+		}
+
+		text::renderAbsolute({ 250, 1 }, "GUI", tileDebugInfo.str());
 	}
 
 }

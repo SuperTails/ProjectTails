@@ -7,6 +7,8 @@ class Ground;
 class InputComponent;
 class Camera;
 class PlayerState;
+class CollisionTile;
+class Act;
 
 enum Mode { GROUND, LEFT_WALL, CEILING, RIGHT_WALL };
 
@@ -53,6 +55,7 @@ namespace player_constants {
 
 class Player : public PhysicsEntity
 {
+	friend class Act;
 	enum class Side { TOP, RIGHT, BOTTOM, LEFT };
 	friend std::ostream& operator<< (std::ostream& str, Side side);
 	typedef std::optional< std::tuple< SDL_Point, double, Side > > SensorResult;
@@ -90,7 +93,7 @@ public:
 
 	double getSpindash() const { return spindash; };
 
-	Mode getMode() { return collideMode; };
+	Mode getMode() const { return collideMode; };
 
 	void setAngle(double angle);
 	double getAngle() const;
@@ -128,18 +131,6 @@ public:
 	static std::string modeToString(Mode m);
 
 	enum class Sensor { A, B, C, D, E, F };
-
-	static SensorResult checkSensor(const SDL_Point& position, const SDL_Point& radii, const Vector2& velocity, Mode mode, Sensor sensor, bool path, const std::vector < std::vector < Ground > >& tiles);
-
-	SensorResult checkSensor(Sensor sensor, const std::vector < std::vector < Ground > >& tiles) const;
-
-	std::optional< SDL_Point > getSensorPoint(Sensor sensor, const std::vector< std::vector< Ground > >& tiles) const;
-
-	static std::tuple< std::pair< int, int >, std::pair< int, int >, Direction > getRange(const SDL_Point& position, const SDL_Point& radii, Mode mode, Sensor sensor);
-
-	std::tuple< std::pair< int, int >, std::pair< int, int >, Direction > getRange(Sensor sensor) const;
-
-	//void setState(std::unique_ptr< PlayerState >&& newState);
 
 	Timer getControlLock() const { return controlLock; }
 
@@ -184,7 +175,7 @@ private:
 
 	State state = State::IDLE;
 	
-	//std::unique_ptr< PlayerState > state = nullptr;
+	HitboxForm getWallHitbox() const;
 
 	void handleCollisions(std::vector < std::vector < Ground > >& tiles, EntityManager& manager);
 
@@ -204,18 +195,20 @@ private:
 
 	bool getKeyState(const InputComponent& input, int key) const;
 
-	static std::pair< int, bool > getHeight(const std::vector< std::vector < Ground > >& ground, SDL_Point block, SDL_Point tilePosition, bool side, bool path, std::pair< int, int > xRange, std::pair< int, int > yRange);
-
 	__attribute__((const)) friend bool operator< (const SensorResult& a, const SensorResult& b);
 
 	__attribute__((const)) friend bool operator< (const SensorResult& a, const SDL_Point& b);
 };
 
-SDL_Point directionCompare(SDL_Point a, SDL_Point b, Direction direction);
+int directionCompare(SDL_Point a, SDL_Point b, Direction direction);
+
+int directionCompare(Point a, Point b, Direction direction);
 
 double hexToDeg(double hex);
 
 double hexToRad(double hex);
+
+double radToHex(double rad);
 
 int signum(int a);
 
@@ -229,6 +222,14 @@ std::ostream& operator<< (std::ostream& str, Direction sensor);
 
 std::ostream& operator<< (std::ostream& str, Player::Side side);
 
+CollisionTile getTile(SDL_Point position, const std::vector< std::vector< Ground > >& tiles, bool path);
+
+bool shouldUseOneWays(Vector2 velocity, Direction dir);
+
 std::optional< std::pair< SDL_Point, double > > collideLine(SDL_Point lineBegin, int maxLength, Direction direction, const std::vector< std::vector< Ground > >& ground, bool useOneWayPlatforms, bool path);
 
 std::optional< std::pair< SDL_Point, double > > findGroundHeight(const std::vector< std::vector< Ground > >& tiles, Point position, Mode mode, HitboxForm hitbox, bool useOneWayPlatforms, bool path, Direction relativeDir);
+
+bool lessThanInDirection(SDL_Point a, SDL_Point b, Direction direction);
+
+bool lessThanInDirection(Point a, Point b, Direction direction);

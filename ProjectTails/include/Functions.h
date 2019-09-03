@@ -74,6 +74,8 @@ __attribute__((const)) SDL_Point rotate90(int amount, SDL_Point point, SDL_Point
 
 __attribute__((const)) SDL_Rect rotate90(int amount, SDL_Rect rect, SDL_Point center = { 0, 0 });
 
+__attribute__((const)) Point rotate90(int amount, Point point, Point center = { 0, 0 });
+
 __attribute__((const)) Rect rotate90(int amount, Rect rect, Point center = { 0, 0 });
 
 template < typename F, typename... Args >

@@ -55,7 +55,7 @@ Font parseFont(Surface& file, const std::string& mapping, int maxWidth) {
 
 	const int numChars = file.size().x / maxWidth;
 	if (numChars != mapping.size()) {
-		std::cerr << "Number of characters in image does not match mapping\n";
+		std::cerr << "Number of characters in image (" << numChars << ") does not match mapping (" << mapping.size() << ")\n";
 		throw std::invalid_argument("Image character count does not match string\n");
 	}
 

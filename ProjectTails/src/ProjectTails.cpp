@@ -111,7 +111,7 @@ int main(int argc, char **argv ) {
 	Camera cam = Camera({ -32, -8, double(WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO + 64), double(WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 16) });
 	cam.setOffset({ (double)(-WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO / 2), (double)(-WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 128) });
 
-	text::addFont("GUI", Surface{ ASSET"FontGUI.png" }, "0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ.-", 10);
+	text::addFont("GUI", Surface{ ASSET"FontGUI.png" }, "0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,", 10);
 
 	//Load entities:
 	cout << "Loading entity data...\n";
@@ -242,8 +242,6 @@ int main(int argc, char **argv ) {
 
 		currentAct.updateEntities(Tails, cam);
 
-		text::renderAbsolute({ 1, 1 }, "GUI", "RINGS: " + std::to_string(Tails.getRings()));
-
 		cam.updatePos(Tails);
 
 		sky.render({ 0, 0, WINDOW_HORIZONTAL_SIZE, WINDOW_VERTICAL_SIZE });
@@ -266,6 +264,8 @@ int main(int argc, char **argv ) {
 		lives.render({ 2 * 8, WINDOW_VERTICAL_SIZE - 2 * 24, 2 * lives.size().x, 2 * lives.size().y });
 
 		effectManager::updateFade();
+
+		text::renderAbsolute({ 1, 1 }, "GUI", "RINGS: " + std::to_string(Tails.getRings()));
 
 		text::renderAbsolute({ 1, 15 }, "GUI", debugText.str());
 

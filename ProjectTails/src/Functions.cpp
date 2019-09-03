@@ -90,6 +90,20 @@ SDL_Rect rotate90(int amount, SDL_Rect rect, SDL_Point center) {
 	}
 }
 
+Point rotate90(int amount, Point point, Point center) {
+	point -= center;
+	switch (((amount % 4) + 4) % 4) {
+	case 0:
+		return Point{ point.x, point.y }   + center;
+	case 1:
+		return Point{ -point.y, point.x }  + center;
+	case 2:
+		return Point{ -point.x, -point.y } + center;
+	case 3:
+		return Point{ point.y, -point.x }  + center;
+	}
+}
+
 Rect rotate90(int amount, Rect rect, Point center) {
 	rect.x -= center.x;
 	rect.y -= center.y;
