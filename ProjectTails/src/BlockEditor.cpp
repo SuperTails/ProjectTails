@@ -132,35 +132,35 @@ void BlockEditor::update(const Camera& camera) {
 
 	const auto& input = globalObjects::input;
 	{
-	const int incr = input.GetKeyPress(InputComponent::RBRACKET) - input.GetKeyPress(InputComponent::LBRACKET);
+	const int incr = input.getKeyPress(']') - input.getKeyPress('[');
 	currentBlockIndex = (currentBlockIndex + incr + Ground::data.size()) % Ground::data.size();
 	}
-	if (input.GetKeyPress(InputComponent::W)) {
+	if (input.getKeyPress('w')) {
 		selectedTile.flags |= SDL_FLIP_VERTICAL;
 	}
-	if (input.GetKeyPress(InputComponent::S)) {
+	if (input.getKeyPress('s')) {
 		selectedTile.flags &= ~SDL_FLIP_VERTICAL;
 	}
-	if (input.GetKeyPress(InputComponent::D)) {
+	if (input.getKeyPress('d')) {
 		selectedTile.flags |= SDL_FLIP_HORIZONTAL;
 	}
-	if (input.GetKeyPress(InputComponent::A)) {
+	if (input.getKeyPress('a')) {
 		selectedTile.flags &= ~SDL_FLIP_HORIZONTAL;
 	}
 
-	flagMode ^= input.GetKeyPress(InputComponent::F);
+	flagMode ^= input.getKeyPress('f');
 
-	if (input.GetKeyPress(InputComponent::N)) {
+	if (input.getKeyPress('n')) {
 		addBlock();
 	}
-	if (input.GetKeyPress(InputComponent::R)) {
+	if (input.getKeyPress('r')) {
 		const GroundData& lastBlock = currentBlock();
 		addBlock();
 		currentBlock() = lastBlock;
 		currentBlockChanged = true;
 	}
 
-	if (input.GetKeyPress(InputComponent::M)) {
+	if (input.getKeyPress('m')) {
 		Ground::showCollision = !Ground::showCollision;
 		groundMap = Sprite{ Ground::showCollision ? Ground::getCollisionDebugMap() : Ground::map };
 		std::for_each(Ground::data.begin(), Ground::data.end(), updateBlock);
@@ -175,7 +175,7 @@ void BlockEditor::update(const Camera& camera) {
 		currentBlockChanged = false;
 	}
 
-	if (input.GetKeyPress(InputComponent::J)) {
+	if (input.getKeyPress('j')) {
 		save();
 	}
 

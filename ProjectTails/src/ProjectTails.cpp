@@ -132,22 +132,22 @@ int main(int argc, char **argv ) {
 	if (LevelEditor editor(currentAct, &cam); LevelEditor::levelEditing) {
 		while (true) {
 			Timer::updateFrameTime();
-			globalObjects::input.UpdateKeys();
+			globalObjects::input.updateKeys();
 			if (editor.handleInput())
 				break;
 			editor.render();
 			SDL_RenderPresent(globalObjects::renderer);
 		}
-		if (globalObjects::input.GetKeyState(InputComponent::J)) {
+		if (globalObjects::input.getKeyState('j')) {
 			editor.save(ASSET"Act1Data.txt");
 		}
 		return 0;
 	}
 
 	if (BlockEditor editor; BlockEditor::editing) {
-		while (!globalObjects::input.GetKeyPress(InputComponent::X)) {
+		while (!globalObjects::input.getKeyPress('x')) {
 			Timer::updateFrameTime();
-			globalObjects::input.UpdateKeys();
+			globalObjects::input.updateKeys();
 
 			editor.update(cam);
 			editor.render(cam);
@@ -195,8 +195,8 @@ int main(int argc, char **argv ) {
 		if (globalObjects::titleScreen[2].getFrame() == 10) {
 			cam.position.x += thisFrames * 20.0;
 		}
-		globalObjects::input.UpdateKeys();
-		if (globalObjects::input.GetKeyState(InputComponent::JUMP)) {
+		globalObjects::input.updateKeys();
+		if (globalObjects::input.getKeyState(InputComponent::KeyMap::JUMP)) {
 			globalObjects::gameState = 1;
 			globalObjects::unloadTitleScreen();
 			break;
@@ -221,12 +221,12 @@ int main(int argc, char **argv ) {
 		SoundHandler::updateMusic();
 
 		Timer::updateFrameTime();
-		globalObjects::input.UpdateKeys();
+		globalObjects::input.updateKeys();
 
 		if (globalObjects::debug) {
-			Timer::slowMotion ^= globalObjects::input.GetKeyPress(InputComponent::M);
-			Timer::paused ^= globalObjects::input.GetKeyPress(InputComponent::F);
-			if (globalObjects::input.GetKeyPress(InputComponent::R)) {
+			Timer::slowMotion ^= globalObjects::input.getKeyPress('m');
+			Timer::paused ^= globalObjects::input.getKeyPress('f');
+			if (globalObjects::input.getKeyPress('r')) {
 				Timer::frameAdvance();
 			}
 			else if (Timer::paused) {
@@ -293,7 +293,7 @@ int main(int argc, char **argv ) {
 
 		++frames;
 
-		if (globalObjects::input.GetKeyState(static_cast< int >(InputComponent::X))) {
+		if (globalObjects::input.getKeyState(static_cast< int >('x'))) {
 			break;
 		}
 	};

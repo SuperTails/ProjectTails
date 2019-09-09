@@ -41,8 +41,6 @@ LevelEditor::LevelEditor(Act act, Camera* camera) :
 			throw "No image file available for entity";
 		}
 	}
-
-	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
 }
 
 void LevelEditor::render() {
@@ -122,36 +120,36 @@ void LevelEditor::renderText() const {
 
 bool LevelEditor::handleInput() {
 	double thisDistance = (Timer::getFrameTime().count() / (1000.0 / 60.0)) * 10 / cam->scale;
-	if (globalObjects::input.GetKeyState(InputComponent::A)) {
+	if (globalObjects::input.getKeyState('a')) {
 		cam->position.x -= thisDistance;
 	}
-	else if (globalObjects::input.GetKeyState(InputComponent::D)) {
+	else if (globalObjects::input.getKeyState('d')) {
 		cam->position.x += thisDistance;
 	}
-	if (globalObjects::input.GetKeyState(InputComponent::W)) {
+	if (globalObjects::input.getKeyState('w')) {
 		cam->position.y -= thisDistance;
 	}
-	else if (globalObjects::input.GetKeyState(InputComponent::S)) {
+	else if (globalObjects::input.getKeyState('s')) {
 		cam->position.y += thisDistance;
 	}
 
 	if (mode == TILE) {
-		if (globalObjects::input.GetKeyPress(InputComponent::LBRACKET) && cam->scale > 0.1) {
+		if (globalObjects::input.getKeyPress('[') && cam->scale > 0.1) {
 			cam->scale -= 0.1;
 		}
-		if (globalObjects::input.GetKeyPress(InputComponent::RBRACKET) && cam->scale < 3.0) {
+		if (globalObjects::input.getKeyPress(']') && cam->scale < 3.0) {
 			cam->scale += 0.1;
 		}
 	}
 
-	if (globalObjects::input.GetKeyPress(InputComponent::M)) {
+	if (globalObjects::input.getKeyPress('m')) {
 		mode = (mode == TILE) ? ENTITY : TILE;
 	}
 
 	auto& levelEntities = level.getEntities();
 
 	if (mode == ENTITY && currentEntity != levelEntities.end()) {
-		mouseWheelValue += globalObjects::input.GetWheel() * 1.5;
+		mouseWheelValue += globalObjects::input.getWheel() * 1.5;
 		mouseWheelValue = std::max(1.0, mouseWheelValue);
 		mouseWheelValue = std::min(10.0, mouseWheelValue);
 
@@ -159,16 +157,16 @@ bool LevelEditor::handleInput() {
 		static double entityYError = 0.0;
 
 		double thisMove = thisDistance / (mouseWheelValue * cam->scale);
-		if (globalObjects::input.GetKeyState(InputComponent::LARROW)) {
+		if (globalObjects::input.getKeyState(SDLK_LEFT)) {
 			entityXError -= thisMove;
 		}
-		else if (globalObjects::input.GetKeyState(InputComponent::RARROW)) {
+		else if (globalObjects::input.getKeyState(SDLK_RIGHT)) {
 			entityXError += thisMove;
 		}
-		if (globalObjects::input.GetKeyState(InputComponent::UARROW)) {
+		if (globalObjects::input.getKeyState(SDLK_UP)) {
 			entityYError -= thisMove;
 		}
-		else if (globalObjects::input.GetKeyState(InputComponent::DARROW)) {
+		else if (globalObjects::input.getKeyState(SDLK_DOWN)) {
 			entityYError += thisMove;
 		}
 
@@ -254,11 +252,11 @@ bool LevelEditor::handleInput() {
 	}
 
 	if (mode == ENTITY) {
-		if (globalObjects::input.GetKeyPress(InputComponent::N)) {
+		if (globalObjects::input.getKeyPress('n')) {
 			levelEntities.push_back(std::make_unique< PhysicsEntity >("RING", std::vector< char >{}, Point(mouse), false));
 			currentEntity = std::prev(levelEntities.end());
 		}
-		else if(globalObjects::input.GetKeyPress(InputComponent::X) && currentEntity != levelEntities.end()) {
+		else if(globalObjects::input.getKeyPress('x') && currentEntity != levelEntities.end()) {
 			levelEntities.erase(currentEntity);
 			currentEntity = levelEntities.end();
 		}
@@ -266,7 +264,7 @@ bool LevelEditor::handleInput() {
 			const auto& entityTypes = entity_property_data::entityTypes;
 			const auto entityType = entityTypes.find((*currentEntity)->getKey());
 			assert(entityType != entityTypes.end());
-			if (globalObjects::input.GetKeyPress(InputComponent::LBRACKET)) {
+			if (globalObjects::input.getKeyPress('[')) {
 				/*if (entityType == entityTypes.begin()) {
 					currentEntity->typeId = std::prev(entityTypes.end())->first;
 				}
@@ -274,7 +272,7 @@ bool LevelEditor::handleInput() {
 					currentEntity->typeId = std::prev(entityType)->first;
 				}*/
 			}
-			else if (globalObjects::input.GetKeyPress(InputComponent::RBRACKET)) {
+			else if (globalObjects::input.getKeyPress(']')) {
 				if (std::next(entityType) == entityTypes.end()) {
 					*currentEntity = std::make_unique< PhysicsEntity >(
 						entityTypes.begin()->first,
@@ -294,7 +292,7 @@ bool LevelEditor::handleInput() {
 			}
 			
 		}
-		if (globalObjects::input.GetKeyPress(InputComponent::F)) {
+		if (globalObjects::input.getKeyPress('f')) {
 			std::cout << "Enter flags: ";
 			std::string current;
 			std::getline(std::cin, current);
@@ -303,7 +301,7 @@ bool LevelEditor::handleInput() {
 			std::cout << '\n';
 		}
 	}
-	else if (globalObjects::input.GetKeyPress(InputComponent::R)) {
+	else if (globalObjects::input.getKeyPress('r')) {
 		std::cout << "Enter new size: ";
 		SDL_Point newSize;
 		std::cin >> newSize.x >> newSize.y;
@@ -348,7 +346,7 @@ bool LevelEditor::handleInput() {
 		}
 	}
 
-	return globalObjects::input.GetKeyState(InputComponent::J) || globalObjects::input.GetKeyState(InputComponent::X);
+	return globalObjects::input.getKeyState('j') || globalObjects::input.getKeyState('x');
 }
 
 void LevelEditor::save(const std::experimental::filesystem::path& path) const {

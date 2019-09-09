@@ -2,9 +2,9 @@
 #include <queue>
 #include "PhysicsEntity.h"
 #include "Constants.h"
+#include "InputComponent.h"
 
 class Ground;
-class InputComponent;
 class Camera;
 class PlayerState;
 class CollisionTile;
@@ -187,9 +187,9 @@ private:
 
 	static void restrictVelocityDirection(Vector2& point, SDL_Point dir, int rotation);
 
-	bool getKeyPress(const InputComponent& input, int key) const;
+	bool getKeyPress(const InputComponent& input, InputComponent::KeyMap key) const;
 
-	bool getKeyState(const InputComponent& input, int key) const;
+	bool getKeyState(const InputComponent& input, InputComponent::KeyMap key) const;
 };
 
 int directionCompare(SDL_Point a, SDL_Point b, Direction direction);

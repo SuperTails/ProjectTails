@@ -2,109 +2,61 @@
 #include "InputComponent.h"
 #include <iostream>
 
-
-InputComponent::InputComponent() :
-	KeyStates(0),
-	KeyPress(0),
-	mouseWheel(0)
-{
+// Returns true if the given key is currently held
+bool InputComponent::getKeyState(int k) const {
+	if (k & (1 << 30)) {
+		return keyStates[(k & ~(1 << 30)) + 128];
+	}
+	return keyStates[k];
 }
 
+
+bool InputComponent::getKeyState(KeyMap input) const { return getKeyState(static_cast< char >(input)); }
+
+// Returns true if the given key was just pressed on this frame
+bool InputComponent::getKeyPress(int k) const {
+	if (k & (1 << 30)) {
+		return keyPress[(k & ~(1 << 30)) + 128];
+	}
+	return keyPress[k];
+}
+
+
+bool InputComponent::getKeyPress(KeyMap input) const { return getKeyPress(static_cast< char >(input)); }
+
 //Updates the KeyStates array values
-void InputComponent::UpdateKeys() {
-	KeyPress = 0;
+void InputComponent::updateKeys() {
+	keyPress = 0;
 	bool mouseWheelEvent = false;
-	while (SDL_PollEvent(&KeyEvent)) {
-		switch (KeyEvent.type) {
-
-		#define KEY(key) \
-			KeyPress[key] = !KeyStates[key]; \
-			KeyStates[key] = true; \
-			break;
-
+	SDL_Event keyEvent{};
+	while (SDL_PollEvent(&keyEvent)) {
+		int sym;
+		switch (keyEvent.type) {
 		case SDL_KEYDOWN:
-			switch (KeyEvent.key.keysym.sym) {
-			case SDLK_w: KEY(W)
-			case SDLK_a: KEY(A)
-			case SDLK_s: KEY(S)
-			case SDLK_d: KEY(D)
-			case SDLK_j: KEY(J)
-			case SDLK_m: KEY(M)
-			case SDLK_UP: KEY(UP)
-			case SDLK_LEFT: KEY(LEFT)
-			case SDLK_RIGHT: KEY(RIGHT)
-			case SDLK_DOWN: KEY(DOWN)
-			case SDLK_n: KEY(N)
-			case SDLK_x: KEY(X)
-			case SDLK_LEFTBRACKET: KEY(LBRACKET)
-			case SDLK_RIGHTBRACKET: KEY(RBRACKET)
-			case SDLK_f: KEY(F)
-			case SDLK_r: KEY(R)
+			sym = keyEvent.key.keysym.sym;
+			if (sym & (1 << 30)) {
+				sym &= ~(1 << 30);
+				sym += 128;
+			}
+			if (sym < keyCount) {
+				keyPress[sym] = !keyStates[sym];
+				keyStates[sym] = true;
 			}
 			break;
-			
-		#undef KEY
-
 		case SDL_KEYUP:
-			switch (KeyEvent.key.keysym.sym) {
-			case SDLK_w:
-				KeyStates[W] = false;
-				break;
-			case SDLK_a:
-				KeyStates[A] = false;
-				break;
-			case SDLK_s:
-				KeyStates[S] = false;
-				break;
-			case SDLK_d:
-				KeyStates[D] = false;
-				break;
-			case SDLK_j:
-				KeyStates[J] = false;
-				break;
-			case SDLK_m:
-				KeyStates[M] = false;
-				break;
-			case SDLK_UP:
-				KeyStates[UARROW] = false;
-				break;
-			case SDLK_LEFT:
-				KeyStates[LARROW] = false;
-				break;
-			case SDLK_RIGHT:
-				std::cout << "r up\n";
-				KeyStates[RARROW] = false;
-				break;
-			case SDLK_DOWN:
-				KeyStates[DARROW] = false;
-				break;
-			case SDLK_n:
-				KeyStates[N] = false;
-				break;
-			case SDLK_x:
-				KeyStates[X] = false;
-				break;
-			case SDLK_LEFTBRACKET:
-				KeyStates[LBRACKET] = false;
-				break;
-			case SDLK_RIGHTBRACKET:
-				KeyStates[RBRACKET] = false;
-				break;
-			case SDLK_f:
-				KeyStates[F] = false;
-				break;
-			case SDLK_r:
-				KeyStates[R] = false;
-			default:
-				break;
+			sym = keyEvent.key.keysym.sym & ~(1 << 30);
+			if (sym & (1 << 30)) {
+				sym &= ~(1 << 30);
+				sym += 128;
+			}
+			if (sym < keyCount) {
+				keyStates[sym] = false;
 			}
 			break;
-
 		case SDL_MOUSEWHEEL:
 			mouseWheelEvent = true;
-			mouseWheel = KeyEvent.wheel.y;
+			mouseWheel = keyEvent.wheel.y;
 			break;
-			
 		default:
 			break;
 		}
@@ -112,8 +64,4 @@ void InputComponent::UpdateKeys() {
 	if (!mouseWheelEvent) {
 		mouseWheel = 0;
 	}
-}
-
-InputComponent::~InputComponent()
-{
 }
