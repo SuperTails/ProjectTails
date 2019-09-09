@@ -142,11 +142,11 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 				double velocityAngle = atan2(-velocity.y, velocity.x);
 				
 				// Compute the dot product between the velocity and the ground
-				gsp = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2)) * cos(velocityAngle - hexToRad(angle));
+				gsp = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2)) * cos(velocityAngle + hexToRad(angle));
 			}
 		}
-		velocity.x = gsp *  cos(hexToRad(angle));
-		velocity.y = gsp * -sin(hexToRad(angle));
+		velocity.x = gsp * cos(hexToRad(angle));
+		velocity.y = gsp * sin(hexToRad(angle));
 	}
 	
 
@@ -391,6 +391,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			// Check for moving too slowly on a wall or ceiling
 			if (std::abs(gsp) < 2.0 && collideMode != GROUND) {
 				if (angle >= 0x40 && angle <= 0xC0) {
+					std::cout << "Player fell off of wall or ceiling\n";
 					collideMode = GROUND;
 					angle = 0.0;
 					onGround = false;
@@ -414,7 +415,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			}
 
 			// Calculate slope value
-			if (signum(gsp) == signum(sin(hexToRad(angle)))) {
+			if (signum(gsp) == signum(sin(-hexToRad(angle)))) {
 				// Uphill
 				slp = 0.078125;
 			}
@@ -424,7 +425,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			}
 
 			// Slope calculations
-			gsp -= sin(hexToRad(angle)) * slp * thisFrameCount;
+			gsp -= sin(-hexToRad(angle)) * slp * thisFrameCount;
 			
 			// If friction would cause a sign change, stop
 			if (onGround) {
@@ -548,8 +549,8 @@ void Player::jump(bool rolljump) {
 	state = (rolljump ? State::ROLLJUMPING : State::JUMPING);
 	collideMode = GROUND;
 	jmp = 6.5;
-	velocity.x -= jmp * sin(hexToDeg(angle) * M_PI / 180.0);
-	velocity.y -= jmp * cos(hexToDeg(angle) * M_PI / 180.0);
+	velocity.x -= jmp * sin(-hexToRad(angle));
+	velocity.y -= jmp * cos(-hexToRad(angle));
 	angle = 0.0;
 }
 
@@ -593,18 +594,9 @@ void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, Ent
 	std::vector < AbsoluteHitbox > platforms;
 	std::vector < AbsoluteHitbox > walls;
 
-	collideCeilings(tiles);
 	const int yRadius = getYRadius();
 	const int xRadius = getXRadius();
-	
-	SDL_Point offset = animations[currentAnim.front()]->getOffset().value_or(SDL_Point{ 0, 0 }); 
-	if (currentAnim.front() == 5) {
-		offset = animations[currentAnim[1]]->getOffset().value_or(SDL_Point{ 0, 0 });
-	}
 
-	Rect rawShape{ double(-xRadius), double(-offset.y), 2.0 * xRadius, double(yRadius + offset.y) };
-	rawShape = rotate90(static_cast< int >(collideMode), rawShape, { 0.0, 0.0 });
-	hitbox = HitboxForm(rawShape);
 
 	for (PhysicsEntity& entity = *collisionQueue.front(); !collisionQueue.empty(); collisionQueue.pop()) {
 		const auto& entityKey = entity.getKey();
@@ -654,28 +646,13 @@ void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, Ent
 }
 
 std::optional< std::pair< SDL_Point, double > > findGroundHeight(const std::vector< std::vector< Ground > >& tiles, Point position, Mode mode, HitboxForm hitbox, bool useOneWayPlatforms, bool path, Direction relativeDir) {
-	Direction dir = Direction::DOWN;
-	switch (mode) {
-	case Mode::GROUND:
-		dir = Direction::DOWN;
-		break;
-	case Mode::LEFT_WALL:
-		dir = Direction::LEFT;
-		break;
-	case Mode::CEILING:
-		dir = Direction::UP;
-		break;
-	case Mode::RIGHT_WALL:
-		dir = Direction::RIGHT;
-		break;
-	}
-	dir = static_cast< Direction >((static_cast< int >(dir) + static_cast< int >(relativeDir) + 6) % 4);
+	const Direction dir = directionFromRelative(relativeDir, mode);
 
 	Rect box = hitbox.getBox();
 	bool side = false;
 	int startCoord = 0;
 	int endCoord = 0;
-	if (mode == Mode::GROUND || mode == Mode::CEILING) {
+	if (dir == Direction::DOWN || dir == Direction::UP) {
 		side = false;
 		startCoord = box.x + position.x;
 		endCoord = box.x + box.w + position.x;
@@ -699,23 +676,21 @@ std::optional< std::pair< SDL_Point, double > > findGroundHeight(const std::vect
 		return {};
 	}
 
-	// Rotate all points to standard orientation for easy ordering
-	std::transform(results.begin(), results.end(), results.begin(),
-		[=](auto p) -> std::pair< SDL_Point, double >{ return { rotate90(-static_cast<int>(mode), p.first), p.second }; }
-	);
+	// lhs < rhs <=> lhs lower than rhs <=> lhs is less 'up' than rhs <=> directionCompare < 0
+	auto compare = [dir](auto lhs, auto rhs) {
+		const Direction oppositeDir = static_cast< Direction >((static_cast< int >(dir) + 2) % 4);
+		int heightComp = directionCompare(lhs.first, rhs.first, oppositeDir);
+		int posComp = directionCompare(lhs.first, rhs.first, static_cast< Direction >((static_cast< int >(dir) + 1) % 4));
+		
+		return heightComp < 0 || (!(heightComp > 0) && posComp < 0);
+	};
 
-	// Find maximum height
-	auto maxElem = std::min_element(results.begin(), results.end(), [](auto lhs, auto rhs) { return lhs.first.y < rhs.first.y; });
-	int maxHeight = maxElem->first.y;
+	auto [minElem, maxElem] = std::minmax_element(results.begin(), results.end(), compare);
+	auto minPoint = *minElem, maxPoint = *maxElem;
 
-	// Remove points not at the maximum height
-	if (auto iter = std::remove_if(results.begin(), results.end(), [=](auto p) { return p.first.y != maxHeight; }); iter != results.end()) {
+	if (auto iter = std::remove_if(results.begin(), results.end(), [=](auto p) { return directionCompare(p.first, maxPoint.first, dir) != 0; }); iter != results.end()) {
 		results.erase(iter, results.end());
 	}
-
-	std::transform(results.begin(), results.end(), results.begin(),
-		[=](auto p) -> std::pair< SDL_Point, double >{ return { rotate90(static_cast< int >(mode), p.first), p.second }; }
-	);
 
 	double avgX = 0.0;
 	double avgY = 0.0;
@@ -726,7 +701,16 @@ std::optional< std::pair< SDL_Point, double > > findGroundHeight(const std::vect
 	avgX /= results.size();
 	avgY /= results.size();
 
+	/*double ang2 = 0.0;
+	if (flat) {
+		ang2 = 64.0 * static_cast< int >(mode);
+	}
+	else if (SDL_Point diff = minElem->first - maxElem->first; diff != SDL_Point{ 0, 0 }) {
+		ang2 = std::atan2(diff.y, diff.x);
+	}*/
+
 	double averageAngle = radToHex(std::atan2(avgY, avgX));
+	//double averageAngle = wrap(radToHex(ang2), 256);
 
 	// TODO: calculate angle as well by averaging the results
 	return { { results.front().first, averageAngle } };
@@ -741,33 +725,28 @@ void Player::collideGround(const std::vector < std::vector < Ground > >& tiles, 
 	Mode last_mode = collideMode;
 	//Calculate which mode to be in based on angle
 	collideMode = Mode((static_cast<int>(angle + 0x20) & 0xFF) >> 6);
+	
+	SDL_Point offset = animations[currentAnim.front()]->getOffset().value_or(SDL_Point{ 0, 0 }); 
+	if (currentAnim.front() == 5) {
+		offset = animations[currentAnim[1]]->getOffset().value_or(SDL_Point{ 0, 0 });
+	}
 
-	collideWalls(tiles, walls);
+	Rect rawShape{ double(-xRadius), double(-offset.y), 2.0 * xRadius, double(yRadius + offset.y) };
+	rawShape = rotate90(static_cast< int >(collideMode), rawShape);
+	hitbox = HitboxForm(rawShape);
 
-	collideCeilings(tiles);
+	collideWall(tiles, walls, false);
+	collideWall(tiles, walls, true);
 
-	SensorResult floor{};
+	std::optional< std::pair< Point, double > > floor;
 	if (auto result = findGroundHeight(tiles, getPosition(), collideMode, getHitbox(), false, getPath(), Direction::DOWN)) {
-		Side side;
-		switch (collideMode) {
-		case GROUND:
-			result->first.x = getPosition().x;
-			side = Side::TOP;
-			break;
-		case LEFT_WALL:
-			result->first.y = getPosition().y;
-			side = Side::RIGHT;
-			break;
-		case CEILING:
-			result->first.x = getPosition().x;
-			side = Side::BOTTOM;
-			break;
-		case RIGHT_WALL:
-			result->first.y = getPosition().y;
-			side = Side::LEFT;
-			break;
+		floor.emplace(static_cast< Point >(result->first), result->second);
+		if (collideMode == Mode::GROUND || collideMode == Mode::CEILING) {
+			floor->first.x = getPosition().x;
 		}
-		floor.emplace(result->first, result->second, side);
+		else {
+			floor->first.y = getPosition().y;
+		}
 	}
 
 	// Check platform sensors
@@ -784,32 +763,28 @@ void Player::collideGround(const std::vector < std::vector < Ground > >& tiles, 
 			if (rightDir < -entityRadius || leftDir > entityRadius) {
 				continue;
 			}
-			else {
-				floor = std::max(floor, SensorResult{{ { int(position.x), entityTop }, 0.0, Side::TOP }});
+			else if (!floor || directionCompare(floor->first, Point{ position.x, double(entityTop) }, Direction::DOWN) < 0) {
+				floor.emplace(Point{ position.x, double(entityTop) }, 0.0);
 			}
 		}
 	}
 	
 	if (onGround) {
 		if (floor) {
-			angle = std::get< double >(*floor);
+			angle = wrap(floor->second, 256.0);
 
-			double temp1;
-
-			const auto playerRadius = rotate90(static_cast< int >(collideMode), SDL_Point{ 0, yRadius - 1 });
-			Point fracPart = { std::modf(position.x, &temp1), std::modf(position.y, &temp1) };
-			SDL_Point temp = std::get< SDL_Point >(*floor) - playerRadius;
-			position = { double(temp.x), double(temp.y) };
-			position += fracPart;
+			const auto playerRadius = rotate90(static_cast< int >(collideMode), Point{ 0, double(yRadius - 1) });
+			position = (floor->first) - playerRadius;
 		}
 		else {
 			onGround = false;
+			std::cout << "Player lost floor\n";
 			angle = 0.0;
 			collideMode = GROUND;
 		}
 	}
 	else if (floor && velocity.y >= 0.0) {
-		const int height = std::get< SDL_Point >(*floor).y - (position.y + yRadius);
+		const int height = floor->first.y - (position.y + yRadius);
 		if (height <= 2) {
 			angle = std::get< double >(*floor);
 			onGround = true;
@@ -826,7 +801,7 @@ void Player::collideCeilings(const std::vector< std::vector< Ground > >& tiles) 
 		return;
 	}
 
-	if (auto result = findGroundHeight(tiles, getPosition(), getMode(), getHitbox(), false, getPath(),Direction::UP)) {
+	if (auto result = findGroundHeight(tiles, getPosition(), getMode(), getHitbox(), false, getPath(), Direction::UP)) {
 		SDL_Point ceiling = result->first;
 		ceiling.x = getPosition().x;
 		const int topDistance = position.y - getAbsHitbox().box.getBox().y;
@@ -835,6 +810,12 @@ void Player::collideCeilings(const std::vector< std::vector< Ground > >& tiles) 
 			velocity.y = std::max(0.0, velocity.y);
 		}
 	}
+}
+
+Direction directionFromRelative(Direction rel, Mode mode) {
+	// increases clockwise
+	// 0 is to the right
+	return static_cast< Direction >(wrap(static_cast< int >(rel) + static_cast< int >(mode), 4));
 }
 
 HitboxForm Player::getWallHitbox() const {
@@ -857,71 +838,107 @@ HitboxForm Player::getWallHitbox() const {
 
 }
 
-void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls) {
-	SensorResult lWall{};
-	SensorResult rWall{};
+// TODO: Entity wall collision code, reimplement
+/*
+if (collideMode == Mode::GROUND) {
+	for (const AbsoluteHitbox& entityCol : walls) {
+		Rect entityCollision = entityCol.box.getBox();
+		if (position.y + getYRadius() < entityCollision.y || position.y + 4 > entityCollision.y + entityCollision.h) {
+			continue;
+		}
 
-	const Direction rWallDir = static_cast< Direction >((4 - (static_cast< int >(collideMode) - 1)) % 4);
-	const Direction lWallDir = static_cast< Direction >((4 - (static_cast< int >(collideMode) - 3)) % 4);
+		if (position.x < entityCollision.x + entityCollision.w / 2) {
+			const Point pos{ entityCollision.x, position.y };
+			if (!rWall || directionCompare(*rWall, pos, rWallDir) > 0) {
+				rWall.emplace(pos);
+			}
+		}
+		else {
+			const Point pos{ entityCollision.x + entityCollision.w, position.y };
+			if (!lWall || directionCompare(*lWall, pos, lWallDir) > 0) {
+				lWall.emplace(pos);
+			}
+		}
+	}
+}
+*/
+
+void Player::collideWall(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls, bool left) {
+	std::optional< Point > wall{};
+
+	const Direction wallDir = directionFromRelative(left ? Direction::LEFT : Direction::RIGHT, collideMode);
+
+	HitboxForm wallBox = getWallHitbox();
+
+	if (auto result = findGroundHeight(tiles, getPosition(), getMode(), wallBox, false, getPath(), wallDir)) {
+		wall.emplace(static_cast< Point >(result->first));
+	}
+	
+	// TODO: Entity collisions
+	
+	if (wall) {
+		if (wallDir == Direction::LEFT || wallDir == Direction::RIGHT) {
+			wall->y = getPosition().y;
+		}
+		else {
+			wall->x = getPosition().x;
+		}
+
+		const auto playerEdge = getPosition() + rotate90(static_cast< int >(collideMode), Point{ static_cast< double >(left ? -10 : 10), 0 });
+
+		//Push the player out of walls
+		if (directionCompare(static_cast< Point >(*wall), playerEdge, wallDir) <= 0) {
+			position += static_cast< Point >(*wall) - playerEdge;
+			restrictVelocityDirection(velocity, { (left ? 1 : -1), 0 }, static_cast< int >(collideMode));
+		}
+	}
+
+}
+
+void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls) {
+	std::optional< Point > lWall{};
+	std::optional< Point > rWall{};
+
+	const Direction rWallDir = directionFromRelative(Direction::RIGHT, collideMode);
+	const Direction lWallDir = directionFromRelative(Direction::LEFT, collideMode);
 
 	HitboxForm wallBox = getWallHitbox();
 
 	if (auto lResult = findGroundHeight(tiles, getPosition(), getMode(), wallBox, false, getPath(), lWallDir)) {
-		lWall.emplace(lResult->first, 32.0, Side::RIGHT);
+		lWall.emplace(static_cast< Point >(lResult->first));
 	}
 	if (auto rResult = findGroundHeight(tiles, getPosition(), getMode(), wallBox, false, getPath(), rWallDir)) {
-		rWall.emplace(rResult->first, 192.0, Side::LEFT);
+		rWall.emplace(static_cast< Point >(rResult->first));
 	}
 
-	if (collideMode == Mode::GROUND) {
-		for (const AbsoluteHitbox& entityCol : walls) {
-			Rect entityCollision = entityCol.box.getBox();
-			if (position.y + getYRadius() < entityCollision.y || position.y + 4 > entityCollision.y + entityCollision.h) {
-				continue;
-			}
-
-			if (position.x < entityCollision.x + entityCollision.w / 2) {
-				const SDL_Point pos{ int(entityCollision.x), int(position.y) };
-				const auto entityWall = SensorResult{{ pos, 32.0, Side::LEFT }};
-				rWall = std::max(rWall, entityWall);
-			}
-			else {
-				const SDL_Point pos{ int(entityCollision.x + entityCollision.w), int(position.y) };
-				const auto entityWall = SensorResult{{ pos, 192.0, Side::RIGHT }};
-				lWall = std::max(lWall, entityWall);
-			}
-		}
-	}
 
 	if (rWallDir == Direction::LEFT || rWallDir == Direction::RIGHT) {
 		if (rWall) {
-			std::get<0>(*rWall).y = position.y;
+			rWall->y = position.y;
 		}
 		if (lWall) {
-			std::get<0>(*lWall).y = position.y;
+			lWall->y = position.y;
 		}
 	}
 	else {
 		if (rWall) {
-			std::get<0>(*rWall).x = position.x;
+			rWall->x = position.x;
 		}
 		if (lWall) {
-			std::get<0>(*lWall).x = position.x;
+			lWall->x = position.x;
 		}
 	}
 
 	const auto rPlayerEdge = getPosition() + rotate90(static_cast< int >(collideMode), Point{  10, 0 });
 	const auto lPlayerEdge = getPosition() + rotate90(static_cast< int >(collideMode), Point{ -10, 0 });
 
-	double temp;
-
 	//Push the player out of walls
-	if (rWall && directionCompare(static_cast< Point >(std::get<0>(*rWall)), rPlayerEdge, rWallDir) <= 0) {
-		position += static_cast< Point >(std::get<0>(*rWall)) - rPlayerEdge;
+	if (rWall && directionCompare(static_cast< Point >(*rWall), rPlayerEdge, rWallDir) <= 0) {
+		position += static_cast< Point >(*rWall) - rPlayerEdge;
 		restrictVelocityDirection(velocity, { -1, 0 }, static_cast< int >(collideMode));
 	}
-	if (lWall && directionCompare(static_cast< Point >(std::get<0>(*lWall)), lPlayerEdge, lWallDir) <= 0) {
-		position += static_cast< Point >(std::get<0>(*lWall)) - lPlayerEdge;
+	if (lWall && directionCompare(static_cast< Point >(*lWall), lPlayerEdge, lWallDir) <= 0) {
+		position += static_cast< Point >(*lWall) - lPlayerEdge;
 		restrictVelocityDirection(velocity, {  1, 0 }, static_cast< int >(collideMode));
 	}
 }
@@ -1032,20 +1049,6 @@ void Player::render(const Camera& cam) {
 	}
 }
 
-// TODO: Reimplement this functionality
-/*SDL_Rect Player::getCollisionRect() const {
-	switch (collideMode) {
-	case GROUND:
-		return { position.x + collisionRect.x, position.y + collisionRect.y, collisionRect.w, collisionRect.h };
-	case LEFT_WALL:
-		return { position.x - collisionRect.y - collisionRect.h, position.y + collisionRect.x, collisionRect.h, collisionRect.w };
-	case CEILING:
-		return { position.x + collisionRect.x, position.y - collisionRect.y - collisionRect.h, collisionRect.w, collisionRect.h };
-	case RIGHT_WALL:
-		return { position.x + collisionRect.y, position.y - collisionRect.x - collisionRect.w, collisionRect.h, collisionRect.w };
-	}
-}*/
-
 void Player::setActCleared(bool b)
 {
 	actCleared = b;
@@ -1088,6 +1091,7 @@ void Player::destroyEnemy(EntityManager& manager, PhysicsEntity& entity) {
 void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc) {
 	if (std::abs(gsp) < 2.0 && collideMode != GROUND && !controlLock.isTiming()) {
 		if (64 <= angle && angle <= 192) {
+			std::cout << "Player fell off of slope\n";
 			collideMode = GROUND;
 			angle = 0.0;
 			onGround = false;
@@ -1134,7 +1138,7 @@ void Player::updateIfWalkOrIdle(const InputComponent& input, double thisAccel, d
 	// Do slope calculations
 	if (gsp != 0.0 || (16 <= angle  && angle <= 240)) {
 		const double thisSlp = slp * Timer::getFrameTime().count() / (1000.0 / 60.0);
-		const double speedDifference = -thisSlp * sin(hexToRad(angle));
+		const double speedDifference = -thisSlp * sin(-hexToRad(angle));
 		gsp += speedDifference;
 		if (std::abs(gsp) >= DEFAULT_TOP_SPEED) {
 			gsp = signum(gsp) * DEFAULT_TOP_SPEED;
@@ -1174,27 +1178,31 @@ bool Player::getKeyState(const InputComponent& input, int key) const {
 }
 
 int directionCompare(SDL_Point a, SDL_Point b, Direction direction) {
-	a = rotate90(static_cast< int >(direction), a);
-	b = rotate90(static_cast< int >(direction), b);
-	return a.y - b.y;
+	a = rotate90(-static_cast< int >(direction), a);
+	b = rotate90(-static_cast< int >(direction), b);
+	return b.y - a.y;
 }
 
 int directionCompare(Point a, Point b, Direction direction) {
-	a = rotate90(static_cast< int >(direction), a);
-	b = rotate90(static_cast< int >(direction), b);
-	return a.y - b.y;
+	a = rotate90(-static_cast< int >(direction), a);
+	b = rotate90(-static_cast< int >(direction), b);
+	return b.y - a.y;
 }
 
 double hexToDeg(double hex) {
-	return (256 - hex) * 1.40625;
+	return hex / 256.0 * 360.0;
 }
 
 double hexToRad(double hex) {
-	return hexToDeg(hex) * M_PI / 180.0;
+	return hex / 256.0 * (2.0 * M_PI);
 }
 
 double radToHex(double rad) {
-	return (256 - rad * 180.0 / M_PI / 1.40625);
+	return rad / (2.0 * M_PI) * 256.0;
+}
+
+double degToHex(double deg) {
+	return deg / 360.0 * 256.0;
 }
 
 int signum(int a) {
@@ -1226,72 +1234,9 @@ bool shouldUseOneWays(Vector2 velocity, Direction dir) {
 	return velocity.y >= 0 && dir == Direction::DOWN;
 }
 
-bool operator< (const Player::SensorResult& a, const Player::SensorResult& b) {
-	if (a && b) {
-		assert(std::get<Player::Side>(*a) == std::get<Player::Side>(*b));
-
-		const auto& posA = std::get< SDL_Point >(*a);
-		const auto& posB = std::get< SDL_Point >(*b);
-
-		switch(std::get<Player::Side>(*a)) {
-		case Player::Side::TOP:
-			return (posA.y > posB.y);
-		case Player::Side::RIGHT:
-			return (posA.x < posB.x);
-		case Player::Side::BOTTOM:
-			return (posA.y < posB.y);
-		case Player::Side::LEFT:
-			return (posA.x > posB.x);
-		}
-	}
-	else if (a) {
-		// value < nothing 
-		return false;
-	}
-	else if (b) {
-		// nothing < value
-		return true;
-	}
-	else {
-		// nothing < nothing
-		return false;
-	}
-}
-
-bool operator< (const Player::SensorResult& a, const SDL_Point& b) {
-	if (a) {
-		const auto [pos, angle, side] = *a;
-		switch (side) {
-		case Player::Side::TOP:
-			return pos.y > b.y;
-		case Player::Side::RIGHT:
-			return pos.x < b.x;
-		case Player::Side::BOTTOM:
-			return pos.y < b.y;
-		case Player::Side::LEFT:
-			return pos.x > b.x;
-		}
-	}
-	else {
-		return true;
-	}
-}
-
-std::ostream& operator<< (std::ostream& str, Player::Sensor sensor) {
-	static const std::array< std::string, 6 > names{ "A", "B", "C", "D", "E", "F" };
-	str << names[std::size_t(sensor)];
-	return str;
-}
-
 std::ostream& operator<< (std::ostream& str, Direction direction) {
 	static const std::array< std::string, 4 > names{ "UP", "RIGHT", "DOWN", "LEFT" }; 
 	str << names[std::size_t(direction)];
-	return str;
-}
-
-std::ostream& operator<< (std::ostream& str, Player::Side side) {
-	static const std::array< std::string, 4 > names{ "TOP", "RIGHT", "BOTTOM", "LEFT" };
-	str << names[std::size_t(side)];
 	return str;
 }
 

@@ -12,6 +12,28 @@ TEST(SanityCheck, IsReflexive) {
 	ASSERT_EQ(1, 1);
 }
 
+TEST(Conversions, HexRadInverse) {
+	ASSERT_NEAR(hexToRad(radToHex(0.1)), 0.1, 1e-7);
+	ASSERT_DOUBLE_EQ(hexToRad(32.0), M_PI / 4.0);
+}
+
+/*TEST(Directions, DirectionCompare) {
+	ASSERT_GT(directionCompare(SDL_Point{ 10, 3 }, SDL_Point{ 3, 4 }, Direction::UP), 0);
+	ASSERT_GT(directionCompare(SDL_Point{ 10, 5 }, SDL_Point{ 3, 4 }, Direction::RIGHT), 0);
+	ASSERT_GT(directionCompare(SDL_Point{ 10, 5 }, SDL_Point{ 3, 4 }, Direction::DOWN), 0);
+	ASSERT_GT(directionCompare(SDL_Point{ 10, 5 }, SDL_Point{ 3, 4 }, Direction::LEFT), 0);
+}*/
+
+TEST(Directions, Rotations) {
+	for (int i = 0; i < 4; ++i) {
+		SDL_Point lhs = rotate90(i, SDL_Point{ 0,  2 });
+		SDL_Point rhs = rotate90(i, SDL_Point{ 0,  1 });
+		Direction dir = static_cast< Direction >(i);
+		int result = directionCompare(lhs, rhs, dir);
+		EXPECT_LT(result, 0) << "Expected " << result << " to be less than 0 for direction " << dir;
+	}
+}
+
 /*TEST(CollisionTiles, SurfacePosition) {
 	const std::array< int, CollisionTile::heightMapSize > heights{ 0, 0, 0, 4, 4, 6, 14, 14, 14, 10, 10, 10, 10, 0, 0, 0 };
 	CollisionTile::dataList.emplace_back(heights, 0.0);

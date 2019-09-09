@@ -58,7 +58,6 @@ class Player : public PhysicsEntity
 	friend class Act;
 	enum class Side { TOP, RIGHT, BOTTOM, LEFT };
 	friend std::ostream& operator<< (std::ostream& str, Side side);
-	typedef std::optional< std::tuple< SDL_Point, double, Side > > SensorResult;
 public:
 
 	typedef PhysicsEntity::entityPtrType entityPtrType;
@@ -130,8 +129,6 @@ public:
 
 	static std::string modeToString(Mode m);
 
-	enum class Sensor { A, B, C, D, E, F };
-
 	Timer getControlLock() const { return controlLock; }
 
 	void setControlLock(const Timer& timer) { controlLock = timer; }
@@ -141,9 +138,6 @@ public:
 	bool isLocked() const { return controlLock.isTiming(); }
 
 private:
-	template < typename F >
-	void applyResult(const SensorResult& result, int distance, F&& onSurfaceHit);
-
 	std::queue< PhysicsEntity* > collisionQueue;
 
 	int rings = 0;
@@ -181,6 +175,8 @@ private:
 
 	void collideWalls(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls);
 
+	void collideWall(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls, bool left);
+
 	void collideCeilings(const std::vector< std::vector< Ground > >& tiles);
 
 	void walkLeftAndRight(const InputComponent& input, double thisAccel, double thisDecel, double thisFrc);
@@ -194,10 +190,6 @@ private:
 	bool getKeyPress(const InputComponent& input, int key) const;
 
 	bool getKeyState(const InputComponent& input, int key) const;
-
-	__attribute__((const)) friend bool operator< (const SensorResult& a, const SensorResult& b);
-
-	__attribute__((const)) friend bool operator< (const SensorResult& a, const SDL_Point& b);
 };
 
 int directionCompare(SDL_Point a, SDL_Point b, Direction direction);
@@ -205,10 +197,9 @@ int directionCompare(SDL_Point a, SDL_Point b, Direction direction);
 int directionCompare(Point a, Point b, Direction direction);
 
 double hexToDeg(double hex);
-
 double hexToRad(double hex);
-
 double radToHex(double rad);
+double degToHex(double deg);
 
 int signum(int a);
 
@@ -216,11 +207,7 @@ int signum(double a);
 
 bool isOffsetState(const Player::State& state);
 
-std::ostream& operator<< (std::ostream& str, Player::Sensor sensor);
-
 std::ostream& operator<< (std::ostream& str, Direction sensor);
-
-std::ostream& operator<< (std::ostream& str, Player::Side side);
 
 CollisionTile getTile(SDL_Point position, const std::vector< std::vector< Ground > >& tiles, bool path);
 
@@ -229,6 +216,9 @@ bool shouldUseOneWays(Vector2 velocity, Direction dir);
 std::optional< std::pair< SDL_Point, double > > collideLine(SDL_Point lineBegin, int maxLength, Direction direction, const std::vector< std::vector< Ground > >& ground, bool useOneWayPlatforms, bool path);
 
 std::optional< std::pair< SDL_Point, double > > findGroundHeight(const std::vector< std::vector< Ground > >& tiles, Point position, Mode mode, HitboxForm hitbox, bool useOneWayPlatforms, bool path, Direction relativeDir);
+
+// Given a direction relative to the player's frame of reference, returns that direction relative to the world
+Direction directionFromRelative(Direction rel, Mode mode);
 
 bool lessThanInDirection(SDL_Point a, SDL_Point b, Direction direction);
 

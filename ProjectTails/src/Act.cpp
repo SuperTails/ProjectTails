@@ -262,17 +262,26 @@ void Act::renderObjects(Player& player, Camera& cam) {
 
 	if (globalObjects::debug) {
 		SDL_Point start = ((SDL_Point{ int(cameraView.x), int(cameraView.y) } / GROUND_PIXEL_WIDTH) * GROUND_PIXEL_WIDTH);
-		SDL_Point end = ((SDL_Point{ int(cameraView.x + cameraView.w), int(cameraView.y + cameraView.h) } / GROUND_PIXEL_WIDTH) * GROUND_PIXEL_WIDTH);
+		SDL_Point end = ((SDL_Point{ int(cameraView.x + cameraView.w), int(cameraView.y + cameraView.h) } / GROUND_PIXEL_WIDTH) * GROUND_PIXEL_WIDTH) + SDL_Point{ 1, 1 };
 		start.x = std::max(start.x, 0);
 		start.y = std::max(start.y, 0);
 		end.x = std::min(end.x, int(solidTiles.size() * GROUND_PIXEL_WIDTH));
 		end.y = std::min(end.y, int(solidTiles[0].size() * GROUND_PIXEL_WIDTH));
-		for (int x = start.x; x < solidTiles.size() * GROUND_PIXEL_WIDTH; x += GROUND_PIXEL_WIDTH) {
-			for (int y = start.y; y < solidTiles.size() * GROUND_PIXEL_WIDTH; y += GROUND_PIXEL_WIDTH) {
+		for (int x = start.x; x < end.x; x += GROUND_PIXEL_WIDTH) {
+			for (int y = start.y; y < end.y; y += GROUND_PIXEL_WIDTH) {
 				drawing::drawRect(globalObjects::renderer, cam,
 					Rect{ double(x), double(y), GROUND_PIXEL_WIDTH, GROUND_PIXEL_WIDTH },
 					drawing::Color{ 255, 255, 255 },
 					false
+				);
+			}
+		}
+		for (int x = start.x; x < end.x; x += TILE_WIDTH) {
+			for (int y = start.y; y < end.y; y += TILE_WIDTH) {
+				drawing::drawPoint(globalObjects::renderer, cam,
+					Point{ double(x), double(y) },
+					drawing::Color{ 200, 200, 200 },
+					1
 				);
 			}
 		}
@@ -314,11 +323,23 @@ void Act::renderObjects(Player& player, Camera& cam) {
 
 		CollisionTile tile0 = getTile(mousePos, solidTiles, false);
 		CollisionTile tile1 = getTile(mousePos, solidTiles, true);
+		
+		if (tile0.getIndex() || tile1.getIndex()) {
+			Point topLeft = static_cast< Point >((mousePos / TILE_WIDTH) * TILE_WIDTH);
+			drawing::drawRect(globalObjects::renderer, cam,
+				Rect{ topLeft.x, topLeft.y, TILE_WIDTH, TILE_WIDTH },
+				drawing::Color{ 255, 255, 255 },
+				false
+			);
+		}
 
 		std::stringstream tileDebugInfo;
 		
 		auto printThings = [](std::stringstream& stream, const CollisionTile& tile) {
-			stream << "idx: " << tile.getIndex() << ", raw angle: " << tile.getAngle() << ", flags: " << tile.flags;
+			stream << "idx: " << tile.getIndex() << ", raw angle: " << tile.getAngle() << ", flags: ";
+			if (tile.flags & SDL_FLIP_HORIZONTAL) stream << "H";
+			if (tile.flags & SDL_FLIP_VERTICAL)   stream << "V";
+			if (tile.flags & (int)Ground::Flags::TOP_SOLID) stream << "T";
 		};
 
 		if (tile0.getIndex()) {

@@ -31,11 +31,11 @@ int CollisionTile::getAngle() const {
 
 // TODO: Confirm angles are correct
 int CollisionTile::getAngle(Direction dir) const {
-	if ((flags & SDL_FLIP_HORIZONTAL) && dir == Direction::LEFT) {
-		return 192;
-	}
-	else if (!(flags & SDL_FLIP_HORIZONTAL) && dir == Direction::RIGHT) {
+	if (!(flags & SDL_FLIP_HORIZONTAL) && dir == Direction::LEFT) {
 		return 64;
+	}
+	else if ((flags & SDL_FLIP_HORIZONTAL) && dir == Direction::RIGHT) {
+		return 192;
 	}
 	else if ((flags & SDL_FLIP_VERTICAL) && dir == Direction::DOWN) {
 		return 128;

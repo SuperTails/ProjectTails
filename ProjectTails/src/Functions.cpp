@@ -63,7 +63,7 @@ SDL_Rect getRelativePosition(const SDL_Rect& a, const SDL_Rect& b) {
 
 SDL_Point rotate90(int amount, SDL_Point point, SDL_Point center) {
 	point -= center;
-	switch (((amount % 4) + 4) % 4) {
+	switch (wrap(amount, 4)) {
 	case 0:
 		return SDL_Point{ point.x, point.y }   + center;
 	case 1:
@@ -75,24 +75,10 @@ SDL_Point rotate90(int amount, SDL_Point point, SDL_Point center) {
 	}
 }
 
-SDL_Rect rotate90(int amount, SDL_Rect rect, SDL_Point center) {
-	rect.x -= center.x;
-	rect.y -= center.y;
-	switch (((amount % 4) + 4) % 4) {
-	case 0:
-		return { center.x + rect.x, center.y + rect.y, rect.w, rect.h };
-	case 1:
-		return { center.x - rect.y - rect.h, center.y + rect.x, rect.h, rect.w };
-	case 2:
-		return { center.x - rect.x, center.y - rect.y - rect.h, rect.w, rect.h };
-	case 3:
-		return { center.x + rect.y, center.y - rect.x - rect.w, rect.h, rect.w };
-	}
-}
 
 Point rotate90(int amount, Point point, Point center) {
 	point -= center;
-	switch (((amount % 4) + 4) % 4) {
+	switch (wrap(amount, 4)) {
 	case 0:
 		return Point{ point.x, point.y }   + center;
 	case 1:
@@ -104,19 +90,29 @@ Point rotate90(int amount, Point point, Point center) {
 	}
 }
 
+SDL_Rect rotate90(int amount, SDL_Rect rect, SDL_Point center) {
+	SDL_Point corner1{ rect.x, rect.y };
+	SDL_Point corner2 = corner1 + SDL_Point{ rect.w, rect.h };
+	corner1 = rotate90(amount, corner1, center);
+	corner2 = rotate90(amount, corner2, center);
+
+	SDL_Point topLeft{ std::min(corner1.x, corner2.x), std::min(corner1.y, corner2.y) };
+	SDL_Point bottomRight{ std::max(corner1.x, corner2.x), std::max(corner1.y, corner2.y) };
+	
+	return SDL_Rect{ topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y };
+	
+}
+
 Rect rotate90(int amount, Rect rect, Point center) {
-	rect.x -= center.x;
-	rect.y -= center.y;
-	switch (((amount % 4) + 4) % 4) {
-	case 0:
-		return { center.x + rect.x, center.y + rect.y, rect.w, rect.h };
-	case 1:
-		return { center.x - rect.y - rect.h, center.y + rect.x, rect.h, rect.w };
-	case 2:
-		return { center.x - rect.x, center.y - rect.y - rect.h, rect.w, rect.h };
-	case 3:
-		return { center.x + rect.y, center.y - rect.x - rect.w, rect.h, rect.w };
-	}
+	Point corner1{ rect.x, rect.y };
+	Point corner2 = corner1 + Point{ rect.w, rect.h };
+	corner1 = rotate90(amount, corner1, center);
+	corner2 = rotate90(amount, corner2, center);
+
+	Point topLeft{ std::min(corner1.x, corner2.x), std::min(corner1.y, corner2.y) };
+	Point bottomRight{ std::max(corner1.x, corner2.x), std::max(corner1.y, corner2.y) };
+
+	return Rect{ topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y };
 }
 
 SDL_Point rotate(const SDL_Point& p, int degrees) {
@@ -127,4 +123,8 @@ SDL_Point rotate(const SDL_Point& p, int degrees) {
 std::pair < double, double > rotate(const std::pair < double, double >& p, double degrees) {
 	const double rads = degrees * M_PI / 180.0;
 	return { p.first * std::cos(rads) - p.second * std::sin(rads), p.first * std::sin(rads) + p.second * std::cos(rads) };
+}
+
+int wrap(int x, int m) {
+	return ((x % m) + m) % m;
 }

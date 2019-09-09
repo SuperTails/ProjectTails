@@ -78,6 +78,9 @@ __attribute__((const)) Point rotate90(int amount, Point point, Point center = { 
 
 __attribute__((const)) Rect rotate90(int amount, Rect rect, Point center = { 0, 0 });
 
+// Returns x modulo m, but the answer is always non-negative, i.e. within [0, m-1]
+__attribute__((const)) int wrap(int x, int m);
+
 template < typename F, typename... Args >
 auto applyOptional(F&& f, const std::optional<Args...>& t) ->
 	std::optional< std::invoke_result_t< F, std::add_const_t< Args >... > >;
