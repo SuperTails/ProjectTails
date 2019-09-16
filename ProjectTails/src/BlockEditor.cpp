@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "json.hpp"
 #include "CollisionTile.h"
+#include "Functions.h"
 #include <fstream>
 #include <experimental/filesystem>
 
@@ -105,9 +106,14 @@ void BlockEditor::render(const Camera& camera) {
 	drawRect(SDL_Rect{ 0    , 0, width, width } * camera.scale, false, 0, 0, 0);
 	drawRect(SDL_Rect{ width, 0, width, width } * camera.scale, false, 0, 0, 0);
 
-	text::renderAbsolute(SDL_Point{ width + 10, width + 10 } * camera.scale, "GUI", "Index: " + std::to_string(currentBlockIndex));
+	text::renderAbsolute(SDL_Point{ width * 2 + 10, groundMap.size().y / 2 + 25 } * camera.scale, "GUI", "Index: " + std::to_string(currentBlockIndex));
 	text::renderAbsolute(SDL_Point{ width * 2 + 10, groundMap.size().y / 2 + 5 } * camera.scale, "GUI",
 			"Selected Tile: " + std::to_string(selectedTile.getIndex()));
+
+	std::stringstream helpText;
+	helpText << "WASD: Set flip  []: Change selected tile  f: Use flag mode\n"
+	         << "m: Change graphics or collision  n: add block  r: copy block \nj: save  x: exit";
+	text::renderAbsolute(SDL_Point{ 10, width + 10 } * camera.scale, "GUI", helpText.str());
 }
 
 CollisionTile& BlockEditor::tileAt(Ground::Layer& layer, SDL_Point pos) const {
@@ -133,7 +139,7 @@ void BlockEditor::update(const Camera& camera) {
 	const auto& input = globalObjects::input;
 	{
 	const int incr = input.getKeyPress(']') - input.getKeyPress('[');
-	currentBlockIndex = (currentBlockIndex + incr + Ground::data.size()) % Ground::data.size();
+	currentBlockIndex = wrap(currentBlockIndex + incr, Ground::data.size());
 	}
 	if (input.getKeyPress('w')) {
 		selectedTile.flags |= SDL_FLIP_VERTICAL;

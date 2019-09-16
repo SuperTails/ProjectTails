@@ -111,7 +111,7 @@ int main(int argc, char **argv ) {
 	Camera cam = Camera({ -32, -8, double(WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO + 64), double(WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 16) });
 	cam.setOffset({ (double)(-WINDOW_HORIZONTAL_SIZE * SCREEN_RATIO / 2), (double)(-WINDOW_VERTICAL_SIZE * SCREEN_RATIO + 128) });
 
-	text::addFont("GUI", Surface{ ASSET"FontGUI.png" }, "0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,", 10);
+	text::addFont("GUI", Surface{ ASSET"FontGUI.png" }, "0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,[]", 10);
 
 	//Load entities:
 	cout << "Loading entity data...\n";
