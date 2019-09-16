@@ -895,54 +895,6 @@ void Player::collideWall(const std::vector< std::vector< Ground > >& tiles, cons
 
 }
 
-void Player::collideWalls(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls) {
-	std::optional< Point > lWall{};
-	std::optional< Point > rWall{};
-
-	const Direction rWallDir = directionFromRelative(Direction::RIGHT, collideMode);
-	const Direction lWallDir = directionFromRelative(Direction::LEFT, collideMode);
-
-	HitboxForm wallBox = getWallHitbox();
-
-	if (auto lResult = findGroundHeight(tiles, getPosition(), getMode(), wallBox, false, getPath(), lWallDir)) {
-		lWall.emplace(static_cast< Point >(lResult->first));
-	}
-	if (auto rResult = findGroundHeight(tiles, getPosition(), getMode(), wallBox, false, getPath(), rWallDir)) {
-		rWall.emplace(static_cast< Point >(rResult->first));
-	}
-
-
-	if (rWallDir == Direction::LEFT || rWallDir == Direction::RIGHT) {
-		if (rWall) {
-			rWall->y = position.y;
-		}
-		if (lWall) {
-			lWall->y = position.y;
-		}
-	}
-	else {
-		if (rWall) {
-			rWall->x = position.x;
-		}
-		if (lWall) {
-			lWall->x = position.x;
-		}
-	}
-
-	const auto rPlayerEdge = getPosition() + rotate90(static_cast< int >(collideMode), Point{  10, 0 });
-	const auto lPlayerEdge = getPosition() + rotate90(static_cast< int >(collideMode), Point{ -10, 0 });
-
-	//Push the player out of walls
-	if (rWall && directionCompare(static_cast< Point >(*rWall), rPlayerEdge, rWallDir) <= 0) {
-		position += static_cast< Point >(*rWall) - rPlayerEdge;
-		restrictVelocityDirection(velocity, { -1, 0 }, static_cast< int >(collideMode));
-	}
-	if (lWall && directionCompare(static_cast< Point >(*lWall), lPlayerEdge, lWallDir) <= 0) {
-		position += static_cast< Point >(*lWall) - lPlayerEdge;
-		restrictVelocityDirection(velocity, {  1, 0 }, static_cast< int >(collideMode));
-	}
-}
-
 CollisionTile getTile(SDL_Point position, const std::vector< std::vector< Ground > >& tiles, bool path) {
 	if (position.x < 0 || position.y < 0) {
 		return { 0, 0 };
@@ -1257,39 +1209,36 @@ std::optional< std::pair< SDL_Point, double > > collideLine(SDL_Point lineBegin,
 		directionVec = SDL_Point{  1,  0 };
 		break;
 	}
-	const SDL_Point lineEnd = lineBegin + directionVec * maxLength;
-	SDL_Point current = lineEnd;
 
+	const SDL_Point lineEnd = lineBegin + directionVec * maxLength;
 	const int idx = upDown ? (lineBegin.x % TILE_WIDTH) : (lineBegin.y % TILE_WIDTH);
 
-	CollisionTile currentTile = getTile(current, ground, path);
-	if (!useOneWayPlatforms && (currentTile.flags & static_cast< int >(Ground::Flags::TOP_SOLID))) {
-		currentTile = { 0, 0 };
-	}
-	SDL_Point tileCorner = (current / TILE_WIDTH) * TILE_WIDTH;
-	std::optional< SDL_Point > surface = surfacePos(currentTile, idx, direction);
+	auto nextSurface = [&ground, &path, &useOneWayPlatforms, &idx, &direction](auto curr) -> std::optional< SDL_Point > {
+		CollisionTile tile = getTile(curr, ground, path);
+		if (!useOneWayPlatforms && (tile.flags & static_cast< int >(Ground::Flags::TOP_SOLID))) {
+			tile = { 0, 0 };
+		}
+		return surfacePos(tile, idx, direction);
+	};
+
+	SDL_Point current = lineEnd;
+	std::optional< SDL_Point > surface = nextSurface(current);
 
 	if (!surface) {
 		return {};
 	}
 
-	auto isPast = [&]() {
-		SDL_Point difference = current - lineEnd;
-		int coord = upDown ? difference.y : difference.x;
+	auto isPast = [&upDown, &lineEnd, &maxLength](auto curr) {
+		const SDL_Point difference = curr - lineEnd;
+		const int coord = upDown ? difference.y : difference.x;
 		return maxLength < std::abs(coord);
 	};
 
-	SDL_Point lastCorner = tileCorner;
+	SDL_Point lastPos = current;
 	do {
-		lastCorner = tileCorner;
-		current = tileCorner + *surface - directionVec;
-		tileCorner = (current / TILE_WIDTH) * TILE_WIDTH;
-		currentTile = getTile(current, ground, path);
-		if (!useOneWayPlatforms && (currentTile.flags & static_cast< int >(Ground::Flags::TOP_SOLID))) {
-			currentTile = { 0, 0 };
-		}
-		surface = surfacePos(currentTile, idx, direction);
-	} while (surface && lastCorner != tileCorner && !isPast());
+		lastPos = std::exchange(current, (current / TILE_WIDTH) * TILE_WIDTH + *surface - directionVec);
+		surface = nextSurface(current);
+	} while (surface && (lastPos / TILE_WIDTH) != (current / TILE_WIDTH) && !isPast(current));
 
-	return { { current, currentTile.getAngle(direction) } };
+	return { { current, getTile(current, ground, path).getAngle(direction) } };
 }

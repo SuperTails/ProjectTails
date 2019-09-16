@@ -173,8 +173,6 @@ private:
 
 	void handleCollisions(std::vector < std::vector < Ground > >& tiles, EntityManager& manager);
 
-	void collideWalls(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls);
-
 	void collideWall(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls, bool left);
 
 	void collideCeilings(const std::vector< std::vector< Ground > >& tiles);
