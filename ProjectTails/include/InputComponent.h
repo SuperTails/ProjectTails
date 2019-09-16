@@ -5,29 +5,26 @@
 class InputComponent
 {
 public:
-	enum Key { W,A,S,D,J,M,LARROW,UARROW,RARROW,DARROW,N,X,LBRACKET,RBRACKET,F,R,KEYS_SIZE };
+	enum class KeyMap { LEFT = 'a', RIGHT = 'd', UP = 'w', DOWN = 's', JUMP = ' ' };
 
-	enum KeyMap { LEFT = A, RIGHT = D, UP = W, DOWN = S, JUMP = J };
-	
+	// Includes keycodes and scancodes
+	static constexpr const std::size_t keyCount = 128 + 282;
 
-	void UpdateKeys(); 
+	void updateKeys(); 
 
 	// Returns true if the given key is currently held
-	bool GetKeyState(int k) const { return KeyStates[k];  };
+	bool getKeyState(int k) const;
+	bool getKeyState(KeyMap input) const;
 
 	// Returns true if the given key was just pressed on this frame
-	bool GetKeyPress(int k) const { return KeyPress[k]; };
+	bool getKeyPress(int k) const;
+	bool getKeyPress(KeyMap input) const;
 
-	int GetWheel() const { return mouseWheel; };
-
-	SDL_Event KeyEvent;
-
-	InputComponent();
-	~InputComponent();
+	int getWheel() const { return mouseWheel; };
 
 private:
-	std::bitset < KEYS_SIZE > KeyStates;
-	std::bitset < KEYS_SIZE > KeyPress;
-	int mouseWheel;
+	std::bitset< keyCount > keyStates = 0;
+	std::bitset< keyCount > keyPress = 0;
+	int mouseWheel = 0;
 };
 

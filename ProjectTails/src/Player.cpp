@@ -153,10 +153,10 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 	switch (actType) {
 	//Tornado
 	case 1:
-		if (input.GetKeyState(InputComponent::LEFT)) {
+		if (input.getKeyState(InputComponent::KeyMap::LEFT)) {
 			velocity.x = 1;
 		}
-		else if (input.GetKeyState(InputComponent::RIGHT)) {
+		else if (input.getKeyState(InputComponent::KeyMap::RIGHT)) {
 			velocity.x = 2;
 		}
 		else if (std::abs(velocity.x - 1.5) <= 0.05) {
@@ -165,11 +165,11 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		else {
 			velocity.x = (0.9 * (velocity.x - 1.5)) + 1.5;
 		}
-		if (input.GetKeyState(InputComponent::LEFT)) {
+		if (input.getKeyState(InputComponent::KeyMap::LEFT)) {
 			velocity.y = 2;
 			break;
 		}
-		else if (input.GetKeyState(InputComponent::RIGHT)) {
+		else if (input.getKeyState(InputComponent::KeyMap::RIGHT)) {
 			velocity.y = -2;
 			break;
 		}
@@ -236,13 +236,13 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		case State::IDLE:
 
 			// If pressing down, crouch.
-			if (getKeyState(input, InputComponent::DOWN)) {
+			if (getKeyState(input, InputComponent::KeyMap::DOWN)) {
 				state = State::CROUCHING;
 				setAnimation(6);
 				break;
 			}
 			// If pressing up, look up
-			else if (getKeyState(input, InputComponent::UP)) {
+			else if (getKeyState(input, InputComponent::KeyMap::UP)) {
 				state = State::LOOKING_UP;
 				break;
 			}
@@ -260,7 +260,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		case State::WALKING:
 
 			// If moving slowly enough, just crouch. Otherwise, roll.
-			if (getKeyState(input, InputComponent::DOWN)) {
+			if (getKeyState(input, InputComponent::KeyMap::DOWN)) {
 				if (std::abs(gsp) < 0.5) {
 					state = State::CROUCHING;
 					gsp = 0.0;
@@ -295,14 +295,14 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		case State::JUMPING:
 
 			// Start flying
-			if (getKeyPress(input, InputComponent::JUMP) && !corkscrew) {
+			if (getKeyPress(input, InputComponent::KeyMap::JUMP) && !corkscrew) {
 				flightTime.start();
 				gravity = 0.03125;
 				state = State::FLYING;
 				break;
 			}
 			// Allow for variable jump heights
-			else if (!input.GetKeyState(InputComponent::JUMP) && jumping && velocity.y < -4.0 && !corkscrew) {
+			else if (!getKeyState(input, InputComponent::KeyMap::JUMP) && jumping && velocity.y < -4.0 && !corkscrew) {
 				velocity.y = -4.0;
 			}
 
@@ -322,7 +322,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			}
 			
 			// If there is flight time remaining, check for the jump button being pressed
-			if (flightTime.isTiming() && getKeyPress(input, InputComponent::JUMP)) {
+			if (flightTime.isTiming() && getKeyPress(input, InputComponent::KeyMap::JUMP)) {
 				if (velocity.y >= -1) {
 					gravity = -0.125;
 				}
@@ -342,13 +342,13 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		case State::CROUCHING:
 
 			// If no longer pressing down, return to normal
-			if (!getKeyState(input, InputComponent::DOWN)) {
+			if (!getKeyState(input, InputComponent::KeyMap::DOWN)) {
 				state = State::IDLE;
 				setAnimation(1);
 				break;
 			}
 			// If jump is pressed, start a spindash
-			else if (getKeyPress(input, InputComponent::JUMP)) {
+			else if (getKeyPress(input, InputComponent::KeyMap::JUMP)) {
 				state = State::SPINDASH;
 				spindash = 2.0;
 				setAnimation(7);
@@ -361,7 +361,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		case State::SPINDASH:
 
 			// If no longer pressing down, start rolling
-			if (!getKeyState(input, InputComponent::DOWN)) {
+			if (!getKeyState(input, InputComponent::KeyMap::DOWN)) {
 				state = State::ROLLING;
 				setAnimation(5 + 4 * animations.size());
 				std::cout << spindash << "\n";
@@ -371,7 +371,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 				break;
 			}
 			// If jump is pressed, add speed
-			else if (getKeyPress(input, InputComponent::JUMP)) {
+			else if (getKeyPress(input, InputComponent::KeyMap::JUMP)) {
 				spindash += 2.0;
 			}
 
@@ -402,13 +402,13 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 				controlLock.start();
 			}
 			// Normal input to the left
-			else if (getKeyState(input, InputComponent::LEFT) && !controlLock.isTiming()) {
+			else if (getKeyState(input, InputComponent::KeyMap::LEFT) && !controlLock.isTiming()) {
 				if (gsp >= thisDecel) {
 					gsp -= thisDecel;
 				}
 			}
 			// Normal input to the right
-			else if (getKeyState(input, InputComponent::RIGHT) && !controlLock.isTiming()) {
+			else if (getKeyState(input, InputComponent::KeyMap::RIGHT) && !controlLock.isTiming()) {
 				if (gsp <= thisDecel) {
 					gsp += thisDecel;
 				}
@@ -447,7 +447,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 			}
 
 			// If the jump key gets pressed then initiate a rolljump
-			if (getKeyPress(input, InputComponent::JUMP) && !controlLock.isTiming() && !ceilingBlocked && onGround) {
+			if (getKeyPress(input, InputComponent::KeyMap::JUMP) && !controlLock.isTiming() && !ceilingBlocked && onGround) {
 				jump(true);
 			}
 
@@ -465,7 +465,7 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 		case State::LOOKING_UP:
 
 			// If no longer pressing up, return to normal
-			if (!getKeyState(input, InputComponent::UP)) {
+			if (!getKeyState(input, InputComponent::KeyMap::UP)) {
 				state = State::IDLE;
 				break;
 			}
@@ -1032,7 +1032,7 @@ void Player::destroyEnemy(EntityManager& manager, PhysicsEntity& entity) {
 	if (position.y > entity.getPosition().y || velocity.y < 0) {
 		velocity.y -= signum(velocity.y);
 	}
-	else if (globalObjects::input.GetKeyState(InputComponent::JUMP)) {
+	else if (globalObjects::input.getKeyState(InputComponent::KeyMap::JUMP)) {
 		velocity.y *= -1;
 	}
 	else {
@@ -1051,7 +1051,7 @@ void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, dou
 		controlLock.start();
 		return;
 	}
-	if (getKeyState(input, InputComponent::LEFT) && !controlLock.isTiming()) {
+	if (getKeyState(input, InputComponent::KeyMap::LEFT) && !controlLock.isTiming()) {
 		if (gsp <= 0.0) {
 			gsp -= thisAccel;
 		}
@@ -1062,7 +1062,7 @@ void Player::walkLeftAndRight(const InputComponent& input, double thisAccel, dou
 			gsp -= thisDecel;
 		}
 	}
-	else if (getKeyState(input, InputComponent::RIGHT) && !controlLock.isTiming()) {
+	else if (getKeyState(input, InputComponent::KeyMap::RIGHT) && !controlLock.isTiming()) {
 		if (gsp >= 0.0) {
 			gsp += thisAccel;
 		}
@@ -1098,16 +1098,16 @@ void Player::updateIfWalkOrIdle(const InputComponent& input, double thisAccel, d
 	}
 
 	// Initiate a jump
-	if (input.GetKeyPress(InputComponent::JUMP) && onGround) {
+	if (input.getKeyPress(InputComponent::KeyMap::JUMP) && onGround) {
 		jump(false);
 	};
 }
 
 void Player::updateInAir(const InputComponent & input, double thisAccel, double thisDecel, double thisFrc) {
-	if (getKeyState(input, InputComponent::LEFT) && state != State::ROLLJUMPING) {
+	if (getKeyState(input, InputComponent::KeyMap::LEFT) && state != State::ROLLJUMPING) {
 		velocity.x -= thisAccel;
 	}
-	if (getKeyState(input, InputComponent::RIGHT) && state != State::ROLLJUMPING) {
+	if (getKeyState(input, InputComponent::KeyMap::RIGHT) && state != State::ROLLJUMPING) {
 		velocity.x += thisAccel;
 	}
 	if (-4 < velocity.y && velocity.y < 0 && std::abs(velocity.x) >= 0.125) {
@@ -1121,12 +1121,12 @@ void Player::restrictVelocityDirection(Vector2& point, SDL_Point dir, int rotati
 	point.y = (velocityDir.y ? (velocityDir.y * std::max(velocityDir.y * point.y, 0.0)) : point.y);
 }
 
-bool Player::getKeyPress(const InputComponent& input, int key) const {
-	return input.GetKeyPress(key) && !damageCountdown.isTiming();
+bool Player::getKeyPress(const InputComponent& input, InputComponent::KeyMap key) const {
+	return input.getKeyPress(key) && !damageCountdown.isTiming();
 }
 
-bool Player::getKeyState(const InputComponent& input, int key) const {
-	return input.GetKeyState(key) && !damageCountdown.isTiming();
+bool Player::getKeyState(const InputComponent& input, InputComponent::KeyMap key) const {
+	return input.getKeyState(key) && !damageCountdown.isTiming();
 }
 
 int directionCompare(SDL_Point a, SDL_Point b, Direction direction) {

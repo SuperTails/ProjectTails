@@ -41,8 +41,6 @@ LevelEditor::LevelEditor(Act act, Camera* camera) :
 			throw "No image file available for entity";
 		}
 	}
-
-	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
 }
 
 void LevelEditor::render() {
@@ -75,7 +73,7 @@ void LevelEditor::renderEntities() const {
 	SDL_SetRenderDrawColor(globalObjects::renderer, 255, 255, 0, SDL_ALPHA_OPAQUE);
 	for (const std::unique_ptr< PhysicsEntity >& i : levelEntities) {
 		Point temp = i->position - cam->getPosition();
-		entityView.find(i->getKey())->second.Render(SDL_Point{ int(temp.x), int(temp.y) }, 0, NULL, cam->scale);
+		entityView.find(i->getKey())->second.Render(static_cast< SDL_Point >(temp), 0, NULL, cam->scale);
 		const auto requiredFlags = entity_property_data::requiredFlagCount(entity_property_data::getEntityTypeData(i->getKey()).behaviorKey);
 		if (i->getFlags().size() != requiredFlags) {
 			Rect dest{ i->getPosition().x, i->getPosition().y, 16, 16 };
@@ -121,70 +119,38 @@ void LevelEditor::renderText() const {
 }
 
 bool LevelEditor::handleInput() {
+	const auto& input = globalObjects::input;
 	double thisDistance = (Timer::getFrameTime().count() / (1000.0 / 60.0)) * 10 / cam->scale;
-	if (globalObjects::input.GetKeyState(InputComponent::A)) {
-		cam->position.x -= thisDistance;
-	}
-	else if (globalObjects::input.GetKeyState(InputComponent::D)) {
-		cam->position.x += thisDistance;
-	}
-	if (globalObjects::input.GetKeyState(InputComponent::W)) {
-		cam->position.y -= thisDistance;
-	}
-	else if (globalObjects::input.GetKeyState(InputComponent::S)) {
-		cam->position.y += thisDistance;
-	}
+	cam->position.x += thisDistance * (globalObjects::input.getKeyState('a') - globalObjects::input.getKeyState('d'));
+	cam->position.y += thisDistance * (globalObjects::input.getKeyState('s') - globalObjects::input.getKeyState('w'));
 
 	if (mode == TILE) {
-		if (globalObjects::input.GetKeyPress(InputComponent::LBRACKET) && cam->scale > 0.1) {
-			cam->scale -= 0.1;
-		}
-		if (globalObjects::input.GetKeyPress(InputComponent::RBRACKET) && cam->scale < 3.0) {
-			cam->scale += 0.1;
-		}
+		double newScale = cam->scale;
+		newScale += 0.1 * (input.getKeyPress(']') - input.getKeyPress('['));
+		cam->scale = std::clamp(newScale, 0.1, 3.0);
 	}
 
-	if (globalObjects::input.GetKeyPress(InputComponent::M)) {
+	if (input.getKeyPress('m')) {
 		mode = (mode == TILE) ? ENTITY : TILE;
 	}
 
 	auto& levelEntities = level.getEntities();
 
 	if (mode == ENTITY && currentEntity != levelEntities.end()) {
-		mouseWheelValue += globalObjects::input.GetWheel() * 1.5;
+		mouseWheelValue += input.getWheel() * 1.5;
 		mouseWheelValue = std::max(1.0, mouseWheelValue);
 		mouseWheelValue = std::min(10.0, mouseWheelValue);
 
-		static double entityXError = 0.0;
-		static double entityYError = 0.0;
-
 		double thisMove = thisDistance / (mouseWheelValue * cam->scale);
-		if (globalObjects::input.GetKeyState(InputComponent::LARROW)) {
-			entityXError -= thisMove;
-		}
-		else if (globalObjects::input.GetKeyState(InputComponent::RARROW)) {
-			entityXError += thisMove;
-		}
-		if (globalObjects::input.GetKeyState(InputComponent::UARROW)) {
-			entityYError -= thisMove;
-		}
-		else if (globalObjects::input.GetKeyState(InputComponent::DARROW)) {
-			entityYError += thisMove;
-		}
 
-		(*currentEntity)->position.x += static_cast< int >(entityXError);
-		(*currentEntity)->position.y += static_cast< int >(entityYError);
-
-		entityXError -= static_cast< int >(entityXError);
-		entityYError -= static_cast< int >(entityYError);
+		(*currentEntity)->position.x += thisMove * (input.getKeyState(SDLK_RIGHT) - input.getKeyState(SDLK_LEFT));
+		(*currentEntity)->position.y += thisMove * (input.getKeyState(SDLK_UP) - input.getKeyState(SDLK_DOWN));
 	}
 
 	//Mouse coordinates are stored as absolute coordinates
 	SDL_Point mouse;
 	Uint32 mouseState = SDL_GetMouseState(&mouse.x, &mouse.y);
-	mouse = (mouse / cam->scale) + SDL_Point{ int(cam->getPosition().x), int(cam->getPosition().y) };
-
-	
+	mouse = (mouse / cam->scale) + static_cast< SDL_Point >(cam->getPosition());
 
 	const auto mouseTile = mouse / GROUND_PIXEL_WIDTH;
 	static bool mouseDebounce = false;
@@ -254,11 +220,11 @@ bool LevelEditor::handleInput() {
 	}
 
 	if (mode == ENTITY) {
-		if (globalObjects::input.GetKeyPress(InputComponent::N)) {
+		if (globalObjects::input.getKeyPress('n')) {
 			levelEntities.push_back(std::make_unique< PhysicsEntity >("RING", std::vector< char >{}, Point(mouse), false));
 			currentEntity = std::prev(levelEntities.end());
 		}
-		else if(globalObjects::input.GetKeyPress(InputComponent::X) && currentEntity != levelEntities.end()) {
+		else if(globalObjects::input.getKeyPress('x') && currentEntity != levelEntities.end()) {
 			levelEntities.erase(currentEntity);
 			currentEntity = levelEntities.end();
 		}
@@ -266,7 +232,7 @@ bool LevelEditor::handleInput() {
 			const auto& entityTypes = entity_property_data::entityTypes;
 			const auto entityType = entityTypes.find((*currentEntity)->getKey());
 			assert(entityType != entityTypes.end());
-			if (globalObjects::input.GetKeyPress(InputComponent::LBRACKET)) {
+			if (globalObjects::input.getKeyPress('[')) {
 				/*if (entityType == entityTypes.begin()) {
 					currentEntity->typeId = std::prev(entityTypes.end())->first;
 				}
@@ -274,7 +240,7 @@ bool LevelEditor::handleInput() {
 					currentEntity->typeId = std::prev(entityType)->first;
 				}*/
 			}
-			else if (globalObjects::input.GetKeyPress(InputComponent::RBRACKET)) {
+			else if (globalObjects::input.getKeyPress(']')) {
 				if (std::next(entityType) == entityTypes.end()) {
 					*currentEntity = std::make_unique< PhysicsEntity >(
 						entityTypes.begin()->first,
@@ -294,7 +260,7 @@ bool LevelEditor::handleInput() {
 			}
 			
 		}
-		if (globalObjects::input.GetKeyPress(InputComponent::F)) {
+		if (globalObjects::input.getKeyPress('f')) {
 			std::cout << "Enter flags: ";
 			std::string current;
 			std::getline(std::cin, current);
@@ -303,7 +269,7 @@ bool LevelEditor::handleInput() {
 			std::cout << '\n';
 		}
 	}
-	else if (globalObjects::input.GetKeyPress(InputComponent::R)) {
+	else if (globalObjects::input.getKeyPress('r')) {
 		std::cout << "Enter new size: ";
 		SDL_Point newSize;
 		std::cin >> newSize.x >> newSize.y;
@@ -313,17 +279,12 @@ bool LevelEditor::handleInput() {
 		if (newSize.x > levelBlocks.size()) {
 			std::size_t previousSize = levelBlocks.size();
 			levelBlocks.resize(newSize.x);
-			// Black magic, don't touch
-			std::generate(levelBlocks.begin() + previousSize, levelBlocks.end(),
-					[&newSize, x = (int)previousSize]() mutable {
-						std::vector < Ground > g(newSize.y);
-						std::generate(g.begin(), g.end(),
-								[&newSize, &x, y = 0]() mutable {
-									return Ground{ Ground::NO_TILE, { x, y++ }, false };
-								});
-						++x;
-						return g;
-					});
+			for (int x = previousSize; x < newSize.x; ++x) {
+				levelBlocks[x].resize(newSize.y);
+				for (int y = 0; y < newSize.y; ++y) {
+					levelBlocks[x][y] = Ground{ Ground::NO_TILE, { x, y }, false };
+				}
+			}
 		}
 		else {
 			levelBlocks.resize(newSize.x);
@@ -331,14 +292,11 @@ bool LevelEditor::handleInput() {
 
 		if (newSize.y > levelBlocks[0].size()) {
 			const std::size_t previousSize = levelBlocks[0].size();
-			int x = 0;
-			for (auto& g : levelBlocks) {
-				g.resize(newSize.y);
-				std::generate(g.begin() + previousSize, g.end(),
-						[&newSize, &x, y = (int)previousSize]() mutable {
-							return Ground{ Ground::NO_TILE, SDL_Point { x, y++ }, false };
-						});
-				++x;
+			for (int x = 0; x < levelBlocks.size(); ++x) {
+				levelBlocks[x].resize(newSize.y);
+				for (int y = previousSize; y < levelBlocks[x].size(); ++y) {
+					levelBlocks[x][y] = Ground{ Ground::NO_TILE, SDL_Point{ x, y }, false };
+				}
 			}
 		}
 		else {
@@ -348,7 +306,7 @@ bool LevelEditor::handleInput() {
 		}
 	}
 
-	return globalObjects::input.GetKeyState(InputComponent::J) || globalObjects::input.GetKeyState(InputComponent::X);
+	return globalObjects::input.getKeyState('j') || globalObjects::input.getKeyState('x');
 }
 
 void LevelEditor::save(const std::experimental::filesystem::path& path) const {
