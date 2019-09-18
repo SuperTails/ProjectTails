@@ -13,7 +13,7 @@ void renderWithDefault(const PhysicsEntity& entity, const Camera& camera);
 
 PhysicsEntity::PhysicsEntity()
 {
-	position = { 0  , 0   };
+	position = { 0.0, 0.0 };
 	velocity = { 0.0, 0.0 };
 	destroyAfterLoop = false;
 }
@@ -152,7 +152,7 @@ void PhysicsEntity::setAnim(const std::vector< std::size_t >& a) {
 void PhysicsEntity::renderRaw(const Camera& camera) const {
 	const Point relativePosition = position - camera.getPosition();
 	for (auto index : currentAnim) {
-		animations[index]->Render(SDL_Point{ int(relativePosition.x), int(relativePosition.y) }, 0, nullptr, camera.scale);
+		animations[index]->Render(static_cast< SDL_Point >(relativePosition), 0, nullptr, camera.scale);
 	}
 }
 

@@ -20,7 +20,7 @@ bool HitboxForm::intersects(HitboxForm other, Point otherCenter) {
 		box.y + box.h > other.box.y;
 }
 
-Rect HitboxForm::getBox() const {
+Rect HitboxForm::getAABoundingBox() const {
 	return box;
 }
 

@@ -15,7 +15,7 @@ public:
 
 	void render(const Camera& camera, Point center) const;
 
-	[[deprecated]] Rect getBox() const;
+	Rect getAABoundingBox() const;
 
 	friend class AbsoluteHitbox;
 
