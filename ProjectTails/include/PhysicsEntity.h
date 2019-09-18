@@ -77,8 +77,6 @@ public:
 
 	Vector2 getVelocity() const { return velocity; };
 
-	bool isInvisible() { return invis; };
-
 	Point getPosition() const;
 
 	void setAnim(const std::vector< std::size_t >& a);
@@ -115,7 +113,6 @@ protected:
 	entity_property_data::CustomData customData;
 	std::vector < std::unique_ptr < Animation > > animations;
 	std::vector< char > flags;
-	bool invis = false;
 	double gravity = 0.0;
 };
 

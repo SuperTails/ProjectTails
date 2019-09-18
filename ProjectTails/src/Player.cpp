@@ -518,10 +518,6 @@ void Player::update(std::vector < std::vector < Ground > >& tiles, EntityManager
 
 	if (damageCountdown.isTiming()) {
 		gsp = 0.0;
-		invis = (damageCountdown.timeRemaining().count() % 132) > 66;
-	}
-	else {
-		invis = false;
 	}
 
 	if (std::abs(velocity.y) < 1e-10) {
@@ -943,8 +939,10 @@ std::string Player::modeToString(Mode m) {
 }
 
 void Player::render(const Camera& cam) {
-	if (invis)
+	if (damageCountdown.isTiming() && (damageCountdown.timeRemaining().count() % 132) > 66) {
 		return;
+	}
+
 	angle = (angle == 255.0 || angle == 1.0) ? 0.0 : angle;
 	const auto pos = position - cam.getPosition();
 	const double frames = Timer::getFrameTime().count() / (1000.0 / 60.0);
