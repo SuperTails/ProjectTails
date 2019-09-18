@@ -27,7 +27,7 @@ public:
 	PhysicsEntity();
 	PhysicsEntity(const PhysicsEntity& arg);
 	PhysicsEntity(PhysicsEntity&& other);
-	PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > flags, Point position, bool temporary);
+	PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > flags, Point position);
 	PhysicsEntity(Point pos, bool multi, SDL_Point tileSize = { 16, 16 });
 	virtual ~PhysicsEntity() = default;
 
@@ -90,7 +90,6 @@ public:
 	static SDL_Rect getRelativePos(const SDL_Rect& objPos, const SDL_Rect& camPos);
 
 	Vector2 velocity;
-	bool shouldSave;
 	bool canCollide;
 
 	static SDL_Point xyPoint(SDL_Rect rect) { return SDL_Point{ rect.x, rect.y }; };

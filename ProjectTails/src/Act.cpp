@@ -145,7 +145,7 @@ void Act::loadVersion(std::ifstream& DataFile, Version version) {
 			throw std::logic_error("Invalid flag count for entity!");
 		}
 
-		entities.push_back(std::make_unique< PhysicsEntity >(typeId, flags, pos, false));
+		entities.push_back(std::make_unique< PhysicsEntity >(typeId, flags, pos));
 	}
 	DataFile.get();
 

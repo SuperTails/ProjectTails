@@ -27,7 +27,6 @@ PhysicsEntity::PhysicsEntity(PhysicsEntity&& other) :
 PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
 	dataKey(arg.dataKey),
 	velocity(arg.velocity),
-	shouldSave(arg.shouldSave),
 	currentAnim(arg.currentAnim),
 	canCollide(true),
 	destroyAfterLoop(arg.destroyAfterLoop),
@@ -43,8 +42,7 @@ PhysicsEntity::PhysicsEntity(const PhysicsEntity& arg) :
 	position = arg.position;
 };
 
-PhysicsEntity::PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > f, Point pos, bool temporary) :
-	shouldSave(!temporary),
+PhysicsEntity::PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vector< char > f, Point pos) :
 	canCollide(true),
 	destroyAfterLoop(false),
 	flags(f),
@@ -201,7 +199,6 @@ void swap(PhysicsEntity& lhs, PhysicsEntity& rhs) noexcept {
 	using std::swap;
 
 	swap(lhs.velocity, rhs.velocity);
-	swap(lhs.shouldSave, rhs.shouldSave);
 	swap(lhs.canCollide, rhs.canCollide);
 	swap(lhs.dataKey, rhs.dataKey);
 	swap(lhs.destroyAfterLoop, rhs.destroyAfterLoop);

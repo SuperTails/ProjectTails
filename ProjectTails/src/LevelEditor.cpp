@@ -221,7 +221,7 @@ bool LevelEditor::handleInput() {
 
 	if (mode == ENTITY) {
 		if (globalObjects::input.getKeyPress('n')) {
-			levelEntities.push_back(std::make_unique< PhysicsEntity >("RING", std::vector< char >{}, Point(mouse), false));
+			levelEntities.push_back(std::make_unique< PhysicsEntity >("RING", std::vector< char >{}, Point(mouse)));
 			currentEntity = std::prev(levelEntities.end());
 		}
 		else if(globalObjects::input.getKeyPress('x') && currentEntity != levelEntities.end()) {
@@ -245,16 +245,14 @@ bool LevelEditor::handleInput() {
 					*currentEntity = std::make_unique< PhysicsEntity >(
 						entityTypes.begin()->first,
 						(*currentEntity)->getFlags(),
-						(*currentEntity)->position,
-						false
+						(*currentEntity)->position
 					);
 				}
 				else {
 					*currentEntity = std::make_unique< PhysicsEntity >(
 						std::next(entityType)->first,
 						(*currentEntity)->getFlags(),
-						(*currentEntity)->position,
-						false
+						(*currentEntity)->position
 					);
 				}
 			}
