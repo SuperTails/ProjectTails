@@ -712,8 +712,7 @@ std::optional< std::pair< SDL_Point, double > > findGroundHeight(const std::vect
 	double averageAngle = radToHex(std::atan2(avgY, avgX));
 	//double averageAngle = wrap(radToHex(ang2), 256);
 
-	// TODO: calculate angle as well by averaging the results
-	return { { results.front().first, averageAngle } };
+	return { { maxPoint.first, averageAngle } };
 }
 
 //Returns height of A, height of B, and angle
@@ -864,12 +863,10 @@ if (collideMode == Mode::GROUND) {
 */
 
 void Player::collideWall(const std::vector< std::vector< Ground > >& tiles, const std::vector< AbsoluteHitbox >& walls, bool left) {
+	const Direction wallDir = left ? Direction::LEFT : Direction::RIGHT;
+	const HitboxForm wallBox = getWallHitbox();
+
 	std::optional< Point > wall{};
-
-	const Direction wallDir = directionFromRelative(left ? Direction::LEFT : Direction::RIGHT, collideMode);
-
-	HitboxForm wallBox = getWallHitbox();
-
 	if (auto result = findGroundHeight(tiles, getPosition(), getMode(), wallBox, false, getPath(), wallDir)) {
 		wall.emplace(static_cast< Point >(result->first));
 	}
@@ -877,18 +874,22 @@ void Player::collideWall(const std::vector< std::vector< Ground > >& tiles, cons
 	// TODO: Entity collisions
 	
 	if (wall) {
-		if (wallDir == Direction::LEFT || wallDir == Direction::RIGHT) {
-			wall->y = getPosition().y;
-		}
-		else {
-			wall->x = getPosition().x;
-		}
+		const Rect box = wallBox.getBox();
+		const Point corner1 = getPosition() + Point{ box.x, box.y };
+		const Point corner2 = corner1 + Point{ box.w, box.h };
+		
+		// directionCompare(corner, wall, oppDir) < 0 when corner is *less* intrusive than wall
+		// Pick the edge diff that is closest to the player/most 'intrusive'
+		const Direction oppDir = directionFromRelative(static_cast< Direction >((static_cast< int >(wallDir) + 2) % 4), collideMode);
+		double comp = std::min(directionCompare(corner1, *wall, oppDir), directionCompare(corner2, *wall, oppDir));
+		// comp is positive when the wall is *outside* the player's bounding box, negative when *intersecting* with the player
+		
+		if (comp <= 0.0) {
+			Vector2 push = directionVector(oppDir);
+			push.x *= -comp;
+			push.y *= -comp;
 
-		const auto playerEdge = getPosition() + rotate90(static_cast< int >(collideMode), Point{ static_cast< double >(left ? -10 : 10), 0 });
-
-		//Push the player out of walls
-		if (directionCompare(static_cast< Point >(*wall), playerEdge, wallDir) <= 0) {
-			position += static_cast< Point >(*wall) - playerEdge;
+			position += push;
 			restrictVelocityDirection(velocity, { (left ? 1 : -1), 0 }, static_cast< int >(collideMode));
 		}
 	}
@@ -1135,7 +1136,7 @@ int directionCompare(SDL_Point a, SDL_Point b, Direction direction) {
 	return b.y - a.y;
 }
 
-int directionCompare(Point a, Point b, Direction direction) {
+double directionCompare(Point a, Point b, Direction direction) {
 	a = rotate90(-static_cast< int >(direction), a);
 	b = rotate90(-static_cast< int >(direction), b);
 	return b.y - a.y;
@@ -1194,21 +1195,7 @@ std::ostream& operator<< (std::ostream& str, Direction direction) {
 
 std::optional< std::pair< SDL_Point, double > > collideLine(SDL_Point lineBegin, int maxLength, Direction direction, const std::vector< std::vector< Ground > >& ground, bool useOneWayPlatforms, bool path) {
 	const bool upDown = (direction == Direction::UP || direction == Direction::DOWN);
-	SDL_Point directionVec;
-	switch (direction) {
-	case Direction::UP:
-		directionVec = SDL_Point{  0, -1 };
-		break;
-	case Direction::DOWN:
-		directionVec = SDL_Point{  0,  1 };
-		break;
-	case Direction::LEFT:
-		directionVec = SDL_Point{ -1,  0 };
-		break;
-	case Direction::RIGHT:
-		directionVec = SDL_Point{  1,  0 };
-		break;
-	}
+	SDL_Point directionVec = static_cast< SDL_Point >(directionVector(direction));
 
 	const SDL_Point lineEnd = lineBegin + directionVec * maxLength;
 	const int idx = upDown ? (lineBegin.x % TILE_WIDTH) : (lineBegin.y % TILE_WIDTH);
@@ -1240,5 +1227,16 @@ std::optional< std::pair< SDL_Point, double > > collideLine(SDL_Point lineBegin,
 		surface = nextSurface(current);
 	} while (surface && (lastPos / TILE_WIDTH) != (current / TILE_WIDTH) && !isPast(current));
 
-	return { { current, getTile(current, ground, path).getAngle(direction) } };
+	double angle = getTile(current, ground, path).getAngle(direction);
+	if (getTile(current, ground, path).getIndex() == 0) {
+		angle = getTile(current + directionVec * TILE_WIDTH, ground, path).getAngle(direction);
+	}
+
+	return { { current, angle } };
+}
+
+Point directionVector(Direction dir) {
+	std::array< Point, 4 > dirs = { Vector2{ 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
+
+	return dirs[static_cast< std::size_t >(dir)];
 }

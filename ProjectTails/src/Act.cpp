@@ -310,10 +310,10 @@ void Act::renderObjects(Player& player, Camera& cam) {
 		auto rResult = findGroundHeight(solidTiles, player.getPosition(), player.getMode(), player.getWallHitbox(), false, player.getPath(), Direction::RIGHT);
 
 		if (lResult) {
-			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(lResult->first), drawing::Color{ 0, 0, 255 }, 4);
+			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(lResult->first), drawing::Color{ 0, 255, 255 }, 4);
 		}
 		if (rResult) {
-			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(rResult->first), drawing::Color{ 0, 0, 255 }, 4);
+			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(rResult->first), drawing::Color{ 255, 255, 0 }, 4);
 		}
 
 		SDL_Point mousePos;

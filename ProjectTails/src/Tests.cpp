@@ -30,7 +30,19 @@ TEST(Directions, Rotations) {
 		SDL_Point rhs = rotate90(i, SDL_Point{ 0,  1 });
 		Direction dir = static_cast< Direction >(i);
 		int result = directionCompare(lhs, rhs, dir);
-		EXPECT_LT(result, 0) << "Expected " << result << " to be less than 0 for direction " << dir;
+		EXPECT_EQ(result, -1) << "Expected " << result << " to be less than 0 for direction " << dir;
+	}
+}
+
+TEST(Directions, Relative) {
+	std::array< Direction, 16 > results = {
+		Direction::UP, Direction::RIGHT, Direction::DOWN, Direction::LEFT, // GROUND
+		Direction::RIGHT, Direction::DOWN, Direction::LEFT, Direction::UP, // LEFT_WALL
+		Direction::DOWN, Direction::LEFT, Direction::UP, Direction::RIGHT, // CEILING
+		Direction::LEFT, Direction::UP, Direction::RIGHT, Direction::DOWN  // RIGHT_WALL
+	};
+	for (int i = 0; i < 16; ++i) {
+		EXPECT_EQ(results[i], directionFromRelative(static_cast< Direction >(i % 4), static_cast< Mode >(i / 4)));
 	}
 }
 

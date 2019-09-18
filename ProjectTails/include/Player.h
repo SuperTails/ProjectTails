@@ -190,9 +190,11 @@ private:
 	bool getKeyState(const InputComponent& input, InputComponent::KeyMap key) const;
 };
 
+Vector2 directionVector(Direction direction);
+
 int directionCompare(SDL_Point a, SDL_Point b, Direction direction);
 
-int directionCompare(Point a, Point b, Direction direction);
+double directionCompare(Point a, Point b, Direction direction);
 
 double hexToDeg(double hex);
 double hexToRad(double hex);
