@@ -1,5 +1,7 @@
 #pragma once
 #include "Shapes.h"
+#include <vector>
+#include <optional>
 
 class Camera;
 class PhysicsEntity;
@@ -8,25 +10,27 @@ class HitboxForm {
 public:
 	HitboxForm() = default;
 
-	HitboxForm(Rect rect);
+	explicit HitboxForm(Rect rect);
+
+	HitboxForm(const std::vector< Rect >& rects);
 
 	// otherCenter is the relative position of the other bounding box compared to this one
-	bool intersects(HitboxForm other, Point otherCenter);
+	bool intersects(const HitboxForm& other, Point otherCenter);
 
 	void render(const Camera& camera, Point center) const;
 
-	Rect getAABoundingBox() const;
+	std::optional< Rect > getAABoundingBox() const;
 
 	friend class AbsoluteHitbox;
 
 private:
-	Rect box{ 0, 0, 0, 0 };
+	std::vector< Rect > boxes{};
 };
 
 struct AbsoluteHitbox {
 	AbsoluteHitbox(HitboxForm rawForm, Point center);
 
-	HitboxForm box;
+	HitboxForm hitbox;
 };
 
 bool intersects(const PhysicsEntity& a, const PhysicsEntity& b);

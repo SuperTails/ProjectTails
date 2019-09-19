@@ -211,7 +211,7 @@ void Bridge::update(PhysicsEntity& parent, EntityManager& manager, const Player&
 		//Player index
 		int playerPosition = (player.getPosition().x - parent.getPosition().x) / 16.0;
 
-		parent.setHitbox(Rect{ std::min(std::max(playerPosition * 16.0, 0.0), (bridgeWidth - 1.0) * 16.0), 0.0, 16.0, 16.0 });
+		parent.setHitbox(HitboxForm{Rect{ std::min(std::max(playerPosition * 16.0, 0.0), (bridgeWidth - 1.0) * 16.0), 0, 16, 16 }});
 
 		const auto playerIndex = std::min< std::size_t>(playerPosition, bridgeWidth - 1.0);
 

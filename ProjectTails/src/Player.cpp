@@ -643,7 +643,12 @@ void Player::handleCollisions(std::vector < std::vector < Ground > >& tiles, Ent
 std::optional< std::pair< SDL_Point, double > > findGroundHeight(const std::vector< std::vector< Ground > >& tiles, Point position, Mode mode, HitboxForm hitbox, bool useOneWayPlatforms, bool path, Direction relativeDir) {
 	const Direction dir = directionFromRelative(relativeDir, mode);
 
-	Rect box = hitbox.getAABoundingBox();
+	if (!hitbox.getAABoundingBox()) {
+		return {};
+	}
+
+	Rect box = *hitbox.getAABoundingBox();
+
 	bool side = false;
 	int startCoord = 0;
 	int endCoord = 0;
@@ -746,7 +751,7 @@ void Player::collideGround(const std::vector < std::vector < Ground > >& tiles, 
 	// Check platform sensors
 	if (collideMode == GROUND && velocity.y >= 0.0) {
 		for (const AbsoluteHitbox& entityCol: platforms) {
-			Rect entityCollision = entityCol.box.getAABoundingBox();
+			Rect entityCollision = *entityCol.hitbox.getAABoundingBox();
 			const int entityRadius = entityCollision.w / 2;
 			const int entityTop = entityCollision.y + 1;
 			const int entityCenter = entityCollision.x + entityRadius;
@@ -798,7 +803,7 @@ void Player::collideCeilings(const std::vector< std::vector< Ground > >& tiles) 
 	if (auto result = findGroundHeight(tiles, getPosition(), getMode(), getHitbox(), false, getPath(), Direction::UP)) {
 		SDL_Point ceiling = result->first;
 		ceiling.x = getPosition().x;
-		const int topDistance = position.y - getAbsHitbox().box.getAABoundingBox().y;
+		const int topDistance = position.y - getAbsHitbox().hitbox.getAABoundingBox()->y;
 		if (getPosition().y - topDistance < ceiling.y) {
 			position.y = ceiling.y + topDistance;
 			velocity.y = std::max(0.0, velocity.y);
@@ -813,7 +818,7 @@ Direction directionFromRelative(Direction rel, Mode mode) {
 }
 
 HitboxForm Player::getWallHitbox() const {
-	Rect box = getHitbox().getAABoundingBox();
+	Rect box = *getHitbox().getAABoundingBox();
 
 	switch (getMode()) {
 	case Mode::CEILING:
@@ -869,7 +874,7 @@ void Player::collideWall(const std::vector< std::vector< Ground > >& tiles, cons
 	// TODO: Entity collisions
 	
 	if (wall) {
-		const Rect box = wallBox.getAABoundingBox();
+		const Rect box = *wallBox.getAABoundingBox();
 		const Point corner1 = getPosition() + Point{ box.x, box.y };
 		const Point corner2 = corner1 + Point{ box.w, box.h };
 		

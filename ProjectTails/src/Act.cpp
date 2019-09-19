@@ -293,15 +293,15 @@ void Act::renderObjects(Player& player, Camera& cam) {
 
 	if (globalObjects::debug) {
 		for (auto& entity : entities) {
-			if (intersects(player, *entity) && entity->canCollide) {
+			if (intersects(player, *entity)) {
 				SDL_SetRenderDrawColor(globalObjects::renderer, 255, 0, 255, SDL_ALPHA_OPAQUE);
-				Rect box = entity->getAbsHitbox().box.getAABoundingBox();
+				Rect box = *entity->getAbsHitbox().hitbox.getAABoundingBox();
 
 				drawing::drawRect(globalObjects::renderer, cam, box, drawing::Color{ 255, 0, 255 }, true);
 			}
 		}
 
-		auto result = findGroundHeight(solidTiles, player.getPosition(), player.getMode(), player.getHitbox().getAABoundingBox(), false, player.getPath(), Direction::DOWN);
+		auto result = findGroundHeight(solidTiles, player.getPosition(), player.getMode(), player.getHitbox(), false, player.getPath(), Direction::DOWN);
 		if (result) {
 			drawing::drawPoint(globalObjects::renderer, cam, static_cast< Point >(result->first), drawing::Color{ 0, 0, 255 }, 4);
 		}

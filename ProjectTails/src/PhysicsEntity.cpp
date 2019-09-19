@@ -50,7 +50,8 @@ PhysicsEntity::PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vec
 	velocity(entity_property_data::getEntityTypeData(dataKey).defaultVelocity),
 	gravity(entity_property_data::getEntityTypeData(dataKey).defaultGravity),
 	hitbox(Rect{ entity_property_data::getEntityTypeData(dataKey).collisionRect }),
-	customData(createCustomData(dataKey, f))
+	customData(createCustomData(dataKey, f)),
+	position(pos)
 {
 	const auto& entityTypeData = entity_property_data::getEntityTypeData(dataKey);
 	for (const auto& data : entityTypeData.animationTypes) {
@@ -65,16 +66,13 @@ PhysicsEntity::PhysicsEntity(entity_property_data::EntityTypeId typeId, std::vec
 	for (std::size_t index : currentAnim) {
 		animations[index]->start();
 	}
-
-	position.x = pos.x;
-	position.y = pos.y;
 }
 
 PhysicsEntity::PhysicsEntity(Point pos, bool multi, SDL_Point tileSize) :
 	velocity{ 0.0, 0.0 },
-	currentAnim(0)
+	currentAnim(0),
+	position(pos)
 {
-	position = pos;
 	AddAnim(tileSize);
 	if (multi) {
 		AddAnim(tileSize);
@@ -84,8 +82,7 @@ PhysicsEntity::PhysicsEntity(Point pos, bool multi, SDL_Point tileSize) :
 void PhysicsEntity::update(Player* player, EntityManager* manager) {
 	const double frameTime = Timer::getFrameTime().count();
 
-	position.x += frameTime * velocity.x / (1000.0 / 60.0);
-	position.y += frameTime * velocity.y / (1000.0 / 60.0);
+	position += velocity * frameTime / (1000.0 / 60.0);
 
 	velocity.y += gravity * frameTime / (1000.0 / 60.0);
 
