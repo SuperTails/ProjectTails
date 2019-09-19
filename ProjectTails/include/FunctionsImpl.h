@@ -36,6 +36,20 @@ auto& invoke_all_members(F&& func, SDL_Rect& lhs, const SDL_Rect& rhs) {
 	return lhs;
 }
 
+template < typename F, typename T >
+auto& invoke_all_members(F&& func, Vector2& lhs, const T& rhs) {
+	func(lhs.x, rhs);
+	func(lhs.y, rhs);
+	return lhs;
+}
+
+template < typename F >
+auto& invoke_all_members(F&& func, Vector2& lhs, const Vector2& rhs) {
+	func(lhs.x, rhs.x);
+	func(lhs.y, rhs.y);
+	return lhs;
+}
+
 template < typename F >
 auto& invoke_all_members(F&& func, SDL_Rect& lhs, const SDL_Point& rhs) {
 	func(lhs.x, rhs.x);
@@ -50,7 +64,12 @@ SDL_Point& operator*= (SDL_Point& lhs, const T& rhs) {
 }
 template < typename T >
 SDL_Rect& operator*= (SDL_Rect& lhs, const T& rhs) {
-	static_assert(std::is_arithmetic<T>::value, "Right hand side of SDL_Point multiplication is not arithmetic type");
+	static_assert(std::is_arithmetic<T>::value, "Right hand side of SDL_Rect multiplication is not arithmetic type");
+	return invoke_all_members([](auto& l, const auto& r) { return l *= r; }, lhs, rhs);
+}
+template < typename T >
+Vector2&  operator*= (Vector2&  lhs, const T& rhs) {
+	static_assert(std::is_arithmetic<T>::value, "Right hand side of Vector2 multiplication is not an arithmetic type");
 	return invoke_all_members([](auto& l, const auto& r) { return l *= r; }, lhs, rhs);
 }
 
@@ -60,6 +79,10 @@ SDL_Point operator* (SDL_Point lhs, const T& rhs) {
 }
 template < typename T >
 SDL_Rect operator* (SDL_Rect lhs, const T& rhs) {
+	return (lhs *= rhs);
+}
+template < typename T >
+Vector2  operator* (Vector2  lhs, const T& rhs) {
 	return (lhs *= rhs);
 }
 
@@ -73,6 +96,11 @@ SDL_Rect& operator/= (SDL_Rect& lhs, const T& rhs) {
 	static_assert(std::is_arithmetic_v<T>, "Right hand side of SDL_Point division is not arithmentic type");
 	return invoke_all_members([](auto& l, const auto& r) { return l /= r; }, lhs, rhs);
 }
+template < typename T >
+Vector2&  operator/= (Vector2& lhs, const T& rhs) {
+	static_assert(std::is_arithmetic_v<T>, "Right hand side of Vector2 division is not arithmetic type");
+	return invoke_all_members([](auto& l, const auto& r) { return l /= r; }, lhs, rhs);
+}
 
 template < typename T >
 SDL_Point operator/ (SDL_Point lhs, const T& rhs) {
@@ -80,6 +108,10 @@ SDL_Point operator/ (SDL_Point lhs, const T& rhs) {
 }
 template < typename T >
 SDL_Rect operator/ (SDL_Rect lhs, const T& rhs) {
+	return (lhs /= rhs);
+}
+template < typename T >
+Vector2 operator/  (Vector2 lhs, const T& rhs) {
 	return (lhs /= rhs);
 }
 

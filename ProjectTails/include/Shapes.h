@@ -19,12 +19,6 @@ struct Vector2 {
 
 typedef Vector2 Point;
 
-Vector2& operator+=(Vector2& lhs, Vector2 rhs);
-Vector2& operator-=(Vector2& lhs, Vector2 rhs);
-
-Vector2  operator+ (Vector2 lhs, Vector2 rhs);
-Vector2  operator- (Vector2 lhs, Vector2 rhs);
-
 struct Rect {
 	Rect() = default;
 	Rect(const Rect&) = default;

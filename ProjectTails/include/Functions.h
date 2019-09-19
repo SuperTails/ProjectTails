@@ -18,6 +18,12 @@ template < typename F >
 auto& invoke_all_members(F&& func, SDL_Point& lhs, const SDL_Point& rhs);
 
 template < typename F, typename T >
+auto& invoke_all_members(F&& func, Vector2& lhs, const T& rhs);
+
+template < typename F >
+auto& invoke_all_members(F&& func, Vector2& lhs, const Vector2& rhs);
+
+template < typename F, typename T >
 auto& invoke_all_members(F&& func, SDL_Rect& lhs, const T& rhs);
 
 template < typename F >
@@ -29,37 +35,49 @@ auto& invoke_all_members(F&& func, SDL_Rect& lhs, const SDL_Point& rhs);
 SDL_Point& operator+= (SDL_Point& lhs, const SDL_Point& rhs);
 SDL_Rect&  operator+= (SDL_Rect& lhs , const SDL_Rect&  rhs);
 SDL_Rect&  operator+= (SDL_Rect& lhs , const SDL_Point& rhs);
+Vector2&   operator+= (Vector2& lhs  , const Vector2&   rhs);
 
 __attribute__((const)) SDL_Point operator+ (SDL_Point lhs, const SDL_Point& rhs);
 __attribute__((const)) SDL_Rect operator+ (SDL_Rect lhs, const SDL_Rect& rhs);
+__attribute__((const)) Vector2  operator+ (Vector2  lhs, const Vector2& rhs);
 
 SDL_Point& operator-= (SDL_Point& lhs, const SDL_Point& rhs);
 SDL_Rect&  operator-= (SDL_Rect& lhs , const SDL_Rect&  rhs);
 SDL_Rect&  operator-= (SDL_Rect& lhs , const SDL_Point& rhs);
+Vector2&   operator-= (Vector2& lhs  , const Vector2&   rhs);
 
 __attribute__((const)) SDL_Point operator- (SDL_Point lhs, const SDL_Point& rhs);
 __attribute__((const)) SDL_Rect  operator- (SDL_Rect lhs , const SDL_Rect&  rhs);
 __attribute__((const)) SDL_Rect  operator- (SDL_Rect lhs , const SDL_Point& rhs);
+__attribute__((const)) Vector2   operator- (Vector2  lhs , const Vector2&   rhs);
 
 template < typename T >
 SDL_Point& operator*= (SDL_Point& lhs, const T& rhs);
 template < typename T >
 SDL_Rect& operator*= (SDL_Rect& lhs, const T& rhs);
+template < typename T >
+Vector2&  operator*= (Vector2&  lhs, const T& rhs);
 
 template < typename T >
 __attribute__((const)) SDL_Point operator* (SDL_Point lhs, const T& rhs);
 template < typename T >
 __attribute__((const)) SDL_Rect operator* (SDL_Rect lhs, const T& rhs);
+template < typename T >
+__attribute__((const)) Vector2  operator* (Vector2  lhs, const T& rhs);
 
 template < typename T >
 SDL_Point& operator/= (SDL_Point& lhs, const T& rhs);
 template < typename T >
 SDL_Rect& operator/= (SDL_Rect& lhs, const T& rhs);
+template < typename T >
+Vector2&  operator/= (Vector2&  lhs, const T& rhs);
 
 template < typename T >
 __attribute__((const)) SDL_Point operator/ (SDL_Point lhs, const T& rhs);
 template < typename T >
 __attribute__((const)) SDL_Rect operator/ (SDL_Rect lhs, const T& rhs);
+template < typename T >
+__attribute__((const)) Vector2  operator/ (Vector2  lhs, const T& rhs);
 
 __attribute__((const)) SDL_Point getXY(const SDL_Rect& r);
 
