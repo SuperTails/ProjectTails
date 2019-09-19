@@ -21,13 +21,19 @@ SDL_Rect& operator+= (SDL_Rect& lhs, const SDL_Rect& rhs) {
 SDL_Rect& operator+= (SDL_Rect& lhs, const SDL_Point& rhs) {
 	return invoke_all_members([](auto& l, const auto& r) { return l += r; }, lhs, rhs);
 }
+Vector2&  operator+= (Vector2&  lhs, const Vector2& rhs) {
+	return invoke_all_members([](auto& l, const auto& r) { return l += r; }, lhs, rhs);
+}
 
-SDL_Point operator+ (SDL_Point lhs, const SDL_Point& rhs) {
-	return (lhs += rhs);
+#define OP_MACRO(TYPE, OP)                      \
+TYPE operator OP (TYPE lhs, const TYPE &rhs) { \
+	return (lhs OP##= rhs);                 \
 }
-SDL_Rect operator+ (SDL_Rect lhs, const SDL_Rect& rhs) {
-	return (lhs += rhs);
-}
+
+OP_MACRO(SDL_Point, +)
+OP_MACRO(SDL_Rect, +)
+OP_MACRO(Vector2, +)
+
 SDL_Rect operator+ (SDL_Rect lhs, const SDL_Point& rhs) {
 	return (lhs += rhs);
 }
@@ -41,17 +47,19 @@ SDL_Rect& operator-= (SDL_Rect& lhs, const SDL_Rect& rhs) {
 SDL_Rect& operator-= (SDL_Rect& lhs, const SDL_Point& rhs) {
 	return invoke_all_members([](auto& l, const auto& r) { return l -= r; }, lhs, rhs);
 }
-
-
-SDL_Point operator- (SDL_Point lhs, const SDL_Point& rhs) {
-	return (lhs -= rhs);
+Vector2&  operator-= (Vector2& lhs, const Vector2& rhs) {
+	return invoke_all_members([](auto& l, const auto& r) { return l -= r; }, lhs, rhs);
 }
-SDL_Rect operator- (SDL_Rect lhs, const SDL_Rect& rhs) {
-	return (lhs -= rhs);
-}
+
+OP_MACRO(SDL_Point, -)
+OP_MACRO(SDL_Rect, -)
+OP_MACRO(Vector2, -)
+
 SDL_Rect operator- (SDL_Rect lhs, const SDL_Point& rhs) {
 	return (lhs -= rhs);
 }
+
+#undef OP_MACRO
 
 SDL_Point getXY(const SDL_Rect& r) {
 	return { r.x, r.y };

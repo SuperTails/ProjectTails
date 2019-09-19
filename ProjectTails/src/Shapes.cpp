@@ -1,25 +1,5 @@
 #include "Shapes.h"
 
-Vector2& operator+=(Vector2& lhs, Vector2 rhs) {
-	lhs.x += rhs.x;
-	lhs.y += rhs.y;
-	return lhs;
-}
-
-Vector2& operator-=(Vector2& lhs, Vector2 rhs) {
-	lhs.x -= rhs.x;
-	lhs.y -= rhs.y;
-	return lhs;
-}
-
-Vector2  operator+ (Vector2 lhs, Vector2 rhs) {
-	return lhs += rhs;
-}
-
-Vector2  operator- (Vector2 lhs, Vector2 rhs) {
-	return lhs -= rhs;
-}
-
 Vector2::Vector2(double x_, double y_) :
 	x(x_),
 	y(y_)
