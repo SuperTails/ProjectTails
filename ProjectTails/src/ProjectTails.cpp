@@ -12,7 +12,6 @@
 #include "Player.h"
 #include "Camera.h"
 #include "Text.h"
-#include "Tests.h"
 #include "Ground.h"
 #include "DataReader.h"
 #include "Miscellaneous.h"
@@ -21,7 +20,6 @@
 #include "effectManager.h"
 #include "CollisionTile.h"
 #include "BlockEditor.h"
-#include <gtest/gtest.h>
 #include <unordered_map>
 #include <fstream>
 #include <algorithm>
@@ -49,9 +47,9 @@ std::vector< std::string_view >::const_iterator findArg(const std::vector< std::
 
 using namespace std::string_view_literals;
 
-const std::array< std::pair< std::string_view, bool* >, 4 > options{
+const std::array< std::pair< std::string_view, bool* >, 3 > options{
 	make_pair("-level"sv, &LevelEditor::levelEditing),
-	make_pair("-test"sv , &tests::doTests),
+	//make_pair("-test"sv , &tests::doTests),
 	make_pair("-debug"sv, &globalObjects::debug),
 	make_pair("-block"sv, &BlockEditor::editing),
 };
@@ -69,7 +67,6 @@ int main(int argc, char **argv ) {
 		"Usage: ProjectTails [option]\n"
 		"\tOptions:\n"
 		"\t\t-level   Run level editor\n"
-		"\t\t-test    Run tests\n"
 		"\t\t-debug   Run in debug mode\n"
 		"\t\t-block   Run block editor\n";
 		return 1;
@@ -79,14 +76,9 @@ int main(int argc, char **argv ) {
 		*option.second = findArg(args, option.first) != args.end();
 	}
 
-	if (tests::doTests) {
-		::testing::InitGoogleTest(&argc, argv);
-		return RUN_ALL_TESTS();
-	}
-
 	if (globalObjects::debug) {
 		if (BlockEditor::editing) {
-			std::cerr << "Options '-debug' and '-block' are incompatible!";
+			std::cerr << "Options '-debug' and '-block' are incompatible!\n";
 			return 1;
 		}
 

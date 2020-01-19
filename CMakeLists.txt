@@ -14,7 +14,7 @@ set(GCC_COVERAGE_COMPILE_FLAGS "-std=c++1z -march=native -mtune=native -fconcept
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 add_executable(ProjectTails ${SOURCES})
-target_link_libraries(${PROJECT_NAME} SDL2 SDL2_image SDL2_mixer stdc++fs gtest)
+target_link_libraries(${PROJECT_NAME} SDL2 SDL2_image SDL2_mixer stdc++fs)
 add_test(NAME testall COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ProjectTails -test)
 
 enable_testing()
