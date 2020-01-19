@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.5.1) 
 project(ProjectTails)
 
-file(GLOB SOURCES "ProjectTails/src/*.cpp")
+file(GLOB SOURCES "src/*.cpp")
 
-include_directories(${ProjectTails_SOURCE_DIR}/ProjectTails/include /usr/include/SDL2)
+include_directories(${ProjectTails_SOURCE_DIR}/include /usr/include/SDL2)
 
 set(CMAKE_BUILD_TYPE Debug)
 
